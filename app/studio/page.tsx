@@ -1,23 +1,16 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { PromptCard } from '@/components/studio/PromptCard';
+import { PromptCardV2 } from '@/components/studio/PromptCardV2';
 import { ReferenceZones, type ReferenceZonesValue } from '@/components/studio/ReferenceZones';
 import { ContextInjection, type ContextValue } from '@/components/studio/ContextInjection';
-import { SettingsPanel } from '@/components/studio/SettingsPanel';
 import { DirectorPlanModal } from '@/components/studio/DirectorPlanModal';
 import { JobResultModal } from '@/components/studio/JobResultModal';
 import { ModelShowcase } from '@/components/studio/ModelShowcase';
+import { Drawer } from '@/components/ui/Modal';
 import { useDirectorPlan, generateFromPlan, DIRECTOR_STAGE_LABELS_VN } from '@/lib/studio/use-director-plan';
 import { getModelConfig } from '@/lib/studio/model-config';
 import type { VideoModel, AspectRatio, AudioMode } from '@/lib/types/backend';
-import { Sparkles, AlertCircle, Loader2 } from 'lucide-react';
-
-const SUGGESTION_CHIPS = [
-  { label: '🛒 Review sản phẩm Shopee 30s', value: 'Video review sản phẩm 30s phong cách UGC TikTok, nữ Gen Z, golden hour, bàn make-up.' },
-  { label: '💄 Beauty unboxing 15s', value: 'Unboxing son lì matte 89k, close-up texture, vibe Gen Z confident, anamorphic 35mm.' },
-  { label: '📱 Tech demo 20s', value: 'Demo tính năng app trên iPhone 16 Pro, B-roll tay swipe, voice-over VN nam.' },
-  { label: '🍜 Food viral hook', value: 'Phở Việt Nam, slow-mo lift the noodles, steam, ASMR slurp, hook 2s đầu cực mạnh.' },
-];
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 export default function StudioPage() {
   // Form state
@@ -61,6 +54,10 @@ export default function StudioPage() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [isRendering, setIsRendering] = useState(false);
   const [showJobModal, setShowJobModal] = useState(false);
+  // V4 Sprint1 Task #7 — master board URL (set when user gens master board in PlanModal)
+  const [masterBoardUrl, setMasterBoardUrl] = useState<string | null>(null);
+  // Topview-style: references live in a drawer instead of always-visible 3-zone
+  const [showRefDrawer, setShowRefDrawer] = useState(false);
 
   const handleGeneratePlan = async () => {
     if (!brief.trim()) return;
@@ -96,6 +93,7 @@ export default function StudioPage() {
           aspect_ratio: aspect, resolution, num_shots: numShots,
         },
         use_llm_scene_gen: true,
+        master_board_url: masterBoardUrl,
       });
       setJobId(res.job_id);
       setShowPlanModal(false);
@@ -111,107 +109,112 @@ export default function StudioPage() {
 
   const cfg = useMemo(() => getModelConfig(model), [model]);
 
+  // Cost estimate — videos × duration + plan + audio
+  const estimatedCostUsd = useMemo(() => {
+    const videoCost = cfg.cost_per_second_usd * duration;
+    const audioCost = audioMode === 'dialogue_vo' ? 0.01 : audioMode === 'asmr_macro' ? 0.10 : 0;
+    return 0.04 + videoCost + audioCost;
+  }, [cfg.cost_per_second_usd, duration, audioMode]);
+
   return (
     <div className="min-h-full">
-      {/* Hero strip */}
-      <section className="px-5 md:px-10 pt-8 md:pt-10 pb-5 max-w-container mx-auto">
-        <div className="flex flex-col items-start gap-2">
-          <span className="chip">
-            <Sparkles size={11} className="text-accent-magenta" />
-            Director Agent V3 · Continuity Bible
-          </span>
-          <h1 className="h-section">
-            What do you want to <span className="text-gradient">create</span> today?
-          </h1>
-          <p className="text-sm text-text-muted">
-            Mô tả ý tưởng → AI dựng kế hoạch shot-by-shot → bạn duyệt → render thật.
-          </p>
-        </div>
+      {/* Hero — Topview style: tighter, bold one-line */}
+      <section className="px-5 md:px-10 pt-12 md:pt-16 pb-8 max-w-container mx-auto text-center">
+        <h1 className="text-4xl md:text-5xl lg:text-[56px] font-extrabold tracking-tight leading-tight">
+          Create Any Video, Just Tell Your <span className="text-gradient">Agent</span>
+        </h1>
+        <p className="text-sm text-text-muted mt-3 max-w-2xl mx-auto">
+          Mô tả ý tưởng → AI dựng kế hoạch shot-by-shot → render thật. Niche-agnostic, identity-locked, audio sync.
+        </p>
       </section>
 
-      {/* Featured models strip */}
-      <section className="px-5 md:px-10 pb-6 max-w-container mx-auto">
+      {/* Main compact input card — Topview Video Agent V2 style */}
+      <section className="px-5 md:px-10 pb-6 max-w-3xl mx-auto">
+        <PromptCardV2
+          brief={brief}
+          onBrief={setBrief}
+          referenceCount={referenceZones.images.length}
+          onOpenReferences={() => setShowRefDrawer(true)}
+          model={model}
+          onModel={setModel}
+          aspect={aspect}
+          onAspect={setAspect}
+          resolution={resolution}
+          onResolution={setResolution}
+          duration={duration}
+          onDuration={setDuration}
+          audioMode={audioMode}
+          onAudioMode={setAudioMode}
+          qualityScore={plan?.evaluation?.overall_score}
+          estimatedCostUsd={estimatedCostUsd}
+          onSubmit={handleGeneratePlan}
+          isLoading={isLoading}
+        />
+
+        {/* Live progress / error directly under input */}
+        {progress && isLoading && (
+          <div className="surface-2 rounded-card p-4 mt-4 flex items-center gap-3">
+            <Loader2 size={16} className="text-accent-magenta animate-spin shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-text">
+                {DIRECTOR_STAGE_LABELS_VN[progress.stage] || progress.stage}
+              </div>
+              {progress.message && (
+                <div className="text-xs text-text-subtle mt-0.5">{progress.message}</div>
+              )}
+            </div>
+            <span className="chip">{progress.status}</span>
+          </div>
+        )}
+        {error && (
+          <div className="surface-2 rounded-card p-4 mt-4 flex items-start gap-3 border-accent-orange/40">
+            <AlertCircle size={16} className="text-accent-orange shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <div className="text-sm font-semibold text-accent-orange">Plan failed</div>
+              <div className="text-xs text-text-muted mt-1 font-mono">{error}</div>
+              <button onClick={reset} className="btn-ghost mt-2">Reset</button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Featured models showcase — below input as inspiration */}
+      <section className="px-5 md:px-10 pb-8 max-w-container mx-auto">
+        <h3 className="text-[11px] uppercase tracking-wider text-text-subtle mb-3 px-1">Pick a tier</h3>
         <ModelShowcase onPick={setModel} />
       </section>
 
-      {/* Main canvas */}
-      <section className="px-5 md:px-10 pb-12 max-w-container mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
-          {/* LEFT — input flow */}
-          <div className="space-y-4 min-w-0">
-            <PromptCard
-              value={brief}
-              onChange={setBrief}
-              onSubmit={handleGeneratePlan}
-              isLoading={isLoading}
-              chips={SUGGESTION_CHIPS}
-            />
+      {/* Context injection — optional, collapsed */}
+      <section className="px-5 md:px-10 pb-12 max-w-3xl mx-auto">
+        <ContextInjection value={context} onChange={setContext} />
+      </section>
 
-            {/* Live progress */}
-            {progress && isLoading && (
-              <div className="surface-2 rounded-card p-4 flex items-center gap-3">
-                <Loader2 size={16} className="text-accent-magenta animate-spin shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-text">
-                    {DIRECTOR_STAGE_LABELS_VN[progress.stage] || progress.stage}
-                  </div>
-                  {progress.message && (
-                    <div className="text-xs text-text-subtle mt-0.5">{progress.message}</div>
-                  )}
-                </div>
-                <span className="chip">{progress.status}</span>
-              </div>
+      {/* References drawer — opens from "+ Reference" button */}
+      <Drawer
+        open={showRefDrawer}
+        onClose={() => setShowRefDrawer(false)}
+        title="References · Character / Product / Storyboard"
+        width="w-[min(95vw,720px)]"
+      >
+        <div className="p-5">
+          <p className="text-xs text-text-muted mb-4">
+            Upload 1-{cfg.max_references} ảnh. Phân vùng theo role — Director Agent dùng để khoá identity character + product + style xuyên shot.
+            {cfg.reference_hint_vn && (
+              <span className="block mt-2 text-accent-yellow/80">{cfg.reference_hint_vn}</span>
             )}
-
-            {error && (
-              <div className="surface-2 rounded-card p-4 flex items-start gap-3 border-accent-orange/40">
-                <AlertCircle size={16} className="text-accent-orange shrink-0 mt-0.5" />
-                <div>
-                  <div className="text-sm font-semibold text-accent-orange">Plan failed</div>
-                  <div className="text-xs text-text-muted mt-1 font-mono">{error}</div>
-                  <button onClick={reset} className="btn-ghost mt-2">Reset</button>
-                </div>
-              </div>
-            )}
-
-            {/* References */}
-            <div>
-              <div className="flex items-center justify-between mb-2 px-1">
-                <h3 className="text-[11px] uppercase tracking-wider text-text-subtle font-semibold">References</h3>
-                <span className="text-[11px] text-text-subtle">
-                  {referenceZones.images.length} / {cfg.max_references}
-                </span>
-              </div>
-              <ReferenceZones
-                value={referenceZones}
-                onChange={setReferenceZones}
-                maxRefs={cfg.max_references}
-              />
-            </div>
-
-            {/* Context Injection */}
-            <ContextInjection value={context} onChange={setContext} />
-          </div>
-
-          {/* RIGHT — sticky settings */}
-          <div className="lg:sticky lg:top-4 self-start">
-            <SettingsPanel
-              model={model}
-              onModel={setModel}
-              aspect={aspect}
-              onAspect={setAspect}
-              resolution={resolution}
-              onResolution={setResolution}
-              duration={duration}
-              onDuration={setDuration}
-              audioMode={audioMode}
-              onAudioMode={setAudioMode}
-              numShots={numShots}
-              onNumShots={setNumShots}
-            />
+          </p>
+          <ReferenceZones
+            value={referenceZones}
+            onChange={setReferenceZones}
+            maxRefs={cfg.max_references}
+          />
+          <div className="mt-5 flex justify-end">
+            <button onClick={() => setShowRefDrawer(false)} className="btn-cta">
+              Done · {referenceZones.images.length} refs
+            </button>
           </div>
         </div>
-      </section>
+      </Drawer>
 
       {/* Modals */}
       <DirectorPlanModal
@@ -231,6 +234,7 @@ export default function StudioPage() {
           setShowPlanModal(false);
           setShowJobModal(true);
         }}
+        onMasterBoardChange={setMasterBoardUrl}
       />
       <JobResultModal
         open={showJobModal}

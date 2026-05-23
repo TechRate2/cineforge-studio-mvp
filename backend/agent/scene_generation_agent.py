@@ -260,6 +260,18 @@ def _build_video_tags(video_urls: list[str]) -> str:
     return "Video references: " + ", ".join(parts) + "."
 
 
+def _model_spec_for_max_refs(model_key: str) -> int:
+    """Return max_references for a model_key, defaulting to 1 if unknown.
+
+    V4 Sprint1 Task #7 helper — used to decide if the master board can be
+    appended as an extra reference without displacing the primary character /
+    product refs.
+    """
+    from agent.model_specs import VIDEO_MODEL_SPECS as _SPECS
+    spec = _SPECS.get(model_key) or {}
+    return int(spec.get("max_references", 1) or 1)
+
+
 # ============================================================
 # Public entry — single shot
 # ============================================================
@@ -275,6 +287,7 @@ def generate_scene(
     is_last_shot: bool = False,
     driven_audio_url: Optional[str] = None,
     reference_videos: Optional[list[str]] = None,
+    master_board_url: Optional[str] = None,
 ) -> SceneRenderJob:
     """Build a `SceneRenderJob` for one shot.
 
@@ -297,6 +310,18 @@ def generate_scene(
         reference_videos:   Sprint5 C1 — Optional 0-3 video URLs for Seedance
                             2.0 (@video_N tags: camera movement / motion style /
                             shot pacing). Ignored by all other models.
+        master_board_url:   V4 Sprint1 Task #7 — Optional URL of the master
+                            storyboard board (ultra-wide canvas containing all
+                            12 panels). When supplied AND the model supports
+                            multiple references, appended to ref_urls as a
+                            GLOBAL style anchor — every shot inherits color
+                            grade + character DNA from the same canvas, which
+                            is the strongest identity-lock industry has found
+                            (AtlasCloud 9-Panel Anchor pattern). Silently
+                            skipped for i2v_chain (chain frame already carries
+                            identity) and single-ref models (Wan 2.7,
+                            Seedance 1.5 Pro) where it would displace the
+                            primary character ref.
     """
     reference_videos = reference_videos or []
 
@@ -314,6 +339,35 @@ def generate_scene(
     bound_refs_filtered: list[ReferenceAsset] = [
         r for r in bound_refs if 0 <= r.index < len(reference_images)
     ]
+
+    # V4 Sprint1 Task #7 — Inject master_board as a GLOBAL style reference
+    # for every non-chain shot that targets a multi-ref model.
+    # Skip for:
+    #   - i2v_chain shots (chain frame already carries identity)
+    #   - single-ref models (max_references==1) — board would displace primary ref
+    _max_refs = _model_spec_for_max_refs(model_key)
+    if (
+        master_board_url
+        and not is_chain
+        and _max_refs > 1
+        and master_board_url not in ref_urls
+        and len(ref_urls) < _max_refs
+    ):
+        # Append at the END so prepended character/product refs keep their
+        # array-index meaning (important for Vidu Q3 which binds positionally).
+        ref_urls.append(master_board_url)
+        # Build a synthetic ReferenceAsset entry so the LLM can role-tag it
+        bound_refs_filtered.append(ReferenceAsset(
+            index=len(reference_images),  # synthetic index past real refs
+            url=master_board_url,
+            role="style_reference",
+            apply_to_shots=[shot.shot_id],
+            notes="Master storyboard board — global style + character DNA anchor",
+        ))
+        logger.debug(
+            f"[SceneGen] {shot.shot_id} appended master_board → {len(ref_urls)} refs total"
+        )
+
     render_mode: RenderMode = (
         "i2v_chain" if is_chain
         else ("ref_to_video" if ref_urls else "t2v")

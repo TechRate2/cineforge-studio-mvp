@@ -319,6 +319,8 @@ export async function generateFromPlan(args: {
   audio_plan?: Record<string, unknown>;
   use_llm_scene_gen?: boolean;
   idempotencyKey?: string;
+  /** V4 Sprint1 Task #7 — pass master_board_url to inject as global style ref. */
+  master_board_url?: string | null;
 }): Promise<{ job_id: string; polling_url: string; estimated_duration_s: number; estimated_cost_usd: number }> {
   // Sprint3 B5 — Idempotency-Key header so double-click / network retry doesn't
   // spawn two render jobs (24h TTL on backend, matches Stripe convention).
@@ -336,6 +338,7 @@ export async function generateFromPlan(args: {
       settings: args.settings,
       audio_plan: args.audio_plan,
       use_llm_scene_gen: args.use_llm_scene_gen ?? true,
+      master_board_url: args.master_board_url ?? null,
     }),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);

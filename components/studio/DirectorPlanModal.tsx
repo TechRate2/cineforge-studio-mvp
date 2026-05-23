@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Check, AlertTriangle, Film, BookText, Gauge, Loader2, Sparkles, LayoutGrid, RotateCcw, Download } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import type { LucideIcon } from 'lucide-react';
@@ -17,6 +17,9 @@ interface Props {
   referenceImages?: string[];
   settings?: Record<string, unknown>;
   onRefineJobStarted?: (jobId: string) => void;
+  /** V4 Sprint1 Task #7 — notify parent when master board URL changes so it can
+   *  be passed to /generate as a global style ref for every shot. */
+  onMasterBoardChange?: (boardUrl: string | null) => void;
 }
 
 type Tab = 'bible' | 'shots' | 'board' | 'eval';
@@ -27,10 +30,16 @@ export function DirectorPlanModal({
   referenceImages = [],
   settings = {},
   onRefineJobStarted,
+  onMasterBoardChange,
 }: Props) {
   const [tab, setTab] = useState<Tab>('bible');
   const master = useMasterBoard();
   const refine = useRefineShot();
+
+  // Bubble master board URL up — parent passes to /generate for global style ref
+  useEffect(() => {
+    onMasterBoardChange?.(master.board?.board_url ?? null);
+  }, [master.board?.board_url, onMasterBoardChange]);
 
   return (
     <Modal

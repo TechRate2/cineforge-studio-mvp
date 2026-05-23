@@ -96,6 +96,7 @@ async def render_plan(
     use_llm_scene_gen: bool = True,
     cost_gate_mode: str = "off",
     cost_gate_threshold: float = 7.0,
+    master_board_url: Optional[str] = None,
 ) -> dict:
     """Render a full DirectorPlan → final MP4.
 
@@ -344,6 +345,7 @@ async def render_plan(
             resolution=resolution,
             is_last_shot=(i == total_shots - 1),
             driven_audio_url=driven_audio_url,
+            master_board_url=master_board_url,  # V4 Sprint1 Task #7
         )
 
         kwargs = job.to_atlas_kwargs()

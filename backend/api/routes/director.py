@@ -208,6 +208,14 @@ class GenerateRequest(BaseModel):
                     "then continue only if score ≥ cost_gate_threshold. "
                     "Saves 80-90% credits when a plan would fail.",
     )
+    master_board_url: Optional[str] = Field(
+        None,
+        description="V4 Sprint1 Task #7 — URL of master storyboard board "
+                    "(from POST /storyboard/master). When supplied, the worker "
+                    "appends it as a GLOBAL style reference to every shot's "
+                    "ref list — strongest identity-lock pattern (AtlasCloud "
+                    "9-Panel Anchor). Skipped on i2v_chain and single-ref models.",
+    )
     cost_gate_threshold: float = Field(
         7.0, ge=0, le=10,
         description="Pass threshold for cost_gate_mode='draft_first' (default 7.0/10).",
@@ -752,6 +760,7 @@ async def generate_video(
                 use_llm_scene_gen=request.use_llm_scene_gen,
                 cost_gate_mode=request.cost_gate_mode,
                 cost_gate_threshold=request.cost_gate_threshold,
+                master_board_url=request.master_board_url,
             )
         except Exception as e:
             logger.exception(f"[/director/generate] job {job_id} failed")
