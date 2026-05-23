@@ -84,5 +84,6 @@ def extract_last_frame_ffmpeg(video_path: str, output_path: str) -> str:
         "-y",
         output_path,
     ]
-    subprocess.run(cmd, check=True, capture_output=True)
+    # V4.10 AUDIT FIX — add timeout to prevent FFmpeg hang
+    subprocess.run(cmd, check=True, capture_output=True, timeout=60)
     return output_path

@@ -163,7 +163,9 @@ class AssembleWorker:
             "-y",
             output_path,
         ]
-        subprocess.run(cmd, check=True, capture_output=True)
+        # V4.10 AUDIT FIX — add timeout so hung FFmpeg doesn't block job forever.
+        # 300s covers concat of 15+ short clips at 1080p comfortably.
+        subprocess.run(cmd, check=True, capture_output=True, timeout=300)
 
     def _overlay_voiceover(
         self,
@@ -204,7 +206,7 @@ class AssembleWorker:
                 "-y",
                 output_path,
             ]
-        subprocess.run(cmd, check=True, capture_output=True)
+        subprocess.run(cmd, check=True, capture_output=True, timeout=300)
 
     def _overlay_sfx_and_bgm(
         self,
@@ -231,7 +233,7 @@ class AssembleWorker:
                 "-y",
                 output_path,
             ]
-            subprocess.run(cmd, check=True, capture_output=True)
+            subprocess.run(cmd, check=True, capture_output=True, timeout=300)
         else:
             shutil.copy(video_path, output_path)
 
@@ -259,7 +261,7 @@ class AssembleWorker:
             "-y",
             output_path,
         ]
-        subprocess.run(cmd, check=True, capture_output=True)
+        subprocess.run(cmd, check=True, capture_output=True, timeout=300)
 
     def _build_ass_subtitle(self, captions: list[dict]) -> str:
         """Build .ass subtitle file."""
@@ -301,4 +303,4 @@ Format: Layer, Start, End, Style, Text
             "-y",
             output_path,
         ]
-        subprocess.run(cmd, check=True, capture_output=True)
+        subprocess.run(cmd, check=True, capture_output=True, timeout=300)
