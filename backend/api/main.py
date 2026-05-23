@@ -92,7 +92,7 @@ app.add_middleware(
         "Content-Type",
         "Authorization",
         "X-Admin-Key",          # /admin/* auth (C1)
-        "Idempotency-Key",      # /jobs/ugc + /director/generate (M11)
+        "Idempotency-Key",      # /director/generate (M11)
         "Accept",
         "Accept-Language",
         "X-Requested-With",
@@ -100,14 +100,13 @@ app.add_middleware(
 )
 
 
-# Import routes — V3 canonical flow lives under /api/v1/director/*
-# Legacy /jobs/* render endpoints kept for the existing Studio V4 modal until FE swap completes.
+# Import routes — V3 (Director Agent V4 storytelling layer)
 from api.routes import (  # noqa: E402
-    jobs, avatars, video_direct, image_direct, media_upload,
+    avatars, video_direct, image_direct, media_upload,
     audio_direct, llm_direct, director, assets, admin,
 )
 
-# V3 — Director Agent (Continuity Bible + Shot List + Reference Chaining)
+# V3 — Director Agent (Continuity Bible + Shot List + Reference Chaining + Storytelling V4)
 app.include_router(director.router, prefix="/api/v1/director", tags=["director-v3"])
 
 # Asset Library — reusable Character / Product / Storyboard refs
@@ -123,10 +122,6 @@ app.include_router(image_direct.router, prefix="/api/v1/image/direct", tags=["im
 app.include_router(audio_direct.router, prefix="/api/v1/audio/direct", tags=["audio-direct"])
 app.include_router(media_upload.router, prefix="/api/v1", tags=["media-upload"])
 app.include_router(llm_direct.router, prefix="/api/v1/llm", tags=["llm"])
-
-# Legacy render queue (kept for Studio V4 SceneEditor — will be removed once FE moves to /director/generate)
-app.include_router(jobs.router, prefix="/api/v1/jobs", tags=["jobs-legacy"])
-
 
 @app.get("/")
 async def root():
