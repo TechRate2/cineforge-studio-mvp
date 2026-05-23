@@ -102,7 +102,7 @@ app.add_middleware(
 
 # Import routes — V3 (Director Agent V4 storytelling layer)
 from api.routes import (  # noqa: E402
-    avatars, video_direct, image_direct, media_upload,
+    video_direct, image_direct, media_upload,
     audio_direct, llm_direct, director, assets, admin,
 )
 
@@ -116,7 +116,6 @@ app.include_router(assets.router, prefix="/api/v1/assets", tags=["assets"])
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
 
 # Direct vendor calls (used by manual playground + by Director storyboard/audio fill)
-app.include_router(avatars.router, prefix="/api/v1/avatars", tags=["avatars"])
 app.include_router(video_direct.router, prefix="/api/v1/video/direct", tags=["video-direct"])
 app.include_router(image_direct.router, prefix="/api/v1/image/direct", tags=["image-direct"])
 app.include_router(audio_direct.router, prefix="/api/v1/audio/direct", tags=["audio-direct"])
