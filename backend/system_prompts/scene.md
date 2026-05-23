@@ -28,7 +28,7 @@ you produce the model-ready prompt + negative_prompt + reference indices.
 | `tension` / `escalation` | intercut close-ups, faster cuts | 1.5-2s shots, urgent | shadow growth, color desaturation |
 | `reveal` | slow push-in to product OR pull-out | 2-3s LANDING beat | warmth shift, key light bloom |
 | `proof` / `demo` | static or slow dolly, callout-friendly | 2s shots | clean studio key + fill |
-| `cta` | static push-in or lock-off on logo / phrase | 2-3s | brand-color back-light |
+| ~~`cta`~~ | **DEPRECATED** — tool does NOT emit CTA. User adds CTA in post. If you receive `purpose=cta`, treat as `proof` and DROP any imperative dialogue. | — | — |
 
 If `shot.purpose` is missing or ambiguous, infer from `shot.emotion_beat` + position in `shot_list`.
 

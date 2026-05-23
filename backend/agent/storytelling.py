@@ -139,42 +139,67 @@ class Beat:
     start_s: float
     end_s: float
     intent: str
-    shot_count_hint: int
+    min_shots: int      # 0 = phase can be skipped (optional)
+    max_shots: int      # cap to prevent over-shooting on simple briefs
+    required: bool      # if True, validator flags MISSING_<PHASE>
 
 
 def beat_sheet_for(duration_s: int) -> list[Beat]:
     """Return beat list scaled to total duration. Niche-agnostic.
 
-    15s  → 4 phases compressed (HOOK / SETUP+PAIN merged / REVEAL+PROOF merged / CTA)
-    30s  → 5 phases (HOOK / PAIN / TENSION / REVEAL+PROOF / CTA)
-    60s  → 6 phases full arc (HOOK / SETUP / PAIN / TENSION / REVEAL / PROOF / CTA)
+    V4 flexibility update (per user request):
+      - Each phase now has shot_count RANGE (min..max) instead of fixed hint
+      - Phases mark themselves required vs optional
+      - **CTA phase REMOVED** — user adds call-to-action in post-production.
+        Tool must NOT emit CTA frames or imperative-verb dialogue.
+      - HOOK is always required (universal hook law)
+      - At least one of {REVEAL, PROOF} required when products present
+        (validator handles this conditionally)
+
+    Niche examples now supported:
+      - Music video 15s → 8 fast-cut HOOK shots, skip PAIN
+      - Drama monologue 15s → 1 HOOK + 1 long REVEAL (2 shots total)
+      - Product demo 15s → HOOK + PAIN + REVEAL + PROOF (4 shots, no CTA)
+      - Faceless ASMR 15s → HOOK + PROOF only (2 shots, no character)
     """
     if duration_s <= 15:
         return [
-            Beat("HOOK", 0.0, 2.0, "Pattern interrupt, no product, no logo", 1),
-            Beat("PAIN", 2.0, 5.0, "Show problem viewer recognizes", 1),
-            Beat("REVEAL", 5.0, 9.0, "Product appears as the resolution", 1),
-            Beat("PROOF", 9.0, 12.5, "Feature demonstrated via action (not text)", 1),
-            Beat("CTA", 12.5, float(duration_s), "Explicit verb (Shop / Try / Link)", 1),
+            Beat("HOOK",   0.0,  2.5,  "Pattern interrupt, no product, no logo",
+                 min_shots=1, max_shots=3, required=True),
+            Beat("PAIN",   2.5,  6.0,  "Show problem viewer recognizes (skip if not problem-solution arc)",
+                 min_shots=0, max_shots=2, required=False),
+            Beat("REVEAL", 6.0,  10.0, "Product appears as the resolution",
+                 min_shots=0, max_shots=3, required=False),
+            Beat("PROOF",  10.0, float(duration_s), "Feature demonstrated via action (not text overlay)",
+                 min_shots=0, max_shots=3, required=False),
         ]
     if duration_s <= 30:
         return [
-            Beat("HOOK", 0.0, 2.0, "Pattern interrupt — single hard cut", 1),
-            Beat("PAIN", 2.0, 6.0, "Establish character + recognizable problem", 1),
-            Beat("TENSION", 6.0, 12.0, "Stakes rise — faster pacing, close-up intercuts", 2),
-            Beat("REVEAL", 12.0, 20.0, "Product as answer; slow push-in to land beat", 1),
-            Beat("PROOF", 20.0, float(max(duration_s - 3, 21)), "Demo via action, callouts allowed", 2),
-            Beat("CTA", float(max(duration_s - 3, 27)), float(duration_s), "Static or push-in, explicit verb", 1),
+            Beat("HOOK",    0.0,  3.0,  "Pattern interrupt — single hard cut OR fast 2-3 cut combo",
+                 min_shots=1, max_shots=3, required=True),
+            Beat("PAIN",    3.0,  8.0,  "Establish character + recognizable problem",
+                 min_shots=0, max_shots=3, required=False),
+            Beat("TENSION", 8.0,  15.0, "Stakes rise — faster pacing, close-up intercuts",
+                 min_shots=0, max_shots=4, required=False),
+            Beat("REVEAL",  15.0, 22.0, "Product as answer; slow push-in to land beat",
+                 min_shots=0, max_shots=3, required=False),
+            Beat("PROOF",   22.0, float(duration_s), "Demo via action, callouts allowed",
+                 min_shots=0, max_shots=4, required=False),
         ]
     # 60s and longer
     return [
-        Beat("HOOK", 0.0, 2.5, "Pattern interrupt, max impact", 1),
-        Beat("SETUP", 2.5, 7.0, "World + character introduced", 1),
-        Beat("PAIN", 7.0, 14.0, "Problem dramatized with stakes", 2),
-        Beat("TENSION", 14.0, 24.0, "Escalation — rising panels, intercuts", 3),
-        Beat("REVEAL", 24.0, 36.0, "Product as solution, lighting shift warm", 2),
-        Beat("PROOF", 36.0, float(max(duration_s - 5, 50)), "Multi-feature demo, testimonial allowed", 3),
-        Beat("CTA", float(max(duration_s - 5, 55)), float(duration_s), "Explicit verb + offer if real", 1),
+        Beat("HOOK",    0.0,  3.0,  "Pattern interrupt, max impact",
+             min_shots=1, max_shots=3, required=True),
+        Beat("SETUP",   3.0,  9.0,  "World + character introduced",
+             min_shots=0, max_shots=4, required=False),
+        Beat("PAIN",    9.0,  18.0, "Problem dramatized with stakes",
+             min_shots=0, max_shots=5, required=False),
+        Beat("TENSION", 18.0, 30.0, "Escalation — rising panels, intercuts",
+             min_shots=0, max_shots=6, required=False),
+        Beat("REVEAL",  30.0, 42.0, "Product as solution OR climactic moment",
+             min_shots=0, max_shots=4, required=False),
+        Beat("PROOF",   42.0, float(duration_s), "Multi-feature demo, testimonial allowed",
+             min_shots=0, max_shots=8, required=False),
     ]
 
 
@@ -306,8 +331,10 @@ def validate_plan(plan_dict: dict) -> list[ValidationIssue]:
             message=f"Shot durations sum to {sum_s:.1f}s, target {duration:.1f}s (tolerance ±2s)",
         ))
 
-    # Rule 5 — beat sheet coverage: HOOK is mandatory; CTA is mandatory; REVEAL
-    # is inferred from product_ids appearing somewhere downstream.
+    # Rule 5 — beat sheet coverage (V4 flexibility update):
+    #   HOOK is mandatory universally.
+    #   At least one of {REVEAL, PROOF, DEMO} required IF products are bound to any shot.
+    #   CTA is now PROHIBITED (user request) — flag it as a violation.
     purposes_lower = {(s.get("purpose") or "").lower() for s in shots}
     if "hook" not in purposes_lower:
         issues.append(ValidationIssue(
@@ -315,11 +342,54 @@ def validate_plan(plan_dict: dict) -> list[ValidationIssue]:
             severity="error",
             message="No shot has purpose=hook — first beat must be HOOK (pattern interrupt)",
         ))
-    if "cta" not in purposes_lower:
+
+    has_any_product_binding = any(
+        (s.get("continuity", {}).get("product_ids") or [])
+        for s in shots
+    )
+    if has_any_product_binding and not (purposes_lower & {"reveal", "proof", "demo"}):
         issues.append(ValidationIssue(
-            code="MISSING_CTA",
+            code="MISSING_REVEAL",
             severity="warning",
-            message="No shot has purpose=cta — final beat should be CTA with explicit imperative verb",
+            message="Products bound to shots but no shot has purpose=reveal/proof/demo — "
+                    "product needs a dedicated showcase beat",
+        ))
+
+    # CTA prohibition — V4 user policy: tool must NOT render CTA frames.
+    # User adds CTA in post (CapCut/manual) to retain creative control.
+    cta_shots = [
+        s.get("shot_id") for s in shots
+        if (s.get("purpose") or "").lower() == "cta"
+    ]
+    if cta_shots:
+        issues.append(ValidationIssue(
+            code="CTA_INCLUDED",
+            severity="error",
+            message=(
+                f"Shot(s) {cta_shots} have purpose=cta. CineForge does NOT emit CTA "
+                f"frames — user adds CTA in post-production. Rewrite as proof/demo/reveal."
+            ),
+        ))
+
+    # Also catch dialogue or caption containing CTA imperative verbs in English/Vietnamese.
+    CTA_VERBS = {
+        "shop now", "buy now", "order now", "link in bio", "click here", "swipe up",
+        "mua ngay", "đặt ngay", "link giỏ hàng", "bio", "click", "swipe", "đăng ký ngay",
+    }
+    cta_lines: list[str] = []
+    for s in shots:
+        for fld in ("dialogue_vn", "caption_on_screen"):
+            txt = ((s.get("audio") or {}).get(fld) or "").lower()
+            if any(v in txt for v in CTA_VERBS):
+                cta_lines.append(f"{s.get('shot_id')}.{fld}")
+    if cta_lines:
+        issues.append(ValidationIssue(
+            code="CTA_DIALOGUE",
+            severity="warning",
+            message=(
+                f"Shot(s) {cta_lines} contain CTA imperative verbs. "
+                f"Strip or rewrite — tool does NOT add CTA voice/text."
+            ),
         ))
 
     # Rule 6 — face anchor consistency
@@ -347,13 +417,32 @@ def hook_patterns_block() -> str:
 
 
 def beat_sheet_block(duration_s: int) -> str:
-    """Compact beat-sheet for LLM prompt — Director fills slots, doesn't pick structure."""
+    """Compact beat-sheet for LLM prompt — flexible ranges, phases optional.
+
+    V4 update: Each phase shows shot_count RANGE so the LLM tailors structure
+    to the brief instead of forcing a fixed 5-shot template. Required phases
+    are marked. CTA is NOT in the sheet — tool does not emit CTA.
+    """
     beats = beat_sheet_for(duration_s)
-    lines = [f"BEAT SHEET (duration={duration_s}s, fill but don't restructure):"]
+    lines = [
+        f"BEAT SHEET (duration={duration_s}s, FLEXIBLE — adapt to brief, don't force every phase):",
+    ]
     for b in beats:
+        flag = "REQUIRED" if b.required else "optional"
+        if b.min_shots == b.max_shots:
+            count = f"{b.min_shots} shot"
+        elif b.min_shots == 0:
+            count = f"0-{b.max_shots} shots (skip if brief doesn't need it)"
+        else:
+            count = f"{b.min_shots}-{b.max_shots} shots"
         lines.append(
-            f"- {b.phase} [{b.start_s:g}-{b.end_s:g}s] — {b.intent} (~{b.shot_count_hint} shot)"
+            f"- {b.phase} [{b.start_s:g}-{b.end_s:g}s] · {flag} · {count} — {b.intent}"
         )
+    lines.append(
+        "Pick structure that fits the brief — music video can stack HOOK fast cuts; "
+        "drama monologue can have 1 long REVEAL; product demo skips PAIN if not needed. "
+        "NO CTA PHASE — user adds call-to-action in post-production."
+    )
     return "\n".join(lines)
 
 
@@ -366,7 +455,11 @@ HARD RULES (auto-validated, violation = re-plan):
 - Each cut changes AT LEAST one of {camera_shot, camera_movement} from previous shot (double-contrast).
 - Sum of shot durations must match target_duration_s (±2s tolerance).
 - Primary character MUST have non-empty face_signature (visual DNA lock).
-- CTA shot must contain explicit imperative verb (Shop / Try / Order / Link in bio / Click).
+- **NO CTA RENDERING** — tool does NOT emit CTA frames. NEVER use purpose="cta".
+  NEVER include sales imperatives in dialogue_vn or caption_on_screen ("Shop now",
+  "Mua ngay", "Link in bio", "Đặt ngay", "Click", "Swipe up", "Đăng ký ngay").
+  User adds CTA themselves in post-production (CapCut/etc). Final shot should be
+  a strong PROOF / REVEAL beat, NOT a sales pitch.
 - No age indicators in character description — use functional descriptors ("photorealistic figure").
 - Complex camera motion only on wide/medium shots; close-ups stay static or simple push-in."""
 
