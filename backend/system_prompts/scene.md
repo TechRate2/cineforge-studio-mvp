@@ -173,9 +173,16 @@ Never use age numbers in prompts ("28-year-old woman"). Use functional descripto
   "model_format_hint": "multi_shot_inline | time_coded | i2v_motion | single_descriptive | multi_ref_tagged",
   "last_frame_url":    null,        // or url string when chaining
   "reference_images":  ["url0", ...],
-  "reference_videos":  ["vurl0", ...]  // 0-3, Seedance 2.0 only
+  "reference_videos":  ["vurl0", ...],  // 0-3, Seedance 2.0 only
+  "beat_intent":       "PATTERN INTERRUPT beat — extreme/anomaly camera, ..."  // pre-resolved from shot.purpose
 }
 ```
+
+**`beat_intent`** is a precomputed phrase telling you exactly what mood this
+shot's beat phase requires (HOOK / PAIN / REVEAL / PROOF / CTA / TENSION /
+TRANSITION). Lean on it when picking camera/lighting verbs — it is the same
+mapping as the §1 DRAMA-BEAT AWARENESS table, just resolved for you. If
+present and non-null, prefer it over re-inferring from `shot.purpose`.
 
 ---
 

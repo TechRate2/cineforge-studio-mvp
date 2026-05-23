@@ -66,6 +66,13 @@ export interface ReferenceAsset {
   notes: string;
 }
 
+export interface StorytellingMeta {
+  hook_pattern?: string;
+  beat_coverage?: string[];
+  product_first_appearance_s?: number;
+  primary_emotion_arc?: string;
+}
+
 export interface ContinuityBible {
   title: string;
   logline: string;
@@ -80,6 +87,8 @@ export interface ContinuityBible {
   constraints: { must_have: string[]; must_avoid: string[]; brand_safety: string[] };
   reference_assets: ReferenceAsset[];
   director_notes: string;
+  /** V4 — set by Director Agent V4 when it picks a hook pattern + beat sheet. */
+  storytelling_meta?: StorytellingMeta | null;
 }
 
 export interface Shot {
@@ -113,6 +122,8 @@ export interface Shot {
     style_anchor: string;
   };
   model_routing: { preferred_model: string; reasoning: string };
+  /** V4 — Director's timestamped beat: "0:00-0:02 Hard cut to MCU handheld..." */
+  dynamic_description?: string | null;
 }
 
 export interface StoryboardFrame {

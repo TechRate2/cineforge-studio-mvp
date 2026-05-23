@@ -539,9 +539,18 @@ async def gen_master_storyboard(request: MasterBoardRequest) -> MasterBoardRespo
     every Seedance shot render downstream → global identity anchoring.
 
     Cost: ~$0.036 (Seedream) or ~$0.084 (Nano Banana Pro) per board.
+
+    AUDIT FIX H1: previously called `atlas_client.generate_image()` which hits
+    `/model/generateImage` — but per `image_specs.py`, Seedream actually uses
+    `/model/generateVideo` + polls `/model/result`. We now mirror the
+    image_direct.py pattern: build_image_payload + custom POST + correct
+    poll_path per spec.
     """
     import time
-    from vendors.atlascloud import atlas_client
+    from vendors.atlascloud import atlas_client, _unwrap
+    from agent.image_specs import (
+        IMAGE_MODEL_SPECS, build_image_payload, estimate_image_cost,
+    )
     from agent.storyboard_board import (
         build_master_board_prompt, board_size_for_aspect,
     )
@@ -553,28 +562,72 @@ async def gen_master_storyboard(request: MasterBoardRequest) -> MasterBoardRespo
     prompt = build_master_board_prompt(plan)
     size = board_size_for_aspect(plan.continuity_bible.aspect_ratio)
 
-    try:
-        res = await asyncio.to_thread(
-            atlas_client.generate_image,
-            prompt=prompt,
-            model=request.image_model,
-            size=size,
-            n=1,
+    # Resolve model_key — accept short keys ("seedream_v45") OR full endpoint
+    # ("bytedance/seedream-v4.5"). Default Seedream v4.5.
+    short_to_key = {
+        "bytedance/seedream-v4.5": "seedream_v45",
+        "google/nano-banana-pro/text-to-image": "nano_banana_pro_t2i",
+        "google/nano-banana-2/text-to-image": "nano_banana_2_t2i",
+    }
+    model_key = short_to_key.get(request.image_model, request.image_model)
+    if model_key not in IMAGE_MODEL_SPECS:
+        raise HTTPException(
+            400,
+            f"image_model '{request.image_model}' không support. "
+            f"Available: {list(short_to_key.keys())}",
         )
+    spec = IMAGE_MODEL_SPECS[model_key]
+
+    # Build per-model payload — Seedream uses `size`, Nano Banana uses
+    # aspect_ratio+resolution. board_size_for_aspect returns Seedream-style
+    # "WxH" — for Nano Banana we fall back to 4K + matching aspect.
+    try:
+        if spec.get("size"):
+            payload = build_image_payload(
+                model_key=model_key, prompt=prompt, size=size, n=1,
+            )
+        else:
+            ar = plan.continuity_bible.aspect_ratio
+            if ar not in (spec.get("aspect_ratio", {}) or {}).get("options", []):
+                ar = "16:9"
+            payload = build_image_payload(
+                model_key=model_key, prompt=prompt,
+                aspect_ratio=ar, resolution="4k",
+            )
+    except ValueError as e:
+        raise HTTPException(400, f"Master board payload invalid: {e}") from e
+
+    submit_path = spec.get("submit_path", "/model/generateImage")
+    poll_path = spec.get("poll_path", "/model/prediction")
+
+    # Submit + poll using the per-model paths
+    try:
+        resp = await asyncio.to_thread(
+            atlas_client.client.post,
+            f"{atlas_client.base_url}{submit_path}",
+            json=payload,
+        )
+        resp.raise_for_status()
+        body = _unwrap(resp.json())
+        prediction_id = body.get("id") or body.get("prediction_id") or body.get("request_id")
+        if not prediction_id:
+            raise HTTPException(502, f"AtlasCloud submit no prediction_id. Body: {body}")
+        result = await asyncio.to_thread(
+            atlas_client._poll_prediction,
+            prediction_id, 3, 180, poll_path,
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"[master_board] gen fail: {e}")
         raise HTTPException(502, f"Master board gen failed: {e}") from e
 
-    board_url = res.get("url") or res.get("image_url") or ""
+    outputs = result.get("outputs") or []
+    board_url = (outputs[0] if outputs else result.get("output_url") or result.get("url") or "")
     if not board_url:
-        raise HTTPException(502, f"Image model returned no URL: {res}")
+        raise HTTPException(502, f"Image model returned no URL. result={result}")
 
-    cost_map = {
-        "bytedance/seedream-v4.5": 0.036,
-        "google/nano-banana-pro/text-to-image": 0.084,
-        "google/nano-banana-2/text-to-image": 0.048,
-    }
-    cost = cost_map.get(request.image_model, 0.05)
+    cost = estimate_image_cost(model_key, 1)
 
     return MasterBoardResponse(
         plan_id=plan.plan_id,

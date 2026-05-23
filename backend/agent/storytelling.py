@@ -295,16 +295,20 @@ def validate_plan(plan_dict: dict) -> list[ValidationIssue]:
             message=f"Shot durations sum to {sum_s:.1f}s, target {duration:.1f}s (tolerance ±2s)",
         ))
 
-    # Rule 5 — beat sheet coverage hint
-    beat_phases = {b.phase for b in beat_sheet_for(int(duration))}
-    purposes = {(s.get("purpose") or "").upper() for s in shots}
-    expected = {"HOOK", "CTA"}  # absolute musts
-    missing = expected - purposes - {"REVEAL"}  # REVEAL inferred from product_ids
-    if "HOOK" not in purposes and not any("hook" in (s.get("purpose") or "").lower() for s in shots):
+    # Rule 5 — beat sheet coverage: HOOK is mandatory; CTA is mandatory; REVEAL
+    # is inferred from product_ids appearing somewhere downstream.
+    purposes_lower = {(s.get("purpose") or "").lower() for s in shots}
+    if "hook" not in purposes_lower:
         issues.append(ValidationIssue(
             code="MISSING_HOOK",
             severity="error",
             message="No shot has purpose=hook — first beat must be HOOK (pattern interrupt)",
+        ))
+    if "cta" not in purposes_lower:
+        issues.append(ValidationIssue(
+            code="MISSING_CTA",
+            severity="warning",
+            message="No shot has purpose=cta — final beat should be CTA with explicit imperative verb",
         ))
 
     # Rule 6 — face anchor consistency

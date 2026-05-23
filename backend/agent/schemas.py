@@ -124,6 +124,11 @@ class ContinuityBible(BaseModel):
     # Free-form notes Director Agent muốn truyền cho Scene Gen / Eval
     director_notes: str = ""
 
+    # V4 — storytelling layer metadata. Optional dict so older plans without
+    # this still validate. Director Agent V4 fills with:
+    #   {hook_pattern, beat_coverage[], product_first_appearance_s, primary_emotion_arc}
+    storytelling_meta: Optional[dict] = None
+
 
 # ============================================================
 # SHOT LIST
@@ -180,13 +185,26 @@ class Shot(BaseModel):
     index: int = Field(..., ge=0)
     start_s: float
     end_s: float
-    duration_s: int = Field(..., ge=2, le=20)
+    # AUDIT FIX M3 — relaxed lower bound 2 → 1 to allow 1-second hook shots
+    # (storytelling beat sheet allows 0-2s HOOK; rounding to 1 is valid).
+    duration_s: int = Field(..., ge=1, le=20)
 
     purpose: str = Field(..., description="hook / problem / solution / proof / cta / transition / ...")
     emotion_beat: str = ""
 
     visual: ShotVisual
     audio: ShotAudio
+
+    # V4 — Director Agent's per-shot timestamped beat description, used by
+    # Scene Gen as canonical "DYNAMIC DESCRIPTION" content. Optional so V3
+    # plans without this still validate.
+    dynamic_description: Optional[str] = Field(
+        None,
+        description=(
+            "V4 — Director's `0:00-0:02 Hard cut to MCU handheld, ...` "
+            "Seedance-style beat. Scene Gen layers this into [DYNAMIC] section."
+        ),
+    )
     continuity: ShotContinuity
     model_routing: ShotModelRouting = Field(default_factory=ShotModelRouting)
 
