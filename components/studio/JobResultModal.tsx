@@ -1,161 +1,131 @@
 'use client';
+import { Modal } from '@/components/ui/Modal';
+import { Download, AlertTriangle, Loader2, Sparkles, RotateCcw } from 'lucide-react';
+import { useDirectorJobPoll } from '@/lib/studio/use-director-job-poll';
 
-import { X, Download, Loader2, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
-import type { JobStatus } from '@/lib/types/backend';
-
-interface JobResultModalProps {
-  status: JobStatus | null;
-  error: string | null;
+interface Props {
+  open: boolean;
+  jobId: string | null;
   onClose: () => void;
-  onCancel: () => void;
+  onRetry?: () => void;
 }
 
-const STEP_LABELS_VN: Record<string, string> = {
-  pending: 'Đang khởi tạo...',
-  scraping: 'Đang đọc thông tin sản phẩm...',
-  analyzing: 'AI đang phân tích sản phẩm + nhân vật...',
-  generating: 'AI viết kịch bản + prompt video...',
-  rendering: 'Đang render video (mất 1-3 phút)...',
-  voicing: 'Đang lồng tiếng Việt...',
-  sfx: 'Đang tạo hiệu ứng âm thanh ASMR...',
-  assembling: 'Đang ghép video + audio + caption...',
-  uploading: 'Đang upload kết quả...',
-  done: 'Hoàn tất!',
-  failed: 'Đã xảy ra lỗi',
+const STAGE_LABELS_VN: Record<string, string> = {
+  pending: 'Đang vào hàng đợi...',
+  planning: 'Build prompt từ Continuity Bible...',
+  rendering: 'Đang gen từng shot trên AtlasCloud...',
+  assembling: 'FFmpeg ghép clip + dán audio...',
+  uploading: 'Upload lên storage...',
+  done: 'Hoàn tất',
+  failed: 'Lỗi',
+  cancelled: 'Đã huỷ',
 };
 
-export function JobResultModal({ status, error, onClose, onCancel }: JobResultModalProps) {
-  if (!status && !error) return null;
-
-  const isDone = status?.status === 'done';
-  const isFailed = status?.status === 'failed' || error;
+export function JobResultModal({ open, jobId, onClose, onRetry }: Props) {
+  const { job, error } = useDirectorJobPoll(jobId);
+  const status = job?.status ?? 'pending';
+  const progress = job?.progress ?? 0;
+  const isDone = status === 'done';
+  const isFailed = status === 'failed' || status === 'cancelled';
   const isWorking = !isDone && !isFailed;
+  const videoUrl = (job?.output_url || job?.output_path || '') as string;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur p-4">
-      <div className="relative w-full max-w-md rounded-2xl bg-gradient-to-br from-[#1a0610] to-[#0a0507] border border-rose-900/40 shadow-2xl shadow-rose-900/30 overflow-hidden">
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 z-10 p-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/10 transition"
-          aria-label="Đóng"
-        >
-          <X className="w-4 h-4" />
-        </button>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={isDone ? 'Render hoàn tất' : 'Đang render video'}
+      subtitle={jobId ? `Job ${jobId}` : undefined}
+      maxWidth="max-w-3xl"
+    >
+      <div className="p-6 md:p-8 space-y-6">
+        {/* Status section */}
+        {isWorking && (
+          <div className="surface-2 rounded-card p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <Loader2 size={18} className="text-accent-magenta animate-spin" />
+              <div>
+                <div className="text-sm font-semibold">{STAGE_LABELS_VN[status] || status}</div>
+                {job?.current_step && (
+                  <div className="text-xs text-text-subtle mt-0.5">{job.current_step}</div>
+                )}
+              </div>
+              <div className="ml-auto text-xs text-text-muted">{progress}%</div>
+            </div>
+            <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden">
+              <div
+                className="h-full bg-cta-gradient transition-all duration-500"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-text-subtle mt-3 leading-relaxed">
+              Render thật ~2-5 phút cho 15s video. Anh có thể đóng modal, job vẫn chạy nền —
+              vào tab History xem kết quả khi xong.
+            </p>
+          </div>
+        )}
 
-        {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-white/5">
-          <div className="flex items-center gap-3">
-            {isWorking && (
-              <div className="w-10 h-10 rounded-full bg-rose-500/20 flex items-center justify-center">
-                <Loader2 className="w-5 h-5 text-rose-300 animate-spin" />
-              </div>
-            )}
-            {isDone && (
-              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5 text-emerald-300" />
-              </div>
-            )}
-            {isFailed && (
-              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
-                <AlertCircle className="w-5 h-5 text-red-300" />
-              </div>
-            )}
-            <div>
-              <div className="text-xs uppercase tracking-widest text-rose-300/70 font-medium">
-                {isDone ? 'Video sẵn sàng' : isFailed ? 'Lỗi' : 'Đang tạo video UGC'}
-              </div>
-              <div className="text-sm text-white/90 font-medium mt-0.5">
-                {error || STEP_LABELS_VN[status?.status || 'pending'] || status?.current_step}
+        {/* Error */}
+        {isFailed && (
+          <div className="surface-2 rounded-card p-5 border-accent-orange/40">
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={18} className="text-accent-orange shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <div className="text-sm font-semibold text-accent-orange">
+                  {STAGE_LABELS_VN[status]}
+                </div>
+                {job?.error_message && (
+                  <p className="text-xs text-text-muted mt-2 leading-relaxed font-mono">
+                    {job.error_message}
+                  </p>
+                )}
+                {error && (
+                  <p className="text-xs text-text-subtle mt-2">{error}</p>
+                )}
+                {onRetry && (
+                  <button onClick={onRetry} className="btn-outline mt-4">
+                    <RotateCcw size={14} /> Thử lại
+                  </button>
+                )}
               </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Body */}
-        <div className="px-6 py-5">
-          {isWorking && status && (
-            <>
-              {/* Progress bar */}
-              <div className="mb-4">
-                <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-[11px] text-white/50">Tiến độ</span>
-                  <span className="text-[11px] text-rose-300 font-bold">{status.progress}%</span>
-                </div>
-                <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-rose-500 to-pink-500 transition-all duration-500"
-                    style={{ width: `${status.progress}%` }}
-                  />
-                </div>
+        {/* Done — video player */}
+        {isDone && videoUrl && (
+          <>
+            <div className="relative rounded-card overflow-hidden bg-black aspect-video">
+              <video
+                src={videoUrl}
+                controls
+                className="w-full h-full"
+                playsInline
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs text-text-muted">
+                {job?.elapsed_s && <span>Render time: {Math.round(job.elapsed_s)}s</span>}
+                {job?.cost_actual_usd !== undefined && (
+                  <span> · Cost: ${job.cost_actual_usd.toFixed(2)}</span>
+                )}
               </div>
-
-              {/* Time remaining */}
-              {status.estimated_remaining_s && (
-                <div className="text-[12px] text-white/60 mb-4">
-                  Thời gian còn lại: ~{Math.ceil(status.estimated_remaining_s / 60)} phút
-                </div>
-              )}
-
-              {/* Cancel button */}
-              <button
-                onClick={onCancel}
-                className="w-full px-4 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 text-sm font-medium transition"
-              >
-                Huỷ
-              </button>
-            </>
-          )}
-
-          {isDone && status?.output_url && (
-            <>
-              {/* Video preview */}
-              <div className="aspect-[9/16] mb-4 rounded-xl overflow-hidden bg-black border border-white/10">
-                <video src={status.output_url} controls className="w-full h-full" />
-              </div>
-
-              {/* Info */}
-              <div className="flex justify-between text-[12px] text-white/60 mb-4">
-                <span>Thời lượng: {status.duration_s}s</span>
-                <span>
-                  Chi phí: {((status.cost_actual_usd || 0) * 24500).toLocaleString('vi-VN')}đ
-                </span>
-              </div>
-
-              {/* Action buttons */}
               <div className="flex gap-2">
                 <a
-                  href={status.output_url}
-                  download={`ugc-${status.job_id}.mp4`}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-br from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white text-sm font-semibold transition shadow-lg shadow-rose-600/40"
+                  href={videoUrl}
+                  download
+                  className="btn-outline"
                 >
-                  <Download className="w-4 h-4" /> Tải xuống MP4
+                  <Download size={14} /> Download MP4
                 </a>
-                <button
-                  onClick={onClose}
-                  className="px-4 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 text-sm font-medium transition flex items-center gap-1.5"
-                >
-                  <Sparkles className="w-4 h-4" /> Tạo video khác
+                <button onClick={onClose} className="btn-cta">
+                  <Sparkles size={14} /> Tạo video khác
                 </button>
               </div>
-            </>
-          )}
-
-          {isFailed && (
-            <>
-              <div className="text-[13px] text-red-300/80 mb-4 leading-relaxed">
-                {error || status?.error_message || 'Không xác định lỗi. Vui lòng thử lại.'}
-              </div>
-              <button
-                onClick={onClose}
-                className="w-full px-4 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 text-sm font-medium transition"
-              >
-                Đóng
-              </button>
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </div>
-    </div>
+    </Modal>
   );
 }
