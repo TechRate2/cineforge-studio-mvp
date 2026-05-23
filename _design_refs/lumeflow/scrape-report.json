@@ -1,0 +1,316 @@
+{
+  "url": "https://www.lumeflow.ai",
+  "screenshots": [
+    "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\home-1440.png",
+    "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\home-scroll-1.png",
+    "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\home-scroll-2.png",
+    "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\home-scroll-3.png",
+    "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\home-scroll-4.png",
+    "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\home-scroll-5.png",
+    "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\home-scroll-6.png",
+    "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\home-scroll-7.png",
+    "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\home-scroll-8.png",
+    "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\home-mobile.png"
+  ],
+  "nav_routes": [],
+  "errors": [
+    "networkidle timeout, using domcontentloaded",
+    "nav https://www.lumeflow.ai/app/image-to-video/?PRE_MODEL=seedance2.0+fast&PRE_MODE=0&position=top_announcement: TimeoutError: Page.goto: Timeout 45000ms exceeded.\nCall log:\n  - navigating to \"https://www.lumeflow.ai/app/image-to-video/?PRE_MODEL=",
+    "nav https://www.lumeflow.ai/app/text-to-image?position=promotional_popup: TimeoutError: Page.goto: Timeout 45000ms exceeded.\nCall log:\n  - navigating to \"https://www.lumeflow.ai/app/text-to-image?position=pro",
+    "nav javascript:;: Error: Page.goto: net::ERR_ABORTED at javascript:;\nCall log:\n  - navigating to \"javascript:;\", waiting until \"networkidle\"\n",
+    "nav https://www.lumeflow.ai/tw/: TimeoutError: Page.goto: Timeout 45000ms exceeded.\nCall log:\n  - navigating to \"https://www.lumeflow.ai/tw/\", waiting until \"networkid",
+    "nav https://www.lumeflow.ai/jp/: TimeoutError: Page.goto: Timeout 45000ms exceeded.\nCall log:\n  - navigating to \"https://www.lumeflow.ai/jp/\", waiting until \"networkid"
+  ],
+  "title": "[Official®] LumeFlow AI | All-in-One AI Video & Image Creation Platform",
+  "nav_links_found": [
+    {
+      "text": "LumeFlow AI\nSeedance 2.0\nOfficial Seedan",
+      "href": "/app/image-to-video/?PRE_MODEL=seedance2.0+fast&PRE_MODE=0&position=top_announcement"
+    },
+    {
+      "text": "GPT IMAGE 2.0\nNano Banana 2\n| Unlock 7 t",
+      "href": "/app/text-to-image?position=promotional_popup"
+    },
+    {
+      "text": "",
+      "href": "/"
+    },
+    {
+      "text": "English",
+      "href": "javascript:;"
+    },
+    {
+      "text": "繁體中文",
+      "href": "/tw/"
+    },
+    {
+      "text": "日本語",
+      "href": "/jp/"
+    },
+    {
+      "text": "Home",
+      "href": "/app/home/"
+    },
+    {
+      "text": "AI Video",
+      "href": "javascript:;"
+    },
+    {
+      "text": "",
+      "href": "/app/text-to-video/"
+    },
+    {
+      "text": "",
+      "href": "/app/image-to-video/"
+    },
+    {
+      "text": "",
+      "href": "/app/ai-story-generator/"
+    },
+    {
+      "text": "",
+      "href": "/app/mimic-motion/"
+    },
+    {
+      "text": "",
+      "href": "/app/lip-sync/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/app/image-to-video/"
+    },
+    {
+      "text": "",
+      "href": "/video-models/seedance-ai-video-generator/"
+    },
+    {
+      "text": "",
+      "href": "/pixverse-ai-video-generator/"
+    },
+    {
+      "text": "",
+      "href": "/hailuo-ai-video-generator/"
+    },
+    {
+      "text": "",
+      "href": "/kling-ai-video-generator/"
+    },
+    {
+      "text": "",
+      "href": "/sora-ai-video-generator/"
+    },
+    {
+      "text": "",
+      "href": "/veo-ai-video-generator/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/video-models/seedance-ai-video-generator/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/video-tools/ai-short-video-generator/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/video-tools/ai-animation-generator/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/video-tools/lip-sync-animation-generator/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/video-tools/ai-tiktok-animation-generator/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/video-tools/ai-tiktok-video-generator/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/video-tools/ai-video-ads-generator/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/video-tools/ai-ugc-video-generator/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/video-tools/ai-youtube-shorts-video-generator/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/video-models/happy-horse-ai-video-generator/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/video-tools/ai-instagram-reel-generator/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/video-tools/ai-movie-generator/"
+    },
+    {
+      "text": "",
+      "href": "/video-tools/"
+    },
+    {
+      "text": "AI Image",
+      "href": "javascript:;"
+    },
+    {
+      "text": "",
+      "href": "/app/image-to-image/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/app/image-to-image/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/image-models/chatgpt-images-2-generator/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/image-models/nano-banana-ai-image-generator/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/image-models/"
+    },
+    {
+      "text": "Resources",
+      "href": "javascript:;"
+    },
+    {
+      "text": "",
+      "href": "/about-us/"
+    },
+    {
+      "text": "",
+      "href": "/support/"
+    },
+    {
+      "text": "",
+      "href": "/support/faqs/"
+    },
+    {
+      "text": "",
+      "href": "https://discord.gg/ezrRDEYvVZ"
+    },
+    {
+      "text": "",
+      "href": "/creator-partner-program/"
+    },
+    {
+      "text": "",
+      "href": "/affiliate-program/"
+    },
+    {
+      "text": "",
+      "href": "/support/contact-us/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-tips/gpt-image-to-seedance-workflow/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-tips/ai-character-consistency-workflow/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-insights/seedance-ai-video-statistics/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-prompt/happy-horse-prompts/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-prompt/gpt-image-prompts/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-tips/how-to-use-gpt-image/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-tools/gpt-image-vs-nano-banana/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-tools/free-ai-face-swap/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-tips/luma-ai-alternatives/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-tools/best-ai-dance-generator/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-tips/pixverse-ai-review/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-tips/pika-art-alternatives/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-prompt/seedance-prompting-guide/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-tools/happy-horse-vs-seedance/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-tools/sora-alternatives/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-tips/how-to-make-viral-tiktok-videos-with-ai/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-tools/best-free-ai-tiktok-video-generator/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-tips/how-to-automate-tiktok-videos/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-prompt/ai-tiktok-video-ideas/"
+    },
+    {
+      "text": "",
+      "href": "https://www.lumeflow.ai/ai-tips/create-tiktok-ads-with-ai/"
+    },
+    {
+      "text": "",
+      "href": "/blog/"
+    },
+    {
+      "text": "Pricing",
+      "href": "/app/pricing/"
+    },
+    {
+      "text": "API/Skills",
+      "href": "/lumeflowai-skills/"
+    },
+    {
+      "text": "Start for Free",
+      "href": "/app/home/"
+    },
+    {
+      "text": "AI Video Workflow Tutorial: Storyboard t",
+      "href": "https://www.lumeflow.ai/ai-tips/gpt-image-to-seedance-workflow/?utm_source=mc_lumeflow&utm_medium=message_center&utm_campaign=storyboard&utm_term=260513,zjm"
+    }
+  ],
+  "scroll_snapshots": 8
+}

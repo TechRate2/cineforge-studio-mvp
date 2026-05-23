@@ -1,0 +1,328 @@
+{
+  "visited": [
+    {
+      "url": "https://www.lumeflow.ai/pricing",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-pricing.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/app",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-app.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/blog",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-blog.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/app/image-to-video/?PRE_MODEL=seedance2.0+fast&PRE_MODE=0&position=top_announcement",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-app-image-to-video.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/app/text-to-image?position=promotional_popup",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-app-text-to-image.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-page.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/tw/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-tw.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/jp/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-jp.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/app/home/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-app-home.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/app/text-to-video/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-app-text-to-video.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/app/ai-story-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-app-ai-story-generator.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/app/mimic-motion/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-app-mimic-motion.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/app/lip-sync/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-app-lip-sync.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/video-models/seedance-ai-video-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-video-models-seedance-ai-video-generator.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/pixverse-ai-video-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-pixverse-ai-video-generator.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/hailuo-ai-video-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-hailuo-ai-video-generator.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/kling-ai-video-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-kling-ai-video-generator.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/sora-ai-video-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-sora-ai-video-generator.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/veo-ai-video-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-veo-ai-video-generator.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/video-tools/ai-short-video-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-video-tools-ai-short-video-generator.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/video-tools/ai-animation-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-video-tools-ai-animation-generator.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/video-tools/lip-sync-animation-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-video-tools-lip-sync-animation-generator.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/video-tools/ai-tiktok-animation-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-video-tools-ai-tiktok-animation-generato.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/video-tools/ai-tiktok-video-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-video-tools-ai-tiktok-video-generator.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/video-tools/ai-video-ads-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-video-tools-ai-video-ads-generator.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/video-tools/ai-ugc-video-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-video-tools-ai-ugc-video-generator.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/video-tools/ai-youtube-shorts-video-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-video-tools-ai-youtube-shorts-video-gene.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/video-models/happy-horse-ai-video-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-video-models-happy-horse-ai-video-genera.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/video-tools/ai-instagram-reel-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-video-tools-ai-instagram-reel-generator.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/video-tools/ai-movie-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-video-tools-ai-movie-generator.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/video-tools/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-video-tools.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/app/image-to-image/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-app-image-to-image.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/image-models/chatgpt-images-2-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-image-models-chatgpt-images-2-generator.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/image-models/nano-banana-ai-image-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-image-models-nano-banana-ai-image-genera.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/image-models/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-image-models.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/about-us/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-about-us.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/support/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-support.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/support/faqs/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-support-faqs.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/creator-partner-program/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-creator-partner-program.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/affiliate-program/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-affiliate-program.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/support/contact-us/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-support-contact-us.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-tips/gpt-image-to-seedance-workflow/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-tips-gpt-image-to-seedance-workflow.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-tips/ai-character-consistency-workflow/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-tips-ai-character-consistency-workflo.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-insights/seedance-ai-video-statistics/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-insights-seedance-ai-video-statistics.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-prompt/happy-horse-prompts/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-prompt-happy-horse-prompts.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-prompt/gpt-image-prompts/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-prompt-gpt-image-prompts.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-tips/how-to-use-gpt-image/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-tips-how-to-use-gpt-image.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-tools/gpt-image-vs-nano-banana/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-tools-gpt-image-vs-nano-banana.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-tools/free-ai-face-swap/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-tools-free-ai-face-swap.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-tips/luma-ai-alternatives/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-tips-luma-ai-alternatives.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-tools/best-ai-dance-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-tools-best-ai-dance-generator.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-tips/pixverse-ai-review/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-tips-pixverse-ai-review.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-tips/pika-art-alternatives/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-tips-pika-art-alternatives.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-prompt/seedance-prompting-guide/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-prompt-seedance-prompting-guide.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-tools/happy-horse-vs-seedance/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-tools-happy-horse-vs-seedance.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-tools/sora-alternatives/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-tools-sora-alternatives.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-tips/how-to-make-viral-tiktok-videos-with-ai/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-tips-how-to-make-viral-tiktok-videos-.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-tools/best-free-ai-tiktok-video-generator/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-tools-best-free-ai-tiktok-video-gener.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-tips/how-to-automate-tiktok-videos/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-tips-how-to-automate-tiktok-videos.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-prompt/ai-tiktok-video-ideas/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-prompt-ai-tiktok-video-ideas.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/ai-tips/create-tiktok-ads-with-ai/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-ai-tips-create-tiktok-ads-with-ai.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/app/pricing/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-app-pricing.png",
+      "status": 200
+    },
+    {
+      "url": "https://www.lumeflow.ai/lumeflowai-skills/",
+      "screenshot": "C:\\Users\\Admin\\Desktop\\cineforge-studio-mvp\\_design_refs\\lumeflow\\route-lumeflowai-skills.png",
+      "status": 200
+    }
+  ],
+  "errors": [
+    "https://www.lumeflow.ai/features -> HTTP 404",
+    "https://www.lumeflow.ai/features/ -> HTTP 404",
+    "https://www.lumeflow.ai/login -> HTTP 404",
+    "https://www.lumeflow.ai/signin -> HTTP 404",
+    "https://www.lumeflow.ai/sign-in -> HTTP 404",
+    "https://www.lumeflow.ai/docs -> HTTP 404",
+    "https://www.lumeflow.ai/about -> HTTP 404"
+  ]
+}
