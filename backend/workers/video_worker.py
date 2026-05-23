@@ -858,6 +858,13 @@ async def _pre_render_dialogue_tts(
         1. `voice_persona` arg (if provided and matches a preset key)
         2. ENV `GENMAX_DEFAULT_PRESET`
         3. Hard fallback "mai"
+
+    V4.6 — Wan 2.7 audio format note (per Grok V2 research, Wan tutorial 2026):
+        Optimal driven audio = 48kHz WAV (cleaner formant → better lip-sync).
+        GenMax currently returns 44.1kHz MP3 — still works but suboptimal for
+        Wan. Future tip: when integrating native WAV-output TTS (OpenVoice,
+        XTTS-v2), prefer those for Wan lip-sync. For other models (Seedance
+        native audio), 44.1kHz mp3 is fine.
     """
     try:
         from vendors.genmax import genmax_client, VIETNAMESE_VOICE_PRESETS

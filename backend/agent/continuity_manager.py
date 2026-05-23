@@ -318,7 +318,13 @@ def inject_bible_context_into_prompt(
 
 
 def build_negative_prompt(bible: ContinuityBible) -> str:
-    """Build negative prompt từ bible.constraints.must_avoid + brand_safety + defaults."""
+    """Build negative prompt từ bible.constraints.must_avoid + brand_safety + defaults.
+
+    V4.6 anti-drift negatives — added per Grok V2 case studies (SkipTheEnd
+    YouTube, akkiwani703 X thread, awesome-seedance-2-prompts repo). Real
+    users confirm these phrases noticeably reduce identity drift + face
+    morphing on Seedance 2.0 / Vidu Q3 / Wan 2.7.
+    """
     defaults = [
         "extra fingers",
         "warped face",
@@ -326,6 +332,13 @@ def build_negative_prompt(bible: ContinuityBible) -> str:
         "low quality",
         "blurry text overlay",
         "deformed limbs",
+        # V4.6 anti-drift (Grok V2 case studies)
+        "face morphing",
+        "facial drift",
+        "identity blend",
+        "character inconsistency across shots",
+        "outfit change mid-shot",
+        "lighting flicker between cuts",
     ]
     items = list(bible.constraints.must_avoid) + list(bible.constraints.brand_safety) + defaults
     # Dedupe preserving order

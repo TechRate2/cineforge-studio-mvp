@@ -209,8 +209,15 @@ def build_seedance_2_multi_shot(
     )
 
     negative = continuity_manager.build_negative_prompt(bible)
-    # Append phase-specific negatives for first shot (no product close-up at open)
-    negative = f"{negative}, no product close-up in opening shot, no logo in opening shot"
+    # Append phase-specific negatives (Grok V2 case studies):
+    #   - "no product close-up in opening shot" — CrePal product-later rule
+    #   - "no face morphing across cuts" — SkipTheEnd YouTube + awesome-seedance
+    #   - "no lighting flicker between segments" — multi-shot consistency hack
+    negative = (
+        f"{negative}, no product close-up in opening shot, no logo in opening shot, "
+        f"no face morphing across cuts, no lighting flicker between segments, "
+        f"no outfit change mid-video"
+    )
 
     # Audio decision — Seedance 2.0 native audio
     dialogue_style = (bible.audio_design.dialogue_style or "silent").lower()
@@ -259,6 +266,14 @@ def build_seedance_15_time_coded(
     Seedance 1.5 Pro i2v supports 1 reference (anchor) — picks first
     character or product ref. No `@image_N` syntax — relies on anchor image
     + time-coded prompt for shot transitions.
+
+    V4.6 (Grok V2 — Higgsfield + Replicate case studies):
+      Best anchor selection for Seedance 1.5 Pro:
+        - **Full-body high-key portrait** (NOT close-up) — gives the model
+          room to animate body motion + camera moves without warping the face
+        - Lighting in anchor = lighting in output (Seedance treats anchor
+          lighting as visual DNA). Pick anchor with desired final mood.
+        - Resolution ≥ 1024×1024 (DPI matters — low-res anchor → blurry video)
     """
     # Pick single anchor ref (character > product > first available)
     anchor_idx: Optional[int] = None

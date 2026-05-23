@@ -174,6 +174,56 @@ Do not introduce characters, props, locations, or claims absent from Bible/Shot.
 
 ---
 
+## 9.1 · PROMPT ANATOMY — 5-element template (V4.6 from Grok V2 research)
+
+Per real-user case studies (Creative AI "ULTIMATE Seedance 2.0 Prompting Guide"
+YouTube May 2026, awesome-seedance-2-prompts repo), the most reliable prompt
+order is **Subject → Action → Environment → Camera → Rule**. Order matters —
+swapping leaves Seedance to fill gaps and creates inconsistency.
+
+For `single_descriptive` / `time_coded` / `i2v_motion` formats, structure each
+beat as:
+
+```
+[Subject]   "Vietnamese woman late 20s, cream knit cardigan"
+[Action]    "reaches for a matte lipstick on the desk"
+[Environment] "morning sunlit make-up table, scattered cosmetics"
+[Camera]    "MCU push-in, 85mm anamorphic, shallow depth of field"
+[Rule]      "same character verbatim, same lighting, no face morphing"
+```
+
+For `multi_shot_inline` (Seedance 2.0), already enforced in §2 3-section
+template — the [Subject][Action][Environment] all live in DYNAMIC, [Camera]
+in shot marker `[Shot N | Xs | <camera>]`, [Rule] in STATIC.
+
+## 9.2 · CAMERA LENS SPECIFICATION (V4.6)
+
+Real users (@abxxai X thread May 2026, SkipTheEnd YouTube Mar 2026) report
+that **specifying a concrete lens cuts identity drift visibly**. Always
+include lens in [Camera] block:
+
+- Close work / portrait → **50mm portrait** or **85mm anamorphic**
+- Wide establishing → **24-35mm wide** or **anamorphic 2.39:1 squeeze**
+- Macro detail → **macro 100mm**
+- Cinematic ad → **ARRI Alexa 65 IMAX look** + **85mm anamorphic**
+- Drama hero shot → **anamorphic blue flare 35mm**
+
+Generic "cinematic camera" is too vague — pick one.
+
+## 9.3 · MULTI-CHARACTER DISAMBIGUATION (Vidu Q3, Q3-Mix)
+
+When 2+ characters wear similar outfits or share screen, real-user trick
+(Vidu Studio Discord, May 2026): **specify distinct lighting per character**
+so Vidu's array-order binding doesn't blend them:
+
+```
+"@image_1 Linh stands left under warm golden window light,
+ @image_2 Hùng stands right in cooler shadow from doorway,
+ both visible but lit by DIFFERENT key sources"
+```
+
+Without lighting separation, Vidu often merges the two faces by shot 2.
+
 ## 10. AGE-INDICATOR AVOIDANCE
 
 Never use age numbers in prompts ("28-year-old woman"). Use functional descriptors: `"photorealistic figure"`, `"a Vietnamese woman with warm fair skin, calm intelligent eyes"`. Triggers conservative filtering otherwise.
