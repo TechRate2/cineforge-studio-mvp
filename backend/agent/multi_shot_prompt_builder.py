@@ -168,14 +168,26 @@ def build_seedance_2_multi_shot(
             header_parts.append(ref_tags)
         dynamic_lines.append(f"[{' | '.join(header_parts)}]")
 
-        # Beat description with explicit MM:SS time anchors (industry convention)
+        # V5.11 — MindStudio 6-slot beat format (Subject / Action / Setting /
+        # Lighting / Camera / Style). Industry research confirms strict slot
+        # ordering helps vendor LLM parse the beat → more consistent output
+        # vs. the prior loose comma-separated sentence.
         dialogue_clip = ""
         if shot.audio.dialogue_vn:
-            dialogue_clip = f' Character speaks: "{shot.audio.dialogue_vn}"'
+            dialogue_clip = f' DIALOGUE: "{shot.audio.dialogue_vn}".'
+        setting = (v.background or bible.setting.location or "neutral background").strip(". ")
+        lighting = (v.lighting_override or bible.visual_style.lighting_design or "natural light").strip(". ")
+        camera = f"{v.camera_shot or 'MCU'} {v.camera_movement or 'static'}".strip()
+        style_brief = (bible.visual_style.cinematography or "cinematic UGC").strip(". ")
         beat_text = (
-            f"{_fmt_mmss(shot.start_s)}-{_fmt_mmss(shot.end_s)} "
-            f"{v.subject}, {v.action}. "
-            f"{v.background or ''}{dialogue_clip}"
+            f"{_fmt_mmss(shot.start_s)}-{_fmt_mmss(shot.end_s)} | "
+            f"SUBJECT: {v.subject}. "
+            f"ACTION: {v.action}. "
+            f"SETTING: {setting}. "
+            f"LIGHTING: {lighting}. "
+            f"CAMERA: {camera}. "
+            f"STYLE: {style_brief}."
+            f"{dialogue_clip}"
         ).strip()
         dynamic_lines.append(beat_text)
         dynamic_lines.append("")  # blank line between shots
@@ -194,23 +206,39 @@ def build_seedance_2_multi_shot(
         static_parts.append(
             f"Location: {bible.setting.location}, {bible.setting.time_of_day or ''}."
         )
-    # Negatives baked in
+    # Negatives baked in. V5.11 — added AtlasCloud Drama Workflow anti-drift
+    # directives that the source code's prior anti-cuts list missed:
+    #   • biomechanics violations — Seedance occasionally renders impossible
+    #     elbow/knee bends on long actions; explicit ban improves anatomy.
+    #   • reflection artifacts — mirrors / glass surfaces glitch the model;
+    #     ban tells the model to skip when uncertain.
+    #   • exit+reentry — character disappearing mid-shot then teleporting
+    #     back into frame is a common multi-shot bug; this directive forces
+    #     intentional stay-in-frame or clean exit.
     static_parts.append(
         "NO text overlay duplication, NO watermark, NO sudden shake, "
         "NO lens distortion, NO extra fingers, NO age indicators. "
-        "NO CTA frame, NO sales imperatives in any caption."
+        "NO CTA frame, NO sales imperatives in any caption. "
+        "NO joint biomechanics violations (no impossible elbow/knee bends, "
+        "no broken anatomy). NO impossible reflections, NO mirror artifacts. "
+        "NO character exit+reentry across cuts (character must stay in frame "
+        "throughout the shot, or exit cleanly without sudden reappearance)."
     )
     static_block = "\n".join(static_parts)
 
-    # V4.7 — append "one continuous shot" directive (Dan Kieft 25min YouTube
-    # May 2026 confirms this phrase pixel-locks continuity across the
-    # timeline). Seedance treats it as a hard cut-merge instruction.
+    # V4.7 — "one continuous shot" directive pixel-locks continuity
+    # V5.11 — added double-contrast cut directive (AtlasCloud Drama Workflow):
+    # between cuts, BOTH shot size AND camera mode should change simultaneously
+    # so the cut reads as intentional editorial decision, not a model glitch.
     prompt = (
         f"[STYLE & MOOD]\n{style_block}\n\n"
         f"[DYNAMIC DESCRIPTION]\n{dynamic_block}\n\n"
         f"[STATIC DESCRIPTION]\n{static_block}\n\n"
         f"One continuous shot with hard cuts between timeline markers. "
-        f"Maintain exact face, outfit, lighting, and color grade across all cuts."
+        f"Maintain exact face, outfit, lighting, and color grade across all cuts. "
+        f"Double-contrast cuts: between adjacent shots, change BOTH shot size "
+        f"(e.g. WS→CU) AND camera mode (e.g. handheld→static) simultaneously. "
+        f"Same-size or same-mode cuts read as unintentional glitches; mix both axes."
     )
 
     negative = continuity_manager.build_negative_prompt(bible)

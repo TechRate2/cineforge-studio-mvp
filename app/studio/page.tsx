@@ -126,14 +126,25 @@ export default function StudioPage() {
   const handleEnhance = useCallback(async () => {
     if (!brief.trim() || brief.trim().length < 4) return;
     try {
-      const res = await enhance({ brief, duration_s: duration });
+      const res = await enhance({
+        brief,
+        duration_s: duration,
+        // V5.12 — pass refs so vision LLM can ground brief in actual images
+        reference_image_urls: [
+          ...referenceZones.images,
+          ...referenceZones.storyboardImages,
+        ].filter((u) => u && u.startsWith('http')),
+      });
       setBrief(res.enhanced_brief);
-      toast.success(`Brief enhanced (~${res.char_count} chars) — review trước khi Generate`);
+      const modeLabel = res.mode === 'vision'
+        ? `vision (đọc ${res.refs_seen} ảnh)`
+        : 'text-only';
+      toast.success(`Brief enhanced · ${modeLabel} · ${res.char_count} chars`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast.error(`Enhance failed: ${msg}`);
     }
-  }, [brief, duration, enhance]);
+  }, [brief, duration, enhance, referenceZones.images, referenceZones.storyboardImages]);
 
   // Director plan flow
   const { createPlan, plan, setPlan, progress, isLoading, error, storytellingIssues, reset } = useDirectorPlan();

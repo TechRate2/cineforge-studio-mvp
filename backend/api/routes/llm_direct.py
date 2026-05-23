@@ -74,13 +74,20 @@ class TestCallRequest(BaseModel):
 
 class EnhanceBriefRequest(BaseModel):
     """V5.2 — Magic prompt enhance: rewrite a short user brief into a richer,
-    Director-friendly description with concrete visual/audio/camera details."""
+    Director-friendly description with concrete visual/audio/camera details.
+
+    V5.12 — accept `reference_image_urls` so when user has uploaded refs,
+    Enhance uses vision LLM (Qwen3-VL) to ACTUALLY LOOK at the images and
+    describe what's in them (e.g. "cô gái mặc áo đỏ basic" instead of
+    auto-generic "cô gái áo trắng"). Cost: ~$0.002/call via Qwen3-VL.
+    """
     brief: str = Field(..., min_length=4, max_length=2000)
     niche_hint: Optional[str] = Field(None, max_length=80)
     duration_s: Optional[int] = Field(15, ge=3, le=120)
+    reference_image_urls: list[str] = Field(default_factory=list, max_length=6)
 
 
-_ENHANCE_SYSTEM_PROMPT = (
+_ENHANCE_SYSTEM_PROMPT_TEXT = (
     "Bạn là Director AI chuyên viết brief video tiếng Việt cho Director Agent. "
     "Người dùng đưa brief ngắn (vd 'review son môi'). Nhiệm vụ: viết lại brief "
     "thành mô tả 4-7 câu tiếng Việt giàu chi tiết visual + camera + lighting + "
@@ -91,24 +98,61 @@ _ENHANCE_SYSTEM_PROMPT = (
     "không prefix 'Brief:' hay markdown."
 )
 
+_ENHANCE_SYSTEM_PROMPT_VISION = (
+    "Bạn là Director AI chuyên viết brief video tiếng Việt cho Director Agent. "
+    "Người dùng cung cấp brief ngắn + 1-6 ảnh tham khảo (nhân vật, sản phẩm, mood). "
+    "Nhiệm vụ:\n"
+    "1. NHÌN KỸ từng ảnh — note CHÍNH XÁC những gì thấy: màu trang phục, kiểu tóc, "
+    "   khuôn mặt, biểu cảm; với sản phẩm: màu sắc, packaging, logo cụ thể.\n"
+    "2. Viết lại brief 4-7 câu tiếng Việt giàu chi tiết, KHỚP CHÍNH XÁC những gì có "
+    "   trong ảnh. KHÔNG mô tả màu/trang phục KHÁC ảnh thực.\n"
+    "3. Bổ sung: bối cảnh setting cụ thể, ánh sáng + color grade, camera shot + "
+    "   movement, mood/tone audio.\n"
+    "4. KHÔNG bịa features sản phẩm KHÔNG thấy trong ảnh. KHÔNG CTA / sale imperatives. "
+    "   KHÔNG emoji, bullet list, markdown. Chỉ output văn xuôi thuần."
+)
+
 
 @router.post("/enhance-brief")
 async def enhance_brief(req: EnhanceBriefRequest):
-    """Magic prompt — rewrite short brief → cinematic 4-7 sentence brief."""
+    """Magic prompt — rewrite short brief → cinematic 4-7 sentence brief.
+
+    V5.12 — if reference_image_urls supplied, use vision LLM (Qwen3-VL) so the
+    enhanced brief actually matches the uploaded images. Otherwise use text LLM.
+    """
     user_msg = (
         f"Brief gốc của user (giữ ý chính, viết lại giàu chi tiết hơn cho video {req.duration_s}s):\n"
         f"---\n{req.brief}\n---"
     )
     if req.niche_hint:
         user_msg += f"\n\nNiche hint: {req.niche_hint}"
+
+    refs = [u for u in (req.reference_image_urls or []) if u and u.startswith("http")][:6]
     try:
-        text = llm.complete(
-            system_prompt=_ENHANCE_SYSTEM_PROMPT,
-            user_message=user_msg,
-            task="generator",
-            max_tokens=600,
-            temperature=0.7,
-        )
+        if refs:
+            # V5.12 — vision path: LLM looks at refs to ground the brief
+            user_msg += (
+                f"\n\nQUAN TRỌNG: User đã upload {len(refs)} ảnh tham khảo. "
+                f"Hãy nhìn kỹ và mô tả CHÍNH XÁC những gì thấy (màu sắc, trang phục, "
+                f"sản phẩm) — viết lại brief khớp với ảnh thực, KHÔNG bịa khác."
+            )
+            text = llm.complete_with_image(
+                system_prompt=_ENHANCE_SYSTEM_PROMPT_VISION,
+                user_message=user_msg,
+                image_urls=refs,
+                task="vision",
+                max_tokens=700,
+            )
+            mode = "vision"
+        else:
+            text = llm.complete(
+                system_prompt=_ENHANCE_SYSTEM_PROMPT_TEXT,
+                user_message=user_msg,
+                task="generator",
+                max_tokens=600,
+                temperature=0.7,
+            )
+            mode = "text"
     except Exception as e:
         logger.exception(f"enhance-brief LLM call failed: {e}")
         raise HTTPException(502, detail=f"Enhance LLM failed: {e}")
@@ -116,6 +160,8 @@ async def enhance_brief(req: EnhanceBriefRequest):
         "original_brief": req.brief,
         "enhanced_brief": text.strip(),
         "char_count": len(text.strip()),
+        "mode": mode,
+        "refs_seen": len(refs),
     }
 
 

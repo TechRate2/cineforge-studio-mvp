@@ -5,6 +5,9 @@ export interface EnhanceBriefResponse {
   original_brief: string;
   enhanced_brief: string;
   char_count: number;
+  /** V5.12 — "vision" when refs were sent (Qwen3-VL), "text" otherwise (DeepSeek Flash). */
+  mode?: 'vision' | 'text';
+  refs_seen?: number;
 }
 
 const ENHANCE_TIMEOUT_MS = 30_000;
@@ -22,7 +25,14 @@ export function useEnhanceBrief() {
   }, []);
 
   const enhance = useCallback(
-    async (args: { brief: string; niche_hint?: string | null; duration_s?: number }): Promise<EnhanceBriefResponse> => {
+    async (args: {
+      brief: string;
+      niche_hint?: string | null;
+      duration_s?: number;
+      /** V5.12 — pass reference image URLs so backend uses vision LLM
+       *  (Qwen3-VL) to ground brief in actual visual content. */
+      reference_image_urls?: string[];
+    }): Promise<EnhanceBriefResponse> => {
       // V5.3 — cancel any in-flight enhance before starting a new one (double-click guard)
       abortRef.current?.abort();
       const controller = new AbortController();
@@ -39,6 +49,7 @@ export function useEnhanceBrief() {
             brief: args.brief,
             niche_hint: args.niche_hint ?? null,
             duration_s: args.duration_s ?? 15,
+            reference_image_urls: args.reference_image_urls ?? [],
           }),
           signal: controller.signal,
         });
