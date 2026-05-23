@@ -283,17 +283,22 @@ class AtlasCloudLLMClient:
                 f"Request summary: {summary}"
             )
 
-        # 402 từ Coding Plan → cache + fallback Pay-as-you-go MỘT lần duy nhất
+        # V5.8 — widened fallback: 401 (key bad/expired) + 402 (no credit) +
+        # 403 (forbidden) all mean "Coding Plan can't service" → try Pay-as-you-go
+        # on same endpoint (verified: Pay-as-you-go key works on /v1/chat/completions
+        # in addition to its primary /api/v1 image/video routes).
         if (
-            response.status_code == 402
+            response.status_code in (401, 402, 403)
             and active_key == self.coding_plan_key
             and self.pay_as_you_go_key
             and self.coding_plan_key
             and self.pay_as_you_go_key != self.coding_plan_key
         ):
             if not self._coding_plan_exhausted:
+                reason = {401: "key invalid/expired", 402: "out of credit", 403: "forbidden"}[response.status_code]
                 logger.warning(
-                    "[AtlasLLM] Coding Plan 402 → cached exhausted, all future calls use Pay-as-you-go"
+                    f"[AtlasLLM] Coding Plan {response.status_code} ({reason}) → "
+                    f"cached exhausted, all future calls use Pay-as-you-go"
                 )
                 self._coding_plan_exhausted = True
             # Fallback call cũng phải throttle

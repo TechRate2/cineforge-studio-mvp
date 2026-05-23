@@ -103,6 +103,22 @@ export function ReferenceZones({ value, onChange, maxRefs = 9 }: Props) {
     return value.images.filter((_, i) => value.roles[i] === target);
   }
 
+  // V5.8 — return the @image_N tag for a given pooled image (1-based, matches
+  // Director Agent's prompt notation in multi_shot_prompt_builder.py:97).
+  // Storyboard images aren't tagged (they're style refs, not subject refs).
+  function imageTagFor(zoneKey: 'character' | 'product' | 'storyboard', localIdx: number): string | null {
+    if (zoneKey === 'storyboard') return null;
+    const target = ZONES.find((z) => z.key === zoneKey)!.role;
+    let count = 0;
+    for (let i = 0; i < value.images.length; i++) {
+      if (value.roles[i] === target) {
+        if (count === localIdx) return `@image_${i + 1}`;
+        count++;
+      }
+    }
+    return null;
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       {ZONES.map((zone) => {
@@ -135,35 +151,42 @@ export function ReferenceZones({ value, onChange, maxRefs = 9 }: Props) {
             {/* Thumbnail grid */}
             {items.length > 0 && (
               <div className="grid grid-cols-3 gap-1.5 mb-3">
-                {items.map((src, i) => (
-                  <div key={i} className="group relative aspect-square rounded-md overflow-hidden border border-hairline">
-                    {/* V5.6 — referrerPolicy="no-referrer" bypasses AliyunOSS
-                        hotlink protection that blocks requests carrying a
-                        localhost:3000 Referer (browser-only — curl HEAD works
-                        because curl doesn't send Referer by default).
-                        decoding=async + loading=lazy keeps the grid snappy. */}
-                    <img
-                      src={src}
-                      alt=""
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                      decoding="async"
-                      loading="lazy"
-                      onError={(e) => {
-                        // Surface broken thumbs explicitly instead of silent X icon
-                        (e.currentTarget as HTMLImageElement).style.opacity = '0.3';
-                        (e.currentTarget as HTMLImageElement).title = 'Image load failed';
-                      }}
-                    />
-                    <button
-                      onClick={() => removeAt(zone.key, i)}
-                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white grid place-items-center
-                                 opacity-0 group-hover:opacity-100 transition"
-                    >
-                      <X size={10} />
-                    </button>
-                  </div>
-                ))}
+                {items.map((src, i) => {
+                  const tag = imageTagFor(zone.key, i);
+                  return (
+                    <div key={i} className="group relative aspect-square rounded-md overflow-hidden border border-hairline">
+                      <img
+                        src={src}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                        decoding="async"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.opacity = '0.3';
+                          (e.currentTarget as HTMLImageElement).title = 'Image load failed';
+                        }}
+                      />
+                      {/* V5.8 — @image_N tag overlay so user sees which Director Agent
+                          token references this image (Seedance 2.0 multi-shot uses
+                          @image_1 / @image_2 inline). Storyboard refs are unlabeled
+                          since they're style-only, not subject anchors. */}
+                      {tag && (
+                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-mono
+                                         bg-black/70 text-white backdrop-blur-sm leading-none">
+                          {tag}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => removeAt(zone.key, i)}
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white grid place-items-center
+                                   opacity-0 group-hover:opacity-100 transition"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
 

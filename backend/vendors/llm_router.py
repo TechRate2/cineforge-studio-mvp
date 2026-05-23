@@ -93,9 +93,15 @@ class LLMRouter:
                     max_tokens=max_tokens, temperature=temperature,
                 )
             except httpx.HTTPStatusError as e:
-                if e.response.status_code == 402:
+                # V5.8 — widened fallback: 402 (no credit), 401 (bad/expired key),
+                # 403 (forbidden / account disabled). All three mean "Coding Plan
+                # cannot service this call" → fall through to Anthropic direct
+                # so user-facing features (Enhance, Director) don't 500.
+                if e.response.status_code in (401, 402, 403):
                     logger.warning(
-                        f"[LLM Router] AtlasCloud 402 insufficient balance — fallback Claude direct"
+                        f"[LLM Router] AtlasCloud {e.response.status_code} "
+                        f"({'unauthorized' if e.response.status_code == 401 else 'no credit' if e.response.status_code == 402 else 'forbidden'}) "
+                        f"— fallback Claude direct"
                     )
                     return self._call_claude(system_prompt, user_message, few_shot_examples, max_tokens)
                 raise
@@ -128,8 +134,11 @@ class LLMRouter:
                     system_prompt, user_message, image_urls, model=model_id, max_tokens=max_tokens
                 )
             except httpx.HTTPStatusError as e:
-                if e.response.status_code == 402:
-                    logger.warning("[LLM Router] AtlasCloud vision 402 — fallback Claude direct")
+                # V5.8 — same 401/402/403 fallback as text completion
+                if e.response.status_code in (401, 402, 403):
+                    logger.warning(
+                        f"[LLM Router] AtlasCloud vision {e.response.status_code} — fallback Claude direct"
+                    )
                     return self._call_claude_vision(system_prompt, user_message, image_urls, max_tokens)
                 raise
 
