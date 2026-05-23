@@ -1,11 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Check, AlertTriangle, Film, BookText, Gauge, Loader2, Sparkles, LayoutGrid, RotateCcw, Download } from 'lucide-react';
+import { Check, AlertTriangle, Film, BookText, Gauge, Loader2, Sparkles, LayoutGrid, RotateCcw, Download, MessageSquarePlus, X } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import type { LucideIcon } from 'lucide-react';
 import type { DirectorPlan, Shot, StorytellingIssue } from '@/lib/studio/use-director-plan';
 import { useMasterBoard } from '@/lib/studio/use-master-board';
 import { useRefineShot } from '@/lib/studio/use-refine-shot';
+import { useRevisePlan } from '@/lib/studio/use-revise-plan';
+import type { VideoSettings } from '@/lib/types/backend';
 
 interface Props {
   open: boolean;
@@ -20,6 +22,8 @@ interface Props {
   /** V4 Sprint1 Task #7 — notify parent when master board URL changes so it can
    *  be passed to /generate as a global style ref for every shot. */
   onMasterBoardChange?: (boardUrl: string | null) => void;
+  /** V5 — when user revises the plan via /revise, push back so parent state updates. */
+  onPlanRevised?: (revised: DirectorPlan) => void;
 }
 
 type Tab = 'bible' | 'shots' | 'board' | 'eval';
@@ -31,15 +35,36 @@ export function DirectorPlanModal({
   settings = {},
   onRefineJobStarted,
   onMasterBoardChange,
+  onPlanRevised,
 }: Props) {
   const [tab, setTab] = useState<Tab>('bible');
   const master = useMasterBoard();
   const refine = useRefineShot();
+  const revise = useRevisePlan();
+  const [showRevise, setShowRevise] = useState(false);
+  const [reviseText, setReviseText] = useState('');
 
   // Bubble master board URL up — parent passes to /generate for global style ref
   useEffect(() => {
     onMasterBoardChange?.(master.board?.board_url ?? null);
   }, [master.board?.board_url, onMasterBoardChange]);
+
+  const handleRevise = async () => {
+    if (!plan || !reviseText.trim()) return;
+    try {
+      const revised = await revise.revise({
+        plan,
+        instruction: reviseText.trim(),
+        settings: settings as unknown as VideoSettings,
+      });
+      onPlanRevised?.(revised);
+      setReviseText('');
+      setShowRevise(false);
+      setTab('shots');
+    } catch (e) {
+      console.error('Revise failed', e);
+    }
+  };
 
   return (
     <Modal
@@ -96,6 +121,60 @@ export function DirectorPlanModal({
             )}
           </div>
 
+          {/* Revise inline panel — slides down from footer */}
+          {showRevise && (
+            <div className="border-t border-hairline px-6 md:px-8 py-4 bg-surface-2/50 space-y-3 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MessageSquarePlus size={15} className="text-accent-magenta" />
+                  <h3 className="text-sm font-semibold">Revise plan với AI feedback</h3>
+                </div>
+                <button
+                  onClick={() => { setShowRevise(false); setReviseText(''); }}
+                  className="btn-icon"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <p className="text-[11px] text-text-subtle leading-relaxed">
+                Mô tả thứ cần thay đổi — Director Agent sẽ revise plan giữ nguyên character/product identity nhưng update shot list, pacing, hoặc audio theo feedback. ~$0.02 + 10-15s.
+              </p>
+              <textarea
+                value={reviseText}
+                onChange={(e) => setReviseText(e.target.value.slice(0, 500))}
+                placeholder="Vd: Shot 1 nên close-up khuôn mặt thay vì wide, thêm dialogue VN ở shot 3, tăng tempo lên energetic..."
+                rows={3}
+                className="w-full rounded-md bg-surface-2 border border-hairline focus:border-accent-magenta/60
+                           focus:outline-none p-3 text-sm leading-relaxed resize-y"
+              />
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-text-subtle">{reviseText.length}/500</span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setShowRevise(false); setReviseText(''); }}
+                    className="btn-ghost text-xs"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleRevise}
+                    disabled={revise.isRevising || !reviseText.trim()}
+                    className="btn-cta text-xs px-3 py-1.5"
+                  >
+                    {revise.isRevising ? (
+                      <><Loader2 size={12} className="animate-spin" /> Đang revise...</>
+                    ) : (
+                      <><Sparkles size={12} /> Revise plan</>
+                    )}
+                  </button>
+                </div>
+              </div>
+              {revise.error && (
+                <p className="text-[11px] text-accent-orange font-mono">{revise.error}</p>
+              )}
+            </div>
+          )}
+
           {/* Footer */}
           <footer className="border-t border-hairline px-6 md:px-8 py-4 flex items-center justify-between gap-3 bg-surface-1/80 backdrop-blur">
             <div className="flex items-center gap-3 text-xs text-text-muted">
@@ -105,6 +184,16 @@ export function DirectorPlanModal({
             </div>
             <div className="flex gap-2">
               <button onClick={onClose} className="btn-outline">Close</button>
+              {!showRevise && (
+                <button
+                  onClick={() => setShowRevise(true)}
+                  disabled={isRendering}
+                  className="btn-outline"
+                  title="Edit plan với AI feedback"
+                >
+                  <MessageSquarePlus size={15} /> Revise
+                </button>
+              )}
               <button
                 onClick={onApprove}
                 disabled={isRendering || (plan.evaluation.red_flags || []).length > 0}

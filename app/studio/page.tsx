@@ -42,7 +42,7 @@ export default function StudioPage() {
   }, [model, resolution, duration]);
 
   // Director plan flow
-  const { createPlan, plan, progress, isLoading, error, storytellingIssues, reset } = useDirectorPlan();
+  const { createPlan, plan, setPlan, progress, isLoading, error, storytellingIssues, reset } = useDirectorPlan();
   const [showPlanModal, setShowPlanModal] = useState(false);
 
   // Open modal when plan ready
@@ -235,6 +235,7 @@ export default function StudioPage() {
           setShowJobModal(true);
         }}
         onMasterBoardChange={setMasterBoardUrl}
+        onPlanRevised={setPlan}
       />
       <JobResultModal
         open={showJobModal}

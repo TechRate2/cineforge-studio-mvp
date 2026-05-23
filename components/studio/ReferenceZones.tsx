@@ -1,7 +1,8 @@
 'use client';
 import { useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Upload, X, User, Package, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, User, Package, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { uploadMediaToR2 } from '@/lib/studio/upload-media';
 
 export type RefRole = 'character_anchor' | 'product_hero' | 'style_reference' | null;
 
@@ -25,20 +26,16 @@ interface Props {
 
 export function ReferenceZones({ value, onChange, maxRefs = 9 }: Props) {
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
-
-  async function fileToDataUrl(f: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve(r.result as string);
-      r.onerror = reject;
-      r.readAsDataURL(f);
-    });
-  }
+  const [uploading, setUploading] = useState<Record<string, boolean>>({});
 
   async function handleFiles(zoneKey: 'character' | 'product' | 'storyboard', files: FileList | null) {
     if (!files || files.length === 0) return;
     const list = Array.from(files);
-    const urls = await Promise.all(list.map(fileToDataUrl));
+    setUploading((u) => ({ ...u, [zoneKey]: true }));
+    // V5 — Upload to R2 first (returns public URL); falls back to data: base64 on
+    // failure so flow never breaks. Request payload 5-10× lighter vs inline base64.
+    const urls = await Promise.all(list.map((f) => uploadMediaToR2(f)));
+    setUploading((u) => ({ ...u, [zoneKey]: false }));
     const role = ZONES.find((z) => z.key === zoneKey)!.role;
     if (zoneKey === 'storyboard') {
       onChange({ ...value, storyboardImages: [...value.storyboardImages, ...urls] });
@@ -123,11 +120,17 @@ export function ReferenceZones({ value, onChange, maxRefs = 9 }: Props) {
             />
             <button
               onClick={() => fileInputs.current[zone.key]?.click()}
+              disabled={uploading[zone.key]}
               className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-md
                          border border-dashed border-hairline-strong hover:border-accent-magenta/50
-                         text-xs text-text-muted hover:text-text transition"
+                         text-xs text-text-muted hover:text-text transition
+                         disabled:opacity-60 disabled:cursor-wait"
             >
-              <Upload size={13} /> Upload
+              {uploading[zone.key] ? (
+                <><Loader2 size={13} className="animate-spin" /> Uploading...</>
+              ) : (
+                <><Upload size={13} /> Upload</>
+              )}
             </button>
           </div>
         );

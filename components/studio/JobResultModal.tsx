@@ -1,7 +1,9 @@
 'use client';
+import { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
-import { Download, AlertTriangle, Loader2, Sparkles, RotateCcw } from 'lucide-react';
+import { Download, AlertTriangle, Loader2, Sparkles, RotateCcw, X } from 'lucide-react';
 import { useDirectorJobPoll } from '@/lib/studio/use-director-job-poll';
+import { useJobCancel } from '@/lib/studio/use-job-cancel';
 
 interface Props {
   open: boolean;
@@ -23,11 +25,28 @@ const STAGE_LABELS_VN: Record<string, string> = {
 
 export function JobResultModal({ open, jobId, onClose, onRetry }: Props) {
   const { job, error } = useDirectorJobPoll(jobId);
+  const { cancel, isCancelling } = useJobCancel();
+  const [cancelConfirm, setCancelConfirm] = useState(false);
   const status = job?.status ?? 'pending';
   const progress = job?.progress ?? 0;
   const isDone = status === 'done';
   const isFailed = status === 'failed' || status === 'cancelled';
   const isWorking = !isDone && !isFailed;
+
+  const handleCancel = async () => {
+    if (!jobId) return;
+    if (!cancelConfirm) {
+      setCancelConfirm(true);
+      setTimeout(() => setCancelConfirm(false), 4000);
+      return;
+    }
+    try {
+      await cancel(jobId);
+    } catch (e) {
+      console.error('Cancel failed', e);
+    }
+    setCancelConfirm(false);
+  };
   const videoUrl = (job?.output_url || job?.output_path || '') as string;
 
   return (
@@ -62,6 +81,27 @@ export function JobResultModal({ open, jobId, onClose, onRetry }: Props) {
               Render thật ~2-5 phút cho 15s video. Anh có thể đóng modal, job vẫn chạy nền —
               vào tab History xem kết quả khi xong.
             </p>
+            {/* Cancel button — 2-click confirm to prevent accidental cancel */}
+            <div className="mt-4 flex items-center justify-between">
+              <span className="text-[11px] text-text-subtle">
+                Cost dự kiến vẫn tính dù bạn hủy giữa chừng (vendor đã charge phần đã gen)
+              </span>
+              <button
+                onClick={handleCancel}
+                disabled={isCancelling}
+                className={`btn-outline text-xs px-3 py-1.5 ${
+                  cancelConfirm ? 'border-accent-orange/60 text-accent-orange bg-accent-orange/10' : ''
+                }`}
+              >
+                {isCancelling ? (
+                  <><Loader2 size={12} className="animate-spin" /> Đang hủy...</>
+                ) : cancelConfirm ? (
+                  <><X size={12} /> Xác nhận hủy job</>
+                ) : (
+                  <><X size={12} /> Hủy render</>
+                )}
+              </button>
+            </div>
           </div>
         )}
 

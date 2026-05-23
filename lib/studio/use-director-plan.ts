@@ -306,7 +306,7 @@ export function useDirectorPlan() {
     setIsLoading(false);
   }, []);
 
-  return { createPlan, plan, progress, isLoading, error, storytellingIssues, reset };
+  return { createPlan, plan, setPlan, progress, isLoading, error, storytellingIssues, reset };
 }
 
 // ============================================================
