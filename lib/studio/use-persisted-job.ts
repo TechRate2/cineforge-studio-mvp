@@ -3,26 +3,29 @@ import { useCallback, useEffect, useState } from 'react';
 
 /**
  * V5.1 — persist active jobId across page refresh.
+ * V5.3 — also persist `startedAt` so JobResultModal ETA stays stable across
+ *        modal close/reopen (was: ETA reset every time the modal remounted).
  *
- * Without this, the user refreshes mid-render → loses jobId → can't see
- * progress → loses the video they already paid for. We stash the job ID in
- * localStorage so the JobResultModal can resume polling on next mount.
+ * Without persistence, the user refreshes mid-render → loses jobId → can't see
+ * progress → loses the video they already paid for. We stash the job ID +
+ * startedAt timestamp in localStorage so the JobResultModal can resume polling
+ * + show accurate ETA on next mount.
  *
- * TTL 24h: a render older than that is almost certainly done / abandoned;
- * we don't want stale IDs cluttering the UI forever.
+ * TTL 24h: a render older than that is almost certainly done / abandoned.
  */
 const STORAGE_KEY = 'cineforge:active_job';
 const TTL_MS = 24 * 60 * 60 * 1000;
 
 interface PersistedJob {
   job_id: string;
+  started_at: number;
   saved_at: number;
 }
 
 export function usePersistedJob() {
   const [jobId, setJobIdState] = useState<string | null>(null);
+  const [startedAt, setStartedAtState] = useState<number | null>(null);
 
-  // Hydrate on mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -35,6 +38,7 @@ export function usePersistedJob() {
         return;
       }
       setJobIdState(parsed.job_id);
+      setStartedAtState(parsed.started_at ?? parsed.saved_at);
     } catch {
       localStorage.removeItem(STORAGE_KEY);
     }
@@ -44,13 +48,19 @@ export function usePersistedJob() {
     setJobIdState(id);
     if (typeof window === 'undefined') return;
     if (id) {
+      const now = Date.now();
+      setStartedAtState(now);
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ job_id: id, saved_at: Date.now() }));
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ job_id: id, started_at: now, saved_at: now } satisfies PersistedJob)
+        );
       } catch {}
     } else {
+      setStartedAtState(null);
       localStorage.removeItem(STORAGE_KEY);
     }
   }, []);
 
-  return { jobId, setJobId };
+  return { jobId, startedAt, setJobId };
 }

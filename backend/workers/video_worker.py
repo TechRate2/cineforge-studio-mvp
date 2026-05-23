@@ -333,6 +333,9 @@ async def render_plan(
             "timeout_s": 900,
         }
         atlas_kwargs["on_submit"] = lambda pid: _track_prediction(jobs_store, job_id, pid)
+        # V5.3 — bail if user cancelled between render_plan entry and single-call
+        # submit (closes the ~10-20s setup-phase race where Strategy A/B had no check).
+        _check_cancelled(jobs_store, job_id)
         single_result = await asyncio.to_thread(atlas_client.generate_video, **atlas_kwargs)
         clip_url = single_result.get("video_url")
         if not clip_url:
@@ -391,6 +394,8 @@ async def render_plan(
             "timeout_s": 900,
         }
         atlas_kwargs["on_submit"] = lambda pid: _track_prediction(jobs_store, job_id, pid)
+        # V5.3 — same setup-phase cancel guard as Strategy A
+        _check_cancelled(jobs_store, job_id)
         single_result = await asyncio.to_thread(atlas_client.generate_video, **atlas_kwargs)
         clip_url = single_result.get("video_url")
         if not clip_url:

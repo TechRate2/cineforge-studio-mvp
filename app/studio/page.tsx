@@ -145,8 +145,8 @@ export default function StudioPage() {
     if (error) toast.error(`Plan failed: ${error}`, { duration: 8000 });
   }, [error]);
 
-  // Render job flow — V5.1 persist jobId across refresh
-  const { jobId, setJobId } = usePersistedJob();
+  // Render job flow — V5.1 persist jobId across refresh + V5.3 startedAt for stable ETA
+  const { jobId, startedAt: jobStartedAt, setJobId } = usePersistedJob();
   const [isRendering, setIsRendering] = useState(false);
   const [showJobModal, setShowJobModal] = useState(false);
   const [showCostConfirm, setShowCostConfirm] = useState(false);
@@ -379,6 +379,7 @@ export default function StudioPage() {
         jobId={jobId}
         onClose={() => setShowJobModal(false)}
         estimatedDurationS={plan?.continuity_bible.duration_s ?? duration}
+        jobStartedAt={jobStartedAt}
       />
     </div>
   );

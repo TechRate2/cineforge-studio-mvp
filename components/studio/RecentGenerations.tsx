@@ -1,7 +1,22 @@
 'use client';
 import Link from 'next/link';
+import { useRef } from 'react';
 import { useProjectHistory } from '@/lib/studio/use-project-history';
 import { CheckCircle2, AlertCircle, Clock, ArrowRight, Loader2 } from 'lucide-react';
+
+/** V5.3 — guard play()/pause() race: chain pause() onto play() promise
+ *  so we don't AbortError when mouse leaves before video finishes buffering. */
+async function safePlay(el: HTMLVideoElement, abortRef: { aborted: boolean }) {
+  try {
+    await el.play();
+    if (abortRef.aborted) {
+      el.pause();
+      el.currentTime = 0;
+    }
+  } catch {
+    /* AbortError / autoplay block — ignore */
+  }
+}
 
 export function RecentGenerations() {
   const { items, loading } = useProjectHistory();
@@ -35,16 +50,7 @@ export function RecentGenerations() {
                        border border-hairline hover:border-accent-magenta/50 transition"
           >
             {item.output_url ? (
-              <video
-                src={item.output_url}
-                muted
-                loop
-                preload="metadata"
-                playsInline
-                onMouseEnter={(e) => void e.currentTarget.play().catch(() => {})}
-                onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
+              <RecentVideo src={item.output_url} />
             ) : (
               <div className="absolute inset-0 grid place-items-center text-text-subtle">
                 <Clock size={20} />
@@ -76,5 +82,36 @@ export function RecentGenerations() {
         ))}
       </div>
     </div>
+  );
+}
+
+function RecentVideo({ src }: { src: string }) {
+  const ref = useRef<HTMLVideoElement | null>(null);
+  const abortRef = useRef({ aborted: false });
+  return (
+    <video
+      ref={ref}
+      src={src}
+      muted
+      loop
+      preload="metadata"
+      playsInline
+      onMouseEnter={() => {
+        const el = ref.current;
+        if (!el) return;
+        abortRef.current.aborted = false;
+        void safePlay(el, abortRef.current);
+      }}
+      onMouseLeave={() => {
+        const el = ref.current;
+        if (!el) return;
+        abortRef.current.aborted = true;
+        if (!el.paused) {
+          el.pause();
+          el.currentTime = 0;
+        }
+      }}
+      className="absolute inset-0 w-full h-full object-cover"
+    />
   );
 }

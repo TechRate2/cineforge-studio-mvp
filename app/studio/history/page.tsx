@@ -14,7 +14,7 @@ export default function HistoryPage() {
           <h1 className="h-section flex items-center gap-3"><Clock size={26} /> Project history</h1>
           <p className="text-sm text-text-muted mt-1">Mọi plan & render bạn đã build — tái sử dụng / fork lại.</p>
         </div>
-        <button onClick={refresh} className="btn-outline" disabled={loading}>
+        <button onClick={() => void refresh({ force: true })} className="btn-outline" disabled={loading}>
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
         </button>
       </div>

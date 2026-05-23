@@ -13,9 +13,11 @@ interface Props {
   onRetry?: () => void;
   /** V5.2 — total expected render duration (s) for ETA computation. */
   estimatedDurationS?: number;
+  /** V5.3 — stable job start timestamp (from usePersistedJob). Required for
+   *  accurate ETA across modal close/reopen — was: reset every remount. */
+  jobStartedAt?: number | null;
 }
 
-/** V5.2 — heuristic stage→% progress mapping for ETA. */
 function formatEta(secondsLeft: number): string {
   if (secondsLeft <= 0) return 'sắp xong';
   if (secondsLeft < 60) return `~${Math.ceil(secondsLeft)}s còn lại`;
@@ -33,25 +35,30 @@ const STAGE_LABELS_VN: Record<string, string> = {
   cancelled: 'Đã huỷ',
 };
 
-export function JobResultModal({ open, jobId, onClose, onRetry, estimatedDurationS }: Props) {
+export function JobResultModal({ open, jobId, onClose, onRetry, estimatedDurationS, jobStartedAt }: Props) {
   const { job, error, timedOut } = useDirectorJobPoll(jobId);
   const { cancel, isCancelling } = useJobCancel();
   const [cancelConfirm, setCancelConfirm] = useState(false);
-  const [mountedAt] = useState(() => Date.now());
   const status = job?.status ?? 'pending';
   const progress = job?.progress ?? 0;
   const isDone = status === 'done';
   const isFailed = status === 'failed' || status === 'cancelled';
   const isWorking = !isDone && !isFailed && !timedOut;
 
-  // V5.2 — ETA heuristic: real renders take ~3-5× video duration on AtlasCloud.
-  // Use a conservative 5× expected, scale by elapsed progress (% complete).
-  const totalExpectedS = (estimatedDurationS ?? 15) * 5 + 60;  // +60s for plan/upload overhead
-  const elapsedS = (Date.now() - mountedAt) / 1000;
-  const fractionDone = Math.max(0.05, Math.min(0.95, progress / 100));
+  // V5.3 — ETA uses stable job start time from parent (persisted in localStorage)
+  // instead of mountedAt which reset on every modal remount → wild ETA jumps.
+  // Skip ETA entirely when progress < 10% (too noisy — projection inflates 10×).
+  const totalExpectedS = (estimatedDurationS ?? 15) * 5 + 60;  // +60s plan/upload overhead
+  const anchorTime = jobStartedAt ?? Date.now();
+  const elapsedS = Math.max(0, (Date.now() - anchorTime) / 1000);
+  // V5.3 — math fix: when progress=0%, don't divide by 0.05 (inflates 20×).
+  // Only project when we have meaningful progress signal.
+  const showEta = isWorking && progress >= 10 && progress < 95;
+  const fractionDone = Math.max(0.10, Math.min(0.95, progress / 100));
   const projectedTotalS = elapsedS / fractionDone;
-  const secondsLeft = Math.max(0, Math.min(projectedTotalS, totalExpectedS) - elapsedS);
-  const showEta = isWorking && progress > 5 && progress < 95;
+  const secondsLeft = showEta
+    ? Math.max(0, Math.min(projectedTotalS, totalExpectedS) - elapsedS)
+    : 0;
 
   // V5.1 — toast on terminal status changes (visible even when modal minimized)
   useEffect(() => {
