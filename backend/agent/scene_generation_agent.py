@@ -146,6 +146,20 @@ class SceneRenderJob:
     def to_atlas_kwargs(self) -> dict:
         """Convert to kwargs for `atlas_client.generate_video()`.
 
+        V4.9 BUG FIX — Vidu Q3 / Q3-Mix chain handling: prior code set
+        `kwargs["image"] = chain_input_url` for ALL i2v_chain shots, but Vidu
+        has NO `image` field — only `images` (plural array, max 4). The
+        last_frame URL was being silently dropped by build_payload, causing
+        identity drift on shots 2+ of Vidu multi-shot plans.
+
+        Fix: detect Vidu by model_key prefix. For Vidu chain, APPEND the
+        last_frame URL to the reference_image_urls array (lowest-priority
+        position = last index, so the primary character ref stays at index 0
+        for Vidu's array-order binding). Caps at 4 to respect Vidu max.
+
+        Seedance 2.0 / 2.0 Fast i2v / Wan 2.7 / Seedance 1.5 Pro i2v still use
+        the single `image` field correctly.
+
         Note (Sprint5 C1): `reference_video_urls` is intentionally NOT passed
         through here yet — the AtlasCloud Python wrapper doesn't expose a
         `reference_videos` kwarg today. The @video_N tags already live in the
@@ -164,8 +178,20 @@ class SceneRenderJob:
             "movement_amplitude": self.movement_amplitude,
             "audio_url": self.audio_url,
         }
+        is_vidu = self.model_key.startswith("vidu_q3")
+
         if self.render_mode == "i2v_chain" and self.chain_input_url:
-            kwargs["image"] = self.chain_input_url
+            if is_vidu:
+                # Vidu has no `image` singular field — append to images array
+                # (last position so primary character anchor stays at index 0
+                # for Vidu's array-order binding).
+                chain_refs = list(self.reference_image_urls or [])
+                if self.chain_input_url not in chain_refs:
+                    chain_refs.append(self.chain_input_url)
+                kwargs["images"] = chain_refs[:4]  # Vidu max 4
+            else:
+                # Seedance i2v / Wan i2v / Seedance 1.5 Pro — chain via `image`
+                kwargs["image"] = self.chain_input_url
         elif self.reference_image_urls:
             if len(self.reference_image_urls) == 1:
                 kwargs["image"] = self.reference_image_urls[0]
@@ -209,11 +235,25 @@ def _safe_parse_json(raw: str) -> dict:
 def _filter_refs_for_chain(
     bible: ContinuityBible,
     refs: list,
+    model_key: str = "",
 ) -> list:
     """When a shot chains from a previous shot's last frame, character +
     product anchors are already baked in. Keep only style/environment refs to
     avoid the model double-binding identity (which causes drift).
+
+    V4.9 — Vidu Q3 / Q3-Mix exception: Vidu binds references by ARRAY ORDER
+    and has no separate `image` chain input — the last_frame URL is APPENDED
+    to the images array (by to_atlas_kwargs). If we drop the primary
+    character ref from the array, Image1 binding slot becomes empty and the
+    last_frame ends up as the bound primary character — drift.
+    Therefore: KEEP character/product refs on Vidu chain mode.
+
+    Seedance 2.0 i2v / Wan 2.7 / Seedance 1.5 Pro i2v all use a single
+    `image` field for chain, separate from the ref pool → safe to drop
+    character/product refs.
     """
+    if model_key.startswith("vidu_q3"):
+        return refs  # keep everything for Vidu's array-order binding
     keep_roles = {"style_reference", "environment", "brand_asset"}
     return [r for r in refs if r.role in keep_roles]
 
@@ -329,7 +369,7 @@ def generate_scene(
     is_chain = bool(shot.continuity.previous_shot_id) and bool(last_frame_url)
     bound_refs = continuity_manager.references_for_shot(bible, shot)
     if is_chain:
-        bound_refs = _filter_refs_for_chain(bible, bound_refs)
+        bound_refs = _filter_refs_for_chain(bible, bound_refs, model_key)
     ref_urls = [
         reference_images[r.index]
         for r in bound_refs
@@ -340,15 +380,19 @@ def generate_scene(
         r for r in bound_refs if 0 <= r.index < len(reference_images)
     ]
 
-    # V4 Sprint1 Task #7 — Inject master_board as a GLOBAL style reference
-    # for every non-chain shot that targets a multi-ref model.
-    # Skip for:
-    #   - i2v_chain shots (chain frame already carries identity)
-    #   - single-ref models (max_references==1) — board would displace primary ref
+    # V4 Sprint1 Task #7 — Inject master_board as a GLOBAL style reference.
+    # V4.9 nuance — when target is Vidu (which uses images-array chain by
+    # appending last_frame to the same pool), we CAN still inject master_board.
+    # Skip only when:
+    #   - i2v_chain on non-Vidu models (chain frame is the SINGLE image input,
+    #     master_board would displace it) → exclude Seedance/Wan i2v chain
+    #   - single-ref models (max_references==1) — board displaces primary
     _max_refs = _model_spec_for_max_refs(model_key)
+    is_vidu_for_board = model_key.startswith("vidu_q3")
+    chain_blocks_board = is_chain and not is_vidu_for_board
     if (
         master_board_url
-        and not is_chain
+        and not chain_blocks_board
         and _max_refs > 1
         and master_board_url not in ref_urls
         and len(ref_urls) < _max_refs
