@@ -193,10 +193,24 @@ class SceneRenderJob:
                 # Seedance i2v / Wan i2v / Seedance 1.5 Pro — chain via `image`
                 kwargs["image"] = self.chain_input_url
         elif self.reference_image_urls:
-            if len(self.reference_image_urls) == 1:
+            # V5.9 — single source of truth per model. build_payload reads the
+            # correct field based on spec.images_field ("image" singular /
+            # "images" list / "reference_images" list). Previously we set BOTH
+            # `image` + `images` for 1-ref shots which was redundant; build_payload
+            # accepts both inputs and picks the right one, but cleaner to pass
+            # only what each model expects.
+            if is_vidu:
+                # Vidu uses `images` plural array
+                kwargs["images"] = self.reference_image_urls
+            elif len(self.reference_image_urls) == 1:
+                # Wan i2v + Seedance i2v / 1.5 Pro use singular `image`
+                # Seedance 2.0 ref also accepts `images` via build_payload remapping
+                # to `reference_images`. Pass both forms so spec resolver picks one.
                 kwargs["image"] = self.reference_image_urls[0]
                 kwargs["images"] = self.reference_image_urls
             else:
+                # Multi-ref → only `images` (build_payload maps to reference_images
+                # for Seedance 2.0 ref)
                 kwargs["images"] = self.reference_image_urls
         return {k: v for k, v in kwargs.items() if v is not None}
 

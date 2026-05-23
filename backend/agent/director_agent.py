@@ -374,6 +374,24 @@ class DirectorAgent:
     # ============================================================
     # Repair helpers — coerce LLM output to schema-compatible shapes
     # ============================================================
+    @staticmethod
+    def _coerce_str(d: dict, key: str, default: str = "") -> None:
+        """V5.9 — coerce None/missing/non-str → default. LLM frequently emits
+        `null` instead of `""` for empty string fields, which Pydantic rejects
+        with `type=string_type, input_value=None`. This guard prevents the
+        Bible-schema-invalid crash that user hit when DeepSeek Flash returned
+        `film_grain: null`."""
+        v = d.get(key)
+        if not isinstance(v, str):
+            d[key] = default
+
+    @staticmethod
+    def _coerce_list(d: dict, key: str) -> None:
+        """Same idea for list fields (LLM may emit null)."""
+        v = d.get(key)
+        if not isinstance(v, list):
+            d[key] = []
+
     def _repair_bible_dict(
         self,
         bible_dict: dict,
@@ -382,45 +400,72 @@ class DirectorAgent:
         tech_config: dict,
         user_brief: str,
     ) -> dict:
-        """Fill defaults + sync ref_assets URLs so Pydantic accepts the dict."""
-        # Top-level
-        bible_dict.setdefault("title", (user_brief[:80] or "Untitled").strip())
-        bible_dict.setdefault("logline", (user_brief[:140] or "Untitled video").strip())
-        bible_dict.setdefault("intent", "viral_short")
-        bible_dict.setdefault("duration_s", tech_config.get("duration_s", 15))
-        bible_dict.setdefault("aspect_ratio", tech_config.get("aspect_ratio", "9:16"))
-        bible_dict.setdefault("director_notes", "")
-        bible_dict.setdefault("characters", [])
-        bible_dict.setdefault("products", [])
+        """Fill defaults + sync ref_assets URLs so Pydantic accepts the dict.
 
-        # Nested objects — set defaults only if missing OR not a dict
+        V5.9 — uses _coerce_str/_coerce_list instead of setdefault. Difference:
+        setdefault only ADDS missing keys; it does NOT replace explicit `null`
+        values. LLM (esp. Flash tier) often emits `"film_grain": null` which
+        passed `setdefault` unchanged → Pydantic rejected with string_type
+        validation error. _coerce_str replaces any non-str with default.
+        """
+        # Top-level
+        self._coerce_str(bible_dict, "title", (user_brief[:80] or "Untitled").strip())
+        self._coerce_str(bible_dict, "logline", (user_brief[:140] or "Untitled video").strip())
+        self._coerce_str(bible_dict, "intent", "viral_short")
+        if not isinstance(bible_dict.get("duration_s"), int):
+            bible_dict["duration_s"] = tech_config.get("duration_s", 15)
+        self._coerce_str(bible_dict, "aspect_ratio", tech_config.get("aspect_ratio", "9:16"))
+        self._coerce_str(bible_dict, "director_notes", "")
+        self._coerce_list(bible_dict, "characters")
+        self._coerce_list(bible_dict, "products")
+
+        # V5.9 — Nested Character str fields. Required `name` defaults to "Unknown"
+        # so Pydantic doesn't reject when LLM Flash emits {"name": null, ...}.
+        for ch in bible_dict["characters"]:
+            if not isinstance(ch, dict):
+                continue
+            self._coerce_str(ch, "id", "char_unknown")
+            self._coerce_str(ch, "name", "Unknown")
+            self._coerce_str(ch, "role", "supporting")
+            self._coerce_str(ch, "face_signature", "")
+            self._coerce_str(ch, "outfit", "")
+            self._coerce_list(ch, "personality")
+            # age_apparent / gender / voice_persona are Optional[str] → None OK
+
+        # V5.9 — Nested Product str fields
+        for p in bible_dict["products"]:
+            if not isinstance(p, dict):
+                continue
+            self._coerce_str(p, "id", "prod_unknown")
+            self._coerce_str(p, "name", "Unknown product")
+            self._coerce_str(p, "packaging_description", "")
+            self._coerce_list(p, "hero_features")
+            self._coerce_list(p, "color_palette")
+            self._coerce_list(p, "forbidden_claims")
+
+        # V5.9 — Nested objects via coerce_str/coerce_list (handles `null` from LLM)
         vs = bible_dict.get("visual_style")
         if not isinstance(vs, dict):
             vs = {}
-        vs.setdefault("cinematography", "")
-        vs.setdefault("color_grading", "")
-        vs.setdefault("lighting_design", "")
-        vs.setdefault("camera_language", "")
-        vs.setdefault("film_grain", "")
-        vs.setdefault("aspect_ratio", tech_config.get("aspect_ratio", "9:16"))
+        for k in ("cinematography", "color_grading", "lighting_design", "camera_language", "film_grain"):
+            self._coerce_str(vs, k, "")
+        self._coerce_str(vs, "aspect_ratio", tech_config.get("aspect_ratio", "9:16"))
         bible_dict["visual_style"] = vs
 
         ad = bible_dict.get("audio_design")
         if not isinstance(ad, dict):
             ad = {}
-        ad.setdefault("mood", "")
-        ad.setdefault("tempo", "")
-        ad.setdefault("music_genre", "")
-        ad.setdefault("sfx_emphasis", [])
-        ad.setdefault("dialogue_style", "silent")
+        for k in ("mood", "tempo", "music_genre"):
+            self._coerce_str(ad, k, "")
+        self._coerce_list(ad, "sfx_emphasis")
+        self._coerce_str(ad, "dialogue_style", "silent")
         bible_dict["audio_design"] = ad
 
         st = bible_dict.get("setting")
         if not isinstance(st, dict):
             st = {}
-        st.setdefault("location", "")
-        st.setdefault("time_of_day", "")
-        st.setdefault("atmosphere", "")
+        for k in ("location", "time_of_day", "atmosphere"):
+            self._coerce_str(st, k, "")
         bible_dict["setting"] = st
 
         cn = bible_dict.get("constraints")
@@ -478,46 +523,44 @@ class DirectorAgent:
         if not isinstance(idx, int) or idx < 0:
             s_dict["index"] = fallback_index
 
-        # Duration — schema requires ge=2, le=20. Clamp LLM mistakes
+        # V5.9 — Duration: schema ge=1, le=20. Vendor floor (3-5s) is enforced
+        # later at build_payload time. Allow 1s hook shots through Director.
         try:
             dur = int(s_dict.get("duration_s", 3))
         except (TypeError, ValueError):
             dur = 3
-        s_dict["duration_s"] = max(2, min(20, dur))
+        s_dict["duration_s"] = max(1, min(20, dur))
 
         # start_s / end_s defaults — continuity_manager.normalize_timeline overrides anyway
         s_dict.setdefault("start_s", float(fallback_index * 3))
         s_dict.setdefault("end_s", float(fallback_index * 3 + s_dict["duration_s"]))
 
-        # Required nested objects
+        # V5.9 — Required nested objects with explicit None→default coercion
         visual = s_dict.get("visual") if isinstance(s_dict.get("visual"), dict) else {}
-        visual.setdefault("subject", "")
-        visual.setdefault("action", "")
-        visual.setdefault("camera_shot", "MS")
-        visual.setdefault("camera_movement", "static")
-        visual.setdefault("composition", "")
-        visual.setdefault("background", "")
+        for k, default in [("subject", ""), ("action", ""), ("camera_shot", "MS"),
+                            ("camera_movement", "static"), ("composition", ""), ("background", "")]:
+            self._coerce_str(visual, k, default)
         s_dict["visual"] = visual
 
         audio = s_dict.get("audio") if isinstance(s_dict.get("audio"), dict) else {}
-        audio.setdefault("sfx", [])
+        self._coerce_list(audio, "sfx")
         s_dict["audio"] = audio
 
         cont = s_dict.get("continuity") if isinstance(s_dict.get("continuity"), dict) else {}
-        cont.setdefault("character_ids", [])
-        cont.setdefault("product_ids", [])
-        cont.setdefault("reference_indices", [])
-        cont.setdefault("previous_shot_id", None)
-        cont.setdefault("style_anchor", "")
+        self._coerce_list(cont, "character_ids")
+        self._coerce_list(cont, "product_ids")
+        self._coerce_list(cont, "reference_indices")
+        cont.setdefault("previous_shot_id", None)  # explicit None is valid for Optional
+        self._coerce_str(cont, "style_anchor", "")
         s_dict["continuity"] = cont
 
         mr = s_dict.get("model_routing") if isinstance(s_dict.get("model_routing"), dict) else {}
-        mr.setdefault("preferred_model", "auto")
-        mr.setdefault("reasoning", "")
+        self._coerce_str(mr, "preferred_model", "auto")
+        self._coerce_str(mr, "reasoning", "")
         s_dict["model_routing"] = mr
 
-        s_dict.setdefault("purpose", "shot")
-        s_dict.setdefault("emotion_beat", "")
+        self._coerce_str(s_dict, "purpose", "shot")
+        self._coerce_str(s_dict, "emotion_beat", "")
         return s_dict
 
     def _reindex_shots(self, shots: list[Shot]) -> list[Shot]:
