@@ -255,6 +255,47 @@ so Vidu's array-order binding doesn't blend them:
 
 Without lighting separation, Vidu often merges the two faces by shot 2.
 
+**Hard limits** (Grok V4 — Vidu official YouTube tutorial May 2026 + AtlasCloud
+case study):
+- **Maximum 3 characters per frame** before Vidu Q3 blends faces. For 4+
+  characters, split into separate shots and chain via last_frame.
+- **Upload order IS binding** — Image1 = primary subject, Image2-4 = secondary
+  in priority order. Reorder = different binding.
+- **`@image_N` syntax is CASE-INSENSITIVE** on Vidu Q3-Mix — `@image_1`,
+  `@Image1`, `@IMAGE_1` all parse the same. Underscore optional. Use
+  `@image_N` for consistency with Seedance 2.0.
+- **Native audio supports Vietnamese** but overlay GenMax TTS post for tone
+  precision (Vidu native VN sync 80-85% vs GenMax pre-rendered 95%+).
+
+## 9.4 · WAN 2.7 — VIETNAMESE LIP-SYNC HARD RULES (Grok V4)
+
+Per VN creator tests (AICreation Instagram Reels Apr 2026 + ShortGenius docs):
+
+**Audio file format** (critical for lip-sync accuracy):
+- **48kHz mono WAV** — best sync, NO stereo (stereo causes drift)
+- MP3 accepted but WAV preferred
+- Duration 2-30s, max 15MB
+- GenMax/Vbee output > ElevenLabs v3 for VN accent natural feel
+
+**TTS speed**:
+- **1.0 normal** = best sync
+- 0.9 = lag noticeable
+- 1.1 = drift mạnh — avoid
+
+**Portrait quality**:
+- ✅ Front-facing, soft lighting, mouth clearly visible → 90%+ accuracy
+- ❌ Râu (beard), khẩu trang, kính che mouth → fail 50-70%
+- ⚠️ Dấu ngã / hỏi accent drift ~25% (highest error rate)
+
+**Chain 5s+5s = 10s workaround** (Wan only accepts 5s OR 10s discrete):
+- Pass last_image from shot 1 + "continue previous motion" prefix + FIX SEED
+- Drift rate ~15-20% manageable
+
+When the user picks Wan 2.7 + dialogue_vo mode, the worker auto pre-renders
+GenMax TTS — V5 should force the audio output format to 48kHz mono WAV
+when the target is Wan, and keep the GenMax default (44.1kHz mp3) for
+overlay-only use cases.
+
 ## 10. AGE-INDICATOR AVOIDANCE
 
 Never use age numbers in prompts ("28-year-old woman"). Use functional descriptors: `"photorealistic figure"`, `"a Vietnamese woman with warm fair skin, calm intelligent eyes"`. Triggers conservative filtering otherwise.

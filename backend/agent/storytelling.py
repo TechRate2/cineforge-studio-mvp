@@ -401,6 +401,42 @@ def validate_plan(plan_dict: dict) -> list[ValidationIssue]:
             message="Primary character has empty face_signature — Seedance/Vidu need explicit face DNA to chain shots",
         ))
 
+    # V4.8 (Grok V4 — Vidu official tutorial May 2026):
+    # Vidu Q3 / Q3-Mix blends faces when more than 3 characters share one frame.
+    # Catch plans that pile 4+ characters into a single shot.
+    for s in shots:
+        char_count = len((s.get("continuity", {}).get("character_ids") or []))
+        if char_count >= 4:
+            issues.append(ValidationIssue(
+                code="VIDU_TOO_MANY_CHARACTERS",
+                severity="warning",
+                message=(
+                    f"Shot {s.get('shot_id')} has {char_count} characters bound. "
+                    f"Vidu Q3 / Q3-Mix blend faces above 3 per frame — split into "
+                    f"separate shots and chain via last_frame for 4+ characters."
+                ),
+                shot_id=s.get("shot_id"),
+            ))
+
+    # V4.8 — Wan 2.7 discrete-duration check.
+    # Wan only accepts 5s or 10s per shot. Director must round shot duration
+    # to {5, 10} when target model is Wan. Catch off-spec durations.
+    tech_model = (plan_dict.get("tech_config") or {}).get("model", "")
+    if tech_model == "wan_2_7":
+        for s in shots:
+            d = int(s.get("duration_s") or 0)
+            if d not in (5, 10):
+                issues.append(ValidationIssue(
+                    code="WAN_DURATION_OFF_SPEC",
+                    severity="error",
+                    message=(
+                        f"Shot {s.get('shot_id')} duration={d}s. Wan 2.7 only "
+                        f"accepts 5 or 10 seconds — round to 5 or split into "
+                        f"chained 5s+5s shots."
+                    ),
+                    shot_id=s.get("shot_id"),
+                ))
+
     return issues
 
 
