@@ -230,11 +230,13 @@ class DirectorAgent:
             logger.exception(f"[DirectorAgent] LLM call fail: {e}")
             raise RuntimeError(f"Director LLM call failed: {e}") from e
 
+        logger.info(f"[DirectorAgent] {plan_id} LLM raw received, len={len(raw)} chars")
         try:
             raw_dict = _safe_parse_json(raw)
         except Exception as e:
             logger.error(f"[DirectorAgent] JSON parse fail. Raw head: {raw[:400]}")
             raise RuntimeError(f"Director output is not valid JSON: {e}") from e
+        logger.info(f"[DirectorAgent] {plan_id} JSON parsed, {len(raw_dict.get('shot_list', []))} shots in raw")
 
         # ===== Stage D: Parse → DirectorPlan + repair =====
         bible_dict = raw_dict.get("continuity_bible") or {}
@@ -323,6 +325,7 @@ class DirectorAgent:
         # V4 — storytelling hard-rule check (product timing, double-contrast,
         # hook presence, face anchor). SOFT: log warnings, surface to caller via
         # progress event, but never block the plan. User decides via UI.
+        logger.info(f"[DirectorAgent] {plan_id} entering storytelling check")
         try:
             from agent.storytelling import validate_plan as _story_validate
             story_issues = _story_validate(plan.model_dump())
@@ -345,6 +348,8 @@ class DirectorAgent:
                     shots=len(parsed_shots),
                     duration_total=sum(s.duration_s for s in parsed_shots),
                     warnings=len(warnings))
+
+        logger.info(f"[DirectorAgent] {plan_id} storytelling check done, entering evaluation")
 
         # ===== Stage E: Evaluation =====
         await _emit("evaluation", "running", message="Self-critique")
