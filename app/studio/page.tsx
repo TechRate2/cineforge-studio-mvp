@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { PromptCardV2 } from '@/components/studio/PromptCardV2';
 import { ReferenceZones, type ReferenceZonesValue } from '@/components/studio/ReferenceZones';
@@ -7,12 +7,31 @@ import { ContextInjection, type ContextValue } from '@/components/studio/Context
 import { DirectorPlanModal } from '@/components/studio/DirectorPlanModal';
 import { JobResultModal } from '@/components/studio/JobResultModal';
 import { ModelShowcase } from '@/components/studio/ModelShowcase';
+import { StylePresets } from '@/components/studio/StylePresets';
+import { RecentGenerations } from '@/components/studio/RecentGenerations';
+import { CostConfirmDialog, COST_CONFIRM_THRESHOLD_USD } from '@/components/studio/CostConfirmDialog';
 import { Drawer } from '@/components/ui/Modal';
 import { useDirectorPlan, generateFromPlan, DIRECTOR_STAGE_LABELS_VN } from '@/lib/studio/use-director-plan';
 import { usePersistedJob } from '@/lib/studio/use-persisted-job';
-import { getModelConfig } from '@/lib/studio/model-config';
+import { useEnhanceBrief } from '@/lib/studio/use-enhance-brief';
+import { getModelConfig, MODEL_CONFIGS } from '@/lib/studio/model-config';
+import { type StylePreset } from '@/lib/studio/style-presets';
 import type { VideoModel, AspectRatio, AudioMode } from '@/lib/types/backend';
 import { AlertCircle, Loader2 } from 'lucide-react';
+
+/** V5.2 — auto-save key for draft brief + settings */
+const DRAFT_STORAGE_KEY = 'cineforge:draft_v1';
+
+interface DraftState {
+  brief: string;
+  model: VideoModel;
+  aspect: AspectRatio;
+  resolution: string;
+  duration: number;
+  audioMode: AudioMode;
+  context: ContextValue;
+  saved_at: number;
+}
 
 export default function StudioPage() {
   // Form state
@@ -29,6 +48,48 @@ export default function StudioPage() {
   const [duration, setDuration] = useState(15);
   const [audioMode, setAudioMode] = useState<AudioMode>('silent_native');
   const [numShots, setNumShots] = useState<number | null>(null);
+  const [activePresetId, setActivePresetId] = useState<string | undefined>();
+
+  // V5.2 — hydrate draft on mount (24h TTL)
+  const hydratedRef = useRef(false);
+  useEffect(() => {
+    if (hydratedRef.current || typeof window === 'undefined') return;
+    hydratedRef.current = true;
+    try {
+      const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw) as DraftState;
+      if (Date.now() - d.saved_at > 24 * 60 * 60 * 1000) {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+        return;
+      }
+      if (d.brief) setBrief(d.brief);
+      if (d.model) setModel(d.model);
+      if (d.aspect) setAspect(d.aspect);
+      if (d.resolution) setResolution(d.resolution);
+      if (d.duration) setDuration(d.duration);
+      if (d.audioMode) setAudioMode(d.audioMode);
+      if (d.context) setContext(d.context);
+      if (d.brief) toast.info('Đã restore draft brief từ session trước', { duration: 3000 });
+    } catch {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    }
+  }, []);
+
+  // V5.2 — persist draft on any change (debounced 800ms)
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    const t = setTimeout(() => {
+      try {
+        const draft: DraftState = {
+          brief, model, aspect, resolution, duration, audioMode, context,
+          saved_at: Date.now(),
+        };
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+      } catch {}
+    }, 800);
+    return () => clearTimeout(t);
+  }, [brief, model, aspect, resolution, duration, audioMode, context]);
 
   // Sync resolution to model on change
   useEffect(() => {
@@ -43,11 +104,36 @@ export default function StudioPage() {
     }
   }, [model, resolution, duration]);
 
+  // V5.2 — Style preset one-click apply
+  const handlePickPreset = useCallback((preset: StylePreset) => {
+    setBrief(preset.brief_template);
+    setModel(preset.settings.model);
+    setAspect(preset.settings.aspect_ratio);
+    setResolution(getModelConfig(preset.settings.model).resolution_default);
+    setDuration(preset.settings.duration_s);
+    setAudioMode(preset.settings.audio_mode);
+    setActivePresetId(preset.id);
+    toast.success(`Đã áp preset ${preset.label_vn} — edit brief tiếp hoặc Generate ngay`);
+  }, []);
+
+  // V5.2 — Magic prompt enhance
+  const { enhance, isEnhancing } = useEnhanceBrief();
+  const handleEnhance = useCallback(async () => {
+    if (!brief.trim() || brief.trim().length < 4) return;
+    try {
+      const res = await enhance({ brief, duration_s: duration });
+      setBrief(res.enhanced_brief);
+      toast.success(`Brief enhanced (~${res.char_count} chars) — review trước khi Generate`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(`Enhance failed: ${msg}`);
+    }
+  }, [brief, duration, enhance]);
+
   // Director plan flow
   const { createPlan, plan, setPlan, progress, isLoading, error, storytellingIssues, reset } = useDirectorPlan();
   const [showPlanModal, setShowPlanModal] = useState(false);
 
-  // Open modal when plan ready
   useEffect(() => {
     if (plan) {
       setShowPlanModal(true);
@@ -55,19 +141,16 @@ export default function StudioPage() {
     }
   }, [plan]);
 
-  // V5.1 — toast on plan error (was silent console.error before)
   useEffect(() => {
-    if (error) {
-      toast.error(`Plan failed: ${error}`, { duration: 8000 });
-    }
+    if (error) toast.error(`Plan failed: ${error}`, { duration: 8000 });
   }, [error]);
 
   // Render job flow — V5.1 persist jobId across refresh
   const { jobId, setJobId } = usePersistedJob();
   const [isRendering, setIsRendering] = useState(false);
   const [showJobModal, setShowJobModal] = useState(false);
+  const [showCostConfirm, setShowCostConfirm] = useState(false);
 
-  // V5.1 — resume polling on mount if we have a stashed jobId
   useEffect(() => {
     if (jobId && !showJobModal) {
       setShowJobModal(true);
@@ -75,9 +158,8 @@ export default function StudioPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  // V4 Sprint1 Task #7 — master board URL (set when user gens master board in PlanModal)
+
   const [masterBoardUrl, setMasterBoardUrl] = useState<string | null>(null);
-  // Topview-style: references live in a drawer instead of always-visible 3-zone
   const [showRefDrawer, setShowRefDrawer] = useState(false);
 
   const handleGeneratePlan = async () => {
@@ -102,8 +184,19 @@ export default function StudioPage() {
     });
   };
 
+  // V5.2 — Approve gated by cost confirm dialog when ≥ threshold
+  const handleApproveClick = () => {
+    if (!plan) return;
+    if (plan.cost_estimate.total_cost_usd >= COST_CONFIRM_THRESHOLD_USD) {
+      setShowCostConfirm(true);
+    } else {
+      void handleApproveAndRender();
+    }
+  };
+
   const handleApproveAndRender = async () => {
     if (!plan) return;
+    setShowCostConfirm(false);
     setIsRendering(true);
     try {
       const res = await generateFromPlan({
@@ -130,8 +223,6 @@ export default function StudioPage() {
   };
 
   const cfg = useMemo(() => getModelConfig(model), [model]);
-
-  // Cost estimate — videos × duration + plan + audio
   const estimatedCostUsd = useMemo(() => {
     const videoCost = cfg.cost_per_second_usd * duration;
     const audioCost = audioMode === 'dialogue_vo' ? 0.01 : audioMode === 'asmr_macro' ? 0.10 : 0;
@@ -140,8 +231,7 @@ export default function StudioPage() {
 
   return (
     <div className="min-h-full">
-      {/* Hero — Topview style: tighter, bold one-line */}
-      <section className="px-5 md:px-10 pt-12 md:pt-16 pb-8 max-w-container mx-auto text-center">
+      <section className="px-5 md:px-10 pt-12 md:pt-16 pb-6 max-w-container mx-auto text-center">
         <h1 className="text-4xl md:text-5xl lg:text-[56px] font-extrabold tracking-tight leading-tight">
           Create Any Video, Just Tell Your <span className="text-gradient">Agent</span>
         </h1>
@@ -150,11 +240,19 @@ export default function StudioPage() {
         </p>
       </section>
 
-      {/* Main compact input card — Topview Video Agent V2 style */}
+      {/* V5.2 — Style presets one-click */}
+      <section className="px-5 md:px-10 pb-6 max-w-3xl mx-auto">
+        <h3 className="text-[11px] uppercase tracking-wider text-text-subtle mb-2 px-1">
+          Bắt đầu nhanh · click 1 preset
+        </h3>
+        <StylePresets onPick={handlePickPreset} activeId={activePresetId} />
+      </section>
+
+      {/* Main compact input card */}
       <section className="px-5 md:px-10 pb-6 max-w-3xl mx-auto">
         <PromptCardV2
           brief={brief}
-          onBrief={setBrief}
+          onBrief={(v) => { setBrief(v); setActivePresetId(undefined); }}
           referenceCount={referenceZones.images.length}
           onOpenReferences={() => setShowRefDrawer(true)}
           model={model}
@@ -171,9 +269,10 @@ export default function StudioPage() {
           estimatedCostUsd={estimatedCostUsd}
           onSubmit={handleGeneratePlan}
           isLoading={isLoading}
+          onEnhance={handleEnhance}
+          isEnhancing={isEnhancing}
         />
 
-        {/* Live progress / error directly under input */}
         {progress && isLoading && (
           <div className="surface-2 rounded-card p-4 mt-4 flex items-center gap-3">
             <Loader2 size={16} className="text-accent-magenta animate-spin shrink-0" />
@@ -200,18 +299,20 @@ export default function StudioPage() {
         )}
       </section>
 
-      {/* Featured models showcase — below input as inspiration */}
+      {/* V5.2 — Recent generations carousel */}
+      <section className="px-5 md:px-10 pb-8 max-w-container mx-auto">
+        <RecentGenerations />
+      </section>
+
       <section className="px-5 md:px-10 pb-8 max-w-container mx-auto">
         <h3 className="text-[11px] uppercase tracking-wider text-text-subtle mb-3 px-1">Pick a tier</h3>
         <ModelShowcase onPick={setModel} />
       </section>
 
-      {/* Context injection — optional, collapsed */}
       <section className="px-5 md:px-10 pb-12 max-w-3xl mx-auto">
         <ContextInjection value={context} onChange={setContext} />
       </section>
 
-      {/* References drawer — opens from "+ Reference" button */}
       <Drawer
         open={showRefDrawer}
         onClose={() => setShowRefDrawer(false)}
@@ -238,12 +339,11 @@ export default function StudioPage() {
         </div>
       </Drawer>
 
-      {/* Modals */}
       <DirectorPlanModal
         open={showPlanModal}
         onClose={() => setShowPlanModal(false)}
         plan={plan}
-        onApprove={handleApproveAndRender}
+        onApprove={handleApproveClick}
         isRendering={isRendering}
         storytellingIssues={storytellingIssues}
         referenceImages={referenceZones.images}
@@ -259,10 +359,26 @@ export default function StudioPage() {
         onMasterBoardChange={setMasterBoardUrl}
         onPlanRevised={setPlan}
       />
+
+      {/* V5.2 — Cost confirmation gate before high-cost renders */}
+      {plan && (
+        <CostConfirmDialog
+          open={showCostConfirm}
+          estimatedCostUsd={plan.cost_estimate.total_cost_usd}
+          estimatedDurationS={plan.continuity_bible.duration_s}
+          shotCount={plan.shot_list.length}
+          modelName={MODEL_CONFIGS[model]?.name_short ?? model}
+          onConfirm={handleApproveAndRender}
+          onCancel={() => setShowCostConfirm(false)}
+          isLoading={isRendering}
+        />
+      )}
+
       <JobResultModal
         open={showJobModal}
         jobId={jobId}
         onClose={() => setShowJobModal(false)}
+        estimatedDurationS={plan?.continuity_bible.duration_s ?? duration}
       />
     </div>
   );

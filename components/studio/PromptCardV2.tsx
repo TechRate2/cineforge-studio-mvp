@@ -11,7 +11,7 @@
  */
 import { useRef } from 'react';
 import {
-  ArrowUp, Loader2, Plus, Sparkles, ChevronDown, Image as ImageIcon,
+  ArrowUp, Loader2, Plus, Sparkles, ChevronDown, Image as ImageIcon, Wand2,
 } from 'lucide-react';
 import { MODEL_CONFIGS, getModelConfig } from '@/lib/studio/model-config';
 import type { VideoModel, AspectRatio, AudioMode } from '@/lib/types/backend';
@@ -47,6 +47,10 @@ interface Props {
   onSubmit: () => void;
   isLoading?: boolean;
   disabled?: boolean;
+
+  // V5.2 — Magic enhance ✨
+  onEnhance?: () => void;
+  isEnhancing?: boolean;
 }
 
 const ASPECTS: { v: AspectRatio; label: string }[] = [
@@ -74,6 +78,7 @@ export function PromptCardV2({
   estimatedCostUsd,
   onSubmit,
   isLoading, disabled,
+  onEnhance, isEnhancing,
 }: Props) {
   const cfg = getModelConfig(model);
   const taRef = useRef<HTMLTextAreaElement | null>(null);
@@ -237,6 +242,25 @@ export function PromptCardV2({
         </SettingPill>
 
         <div className="flex-1" />
+
+        {/* V5.2 — Magic prompt enhance */}
+        {onEnhance && (
+          <button
+            onClick={onEnhance}
+            disabled={disabled || isEnhancing || isLoading || !brief.trim() || brief.trim().length < 4}
+            title="✨ Magic enhance — viết lại brief giàu chi tiết hơn (~$0.001)"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill
+                       border border-accent-magenta/30 bg-accent-magenta/8
+                       text-accent-magenta hover:bg-accent-magenta/15 transition
+                       text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isEnhancing ? (
+              <><Loader2 size={12} className="animate-spin" /> Enhancing…</>
+            ) : (
+              <><Wand2 size={12} /> Enhance</>
+            )}
+          </button>
+        )}
 
         <button
           onClick={onSubmit}

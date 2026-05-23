@@ -183,6 +183,7 @@ async def render_plan(
                 tts_map = await _pre_render_dialogue_tts(
                     job_id=job_id, shots=list(shots),
                     voice_persona=(bible.characters[0].voice_persona if bible.characters else None),
+                    user_model=user_model,
                 )
                 if tts_map:
                     audio_plan = {**audio_plan, "driven_audio_urls": tts_map}
@@ -815,6 +816,58 @@ def _check_cancelled(store: Optional[dict], job_id: str) -> None:
         raise JobCancelledError(f"Job {job_id} cancelled by user")
 
 
+async def _convert_to_48khz_wav(
+    audio_url: str,
+    job_id: str,
+    shot_id: str,
+) -> Optional[str]:
+    """V5.2 — Download a TTS MP3, convert to 48kHz mono WAV via FFmpeg, upload
+    to R2, return new URL. Returns None on any failure (caller falls back to
+    the original MP3). Wan 2.7 lip-sync model prefers this format — feeding
+    44.1kHz MP3 still works but produces mild formant smearing.
+
+    The conversion is one-shot per TTS clip (small files, <1s ffmpeg) and the
+    WAV gets cached in R2 keyed by job_id + shot_id so re-renders don't redo.
+    """
+    import subprocess as _sp
+    work_dir = Path(tempfile.gettempdir()) / f"cineforge_wav_{job_id}"
+    work_dir.mkdir(parents=True, exist_ok=True)
+    mp3_path = work_dir / f"{shot_id}.mp3"
+    wav_path = work_dir / f"{shot_id}.wav"
+    try:
+        await _download_file(audio_url, mp3_path, timeout_s=30.0)
+        # FFmpeg: 48kHz, 16-bit PCM, mono — Wan-friendly
+        cmd = [
+            "ffmpeg", "-y", "-i", str(mp3_path),
+            "-ar", "48000", "-ac", "1", "-c:a", "pcm_s16le",
+            str(wav_path),
+        ]
+        await asyncio.to_thread(_sp.run, cmd, check=True, capture_output=True, timeout=30)
+        # Upload to R2 if available
+        try:
+            key = f"tts_wav/{job_id}/{shot_id}.wav"
+            uploaded = await r2_storage.upload_with_fallback(
+                str(wav_path), key, content_type="audio/wav"
+            )
+            # Only accept R2 https URL (Wan won't accept file:// local path)
+            if uploaded and uploaded.startswith("http"):
+                return uploaded
+            return None
+        except Exception as e:
+            logger.warning(f"[V5.2 WAV] R2 upload fail ({shot_id}): {e}")
+            return None
+    except Exception as e:
+        logger.warning(f"[V5.2 WAV] ffmpeg convert fail ({shot_id}): {e}")
+        return None
+    finally:
+        # Best-effort temp cleanup
+        try:
+            if mp3_path.exists(): mp3_path.unlink()
+            if wav_path.exists(): wav_path.unlink()
+        except OSError:
+            pass
+
+
 async def _download_file(url: str, dest: Path, timeout_s: float = 120.0) -> None:
     async with httpx.AsyncClient(timeout=timeout_s) as c:
         async with c.stream("GET", url) as r:
@@ -888,6 +941,7 @@ async def _pre_render_dialogue_tts(
     job_id: str,
     shots: list[Shot],
     voice_persona: Optional[str] = None,
+    user_model: Optional[str] = None,
 ) -> dict[str, str]:
     """Pre-render TTS Việt for every shot that has dialogue_vn.
 
@@ -898,12 +952,12 @@ async def _pre_render_dialogue_tts(
         2. ENV `GENMAX_DEFAULT_PRESET`
         3. Hard fallback "mai"
 
-    V4.6 — Wan 2.7 audio format note (per Grok V2 research, Wan tutorial 2026):
-        Optimal driven audio = 48kHz WAV (cleaner formant → better lip-sync).
-        GenMax currently returns 44.1kHz MP3 — still works but suboptimal for
-        Wan. Future tip: when integrating native WAV-output TTS (OpenVoice,
-        XTTS-v2), prefer those for Wan lip-sync. For other models (Seedance
-        native audio), 44.1kHz mp3 is fine.
+    V5.2 — Wan 2.7 lip-sync upgrade (per Grok V2 research, Wan tutorial 2026):
+        When user_model == "wan_2_7", we now post-process each TTS MP3 →
+        48kHz mono WAV via FFmpeg + upload to R2 → swap audio_url. Wan's
+        lip-sync model expects 48kHz WAV; feeding 44.1kHz MP3 causes mild
+        formant smearing. For Seedance native audio (no lip-sync), 44.1kHz
+        MP3 is fine — we skip the conversion to save R2 bandwidth.
     """
     try:
         from vendors.genmax import genmax_client, VIETNAMESE_VOICE_PRESETS
@@ -962,6 +1016,19 @@ async def _pre_render_dialogue_tts(
                 or final.get("audio_url")
             )
             if audio_url:
+                # V5.2 — for Wan 2.7, convert MP3 → 48kHz mono WAV for cleaner lip-sync
+                if user_model == "wan_2_7":
+                    try:
+                        wav_url = await _convert_to_48khz_wav(audio_url, job_id, shot.shot_id)
+                        if wav_url:
+                            audio_url = wav_url
+                            logger.info(
+                                f"[VideoWorker V5.2] {shot.shot_id} converted MP3 → 48kHz WAV for Wan lip-sync"
+                            )
+                    except Exception as e:
+                        logger.warning(
+                            f"[VideoWorker V5.2] {shot.shot_id} WAV convert fail (fallback to MP3): {e}"
+                        )
                 out[shot.shot_id] = audio_url
                 logger.debug(
                     f"[VideoWorker V4] TTS {shot.shot_id} → {audio_url[:60]}..."

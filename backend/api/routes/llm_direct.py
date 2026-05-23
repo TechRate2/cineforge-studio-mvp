@@ -72,6 +72,53 @@ class TestCallRequest(BaseModel):
     max_tokens: int = Field(20, ge=1, le=200)
 
 
+class EnhanceBriefRequest(BaseModel):
+    """V5.2 — Magic prompt enhance: rewrite a short user brief into a richer,
+    Director-friendly description with concrete visual/audio/camera details."""
+    brief: str = Field(..., min_length=4, max_length=2000)
+    niche_hint: Optional[str] = Field(None, max_length=80)
+    duration_s: Optional[int] = Field(15, ge=3, le=120)
+
+
+_ENHANCE_SYSTEM_PROMPT = (
+    "Bạn là Director AI chuyên viết brief video tiếng Việt cho Director Agent. "
+    "Người dùng đưa brief ngắn (vd 'review son môi'). Nhiệm vụ: viết lại brief "
+    "thành mô tả 4-7 câu tiếng Việt giàu chi tiết visual + camera + lighting + "
+    "mood + audio, KHÔNG bịa product features, KHÔNG thêm CTA / sale imperatives, "
+    "KHÔNG dùng emoji, KHÔNG bullet list. Giữ ý gốc user nhưng bổ sung: "
+    "(a) bối cảnh setting cụ thể, (b) ánh sáng + color grade, (c) camera shot "
+    "+ movement, (d) mood/tone từ audio_design. Chỉ output brief văn xuôi, "
+    "không prefix 'Brief:' hay markdown."
+)
+
+
+@router.post("/enhance-brief")
+async def enhance_brief(req: EnhanceBriefRequest):
+    """Magic prompt — rewrite short brief → cinematic 4-7 sentence brief."""
+    user_msg = (
+        f"Brief gốc của user (giữ ý chính, viết lại giàu chi tiết hơn cho video {req.duration_s}s):\n"
+        f"---\n{req.brief}\n---"
+    )
+    if req.niche_hint:
+        user_msg += f"\n\nNiche hint: {req.niche_hint}"
+    try:
+        text = llm.complete(
+            system_prompt=_ENHANCE_SYSTEM_PROMPT,
+            user_message=user_msg,
+            task="generator",
+            max_tokens=600,
+            temperature=0.7,
+        )
+    except Exception as e:
+        logger.exception(f"enhance-brief LLM call failed: {e}")
+        raise HTTPException(502, detail=f"Enhance LLM failed: {e}")
+    return {
+        "original_brief": req.brief,
+        "enhanced_brief": text.strip(),
+        "char_count": len(text.strip()),
+    }
+
+
 @router.post("/test-call")
 async def test_llm_call(req: TestCallRequest):
     """Smoke test gọi LLM — charge real $0.00001-$0.001 tùy model.

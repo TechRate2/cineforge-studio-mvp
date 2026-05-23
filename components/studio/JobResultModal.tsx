@@ -11,6 +11,15 @@ interface Props {
   jobId: string | null;
   onClose: () => void;
   onRetry?: () => void;
+  /** V5.2 — total expected render duration (s) for ETA computation. */
+  estimatedDurationS?: number;
+}
+
+/** V5.2 — heuristic stage→% progress mapping for ETA. */
+function formatEta(secondsLeft: number): string {
+  if (secondsLeft <= 0) return 'sắp xong';
+  if (secondsLeft < 60) return `~${Math.ceil(secondsLeft)}s còn lại`;
+  return `~${Math.ceil(secondsLeft / 60)} phút còn lại`;
 }
 
 const STAGE_LABELS_VN: Record<string, string> = {
@@ -24,15 +33,25 @@ const STAGE_LABELS_VN: Record<string, string> = {
   cancelled: 'Đã huỷ',
 };
 
-export function JobResultModal({ open, jobId, onClose, onRetry }: Props) {
+export function JobResultModal({ open, jobId, onClose, onRetry, estimatedDurationS }: Props) {
   const { job, error, timedOut } = useDirectorJobPoll(jobId);
   const { cancel, isCancelling } = useJobCancel();
   const [cancelConfirm, setCancelConfirm] = useState(false);
+  const [mountedAt] = useState(() => Date.now());
   const status = job?.status ?? 'pending';
   const progress = job?.progress ?? 0;
   const isDone = status === 'done';
   const isFailed = status === 'failed' || status === 'cancelled';
   const isWorking = !isDone && !isFailed && !timedOut;
+
+  // V5.2 — ETA heuristic: real renders take ~3-5× video duration on AtlasCloud.
+  // Use a conservative 5× expected, scale by elapsed progress (% complete).
+  const totalExpectedS = (estimatedDurationS ?? 15) * 5 + 60;  // +60s for plan/upload overhead
+  const elapsedS = (Date.now() - mountedAt) / 1000;
+  const fractionDone = Math.max(0.05, Math.min(0.95, progress / 100));
+  const projectedTotalS = elapsedS / fractionDone;
+  const secondsLeft = Math.max(0, Math.min(projectedTotalS, totalExpectedS) - elapsedS);
+  const showEta = isWorking && progress > 5 && progress < 95;
 
   // V5.1 — toast on terminal status changes (visible even when modal minimized)
   useEffect(() => {
@@ -83,7 +102,14 @@ export function JobResultModal({ open, jobId, onClose, onRetry }: Props) {
                   <div className="text-xs text-text-subtle mt-0.5">{job.current_step}</div>
                 )}
               </div>
-              <div className="ml-auto text-xs text-text-muted">{progress}%</div>
+              <div className="ml-auto flex items-center gap-2 text-xs">
+                {showEta && (
+                  <span className="text-accent-cyan flex items-center gap-1">
+                    <Clock size={11} /> {formatEta(secondsLeft)}
+                  </span>
+                )}
+                <span className="text-text-muted">{progress}%</span>
+              </div>
             </div>
             <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden">
               <div
