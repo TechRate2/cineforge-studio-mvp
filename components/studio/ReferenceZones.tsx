@@ -107,7 +107,11 @@ export function ReferenceZones({ value, onChange, maxRefs = 9 }: Props) {
                 <div className="text-sm font-semibold">{zone.label}</div>
               </div>
               <span className={`chip ${atLimit ? 'text-accent-orange border-accent-orange/40' : ''}`}>
-                {zone.key === 'storyboard' ? items.length : `${totalUsed}/${maxRefs}`}
+                {zone.key === 'storyboard'
+                  ? items.length
+                  : items.length > 0 || totalUsed > 0
+                    ? `${items.length} · pool ${totalUsed}/${maxRefs}`
+                    : `0/${maxRefs}`}
               </span>
             </div>
             <p className="text-[11px] text-text-subtle mb-3 leading-snug">{zone.hint}</p>
@@ -117,7 +121,24 @@ export function ReferenceZones({ value, onChange, maxRefs = 9 }: Props) {
               <div className="grid grid-cols-3 gap-1.5 mb-3">
                 {items.map((src, i) => (
                   <div key={i} className="group relative aspect-square rounded-md overflow-hidden border border-hairline">
-                    <img src={src} alt="" className="w-full h-full object-cover" />
+                    {/* V5.6 — referrerPolicy="no-referrer" bypasses AliyunOSS
+                        hotlink protection that blocks requests carrying a
+                        localhost:3000 Referer (browser-only — curl HEAD works
+                        because curl doesn't send Referer by default).
+                        decoding=async + loading=lazy keeps the grid snappy. */}
+                    <img
+                      src={src}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                      decoding="async"
+                      loading="lazy"
+                      onError={(e) => {
+                        // Surface broken thumbs explicitly instead of silent X icon
+                        (e.currentTarget as HTMLImageElement).style.opacity = '0.3';
+                        (e.currentTarget as HTMLImageElement).title = 'Image load failed';
+                      }}
+                    />
                     <button
                       onClick={() => removeAt(zone.key, i)}
                       className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white grid place-items-center
