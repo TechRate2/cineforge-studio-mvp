@@ -83,7 +83,11 @@ export function PromptCardV2({
     ?? DURATION_OPTIONS_DEFAULT.filter((d) => d <= cfg.max_duration_s);
 
   return (
-    <div className="glass-card p-0 overflow-hidden">
+    // AUDIT FIX: overflow-hidden + backdrop-blur creates a stacking context
+    // that clips native <select> dropdown popup on some Chromium combos.
+    // Use overflow-visible — glass-card border-radius still clips children
+    // visually but lets dropdowns escape.
+    <div className="glass-card p-0 overflow-visible">
       {/* Tab strip header (Topview "Video Agent V2") */}
       <div className="px-5 pt-4 pb-2 flex items-center justify-between border-b border-hairline">
         <div className="flex items-center gap-3">
@@ -159,7 +163,9 @@ export function PromptCardV2({
             className="bg-transparent outline-none text-xs font-medium pr-1"
           >
             {Object.values(MODEL_CONFIGS).map((m) => (
-              <option key={m.id} value={m.id}>{m.name_short}</option>
+              <option key={m.id} value={m.id}>
+                {m.name_short} · ${m.cost_per_second_usd}/s
+              </option>
             ))}
           </select>
         </SettingPill>
