@@ -266,24 +266,175 @@ async def render_plan(
     _update_job(jobs_store, job_id, status="rendering", progress=10,
                 current_step="scene_gen", scene_count=len(shots))
 
+    # V4.5 — PER-MODEL RENDER STRATEGY DISPATCH
+    # Pick the optimal render strategy based on model capability + plan shape.
+    # Seedance 2.0 / 2.0 Fast / Seedance 1.5 Pro have native multi-shot or
+    # time-coded support → single call beats N chained calls (better identity,
+    # cheaper LLM, no concat seams). Vidu Q3 / Wan 2.7 / long-form keep the
+    # existing per-shot chain logic.
+    from agent.multi_shot_prompt_builder import (
+        pick_strategy, detect_cross_location_cut,
+        build_seedance_2_multi_shot, build_seedance_15_time_coded,
+    )
+    total_dur_plan = int(sum(s.duration_s for s in shots))
+    has_cross_cut = detect_cross_location_cut(list(shots))
+    strategy = pick_strategy(
+        user_model=user_model,
+        total_duration_s=total_dur_plan,
+        num_shots=len(shots),
+        has_cross_location_cut=has_cross_cut,
+    )
+    logger.info(
+        f"[VideoWorker V4.5] {job_id} strategy={strategy} "
+        f"model={user_model} dur={total_dur_plan}s shots={len(shots)} "
+        f"cross_cut={has_cross_cut}"
+    )
+
+    # ============================================================
+    # STRATEGY A — SINGLE CALL (Seedance 2.0 / 2.0 Fast multi-shot inline)
+    # ============================================================
+    if strategy == "single_call_multi_shot":
+        _update_job(jobs_store, job_id, current_step="single_call_render")
+        work_dir = Path(tempfile.gettempdir()) / f"cineforge_{job_id}"
+        work_dir.mkdir(parents=True, exist_ok=True)
+
+        spec = build_seedance_2_multi_shot(
+            bible=bible,
+            shots=list(shots),
+            reference_images=reference_images,
+            model_key=ref_key_default,
+            resolution=resolution,
+        )
+        # Master Board → append as extra style ref (consistent with per-shot path)
+        if (
+            master_board_url
+            and master_board_url not in spec.reference_image_urls
+            and len(spec.reference_image_urls) < 9  # Seedance 2.0 max
+        ):
+            spec.reference_image_urls.append(master_board_url)
+
+        logger.info(
+            f"[VideoWorker V4.5] single-call render: {ref_key_default} "
+            f"dur={spec.total_duration_s}s refs={len(spec.reference_image_urls)} "
+            f"prompt_chars={len(spec.prompt)}"
+        )
+        atlas_kwargs = {
+            "model_key": ref_key_default,
+            "prompt": spec.prompt,
+            "negative_prompt": spec.negative_prompt,
+            "images": spec.reference_image_urls,
+            "duration_s": spec.total_duration_s,
+            "resolution": spec.resolution,
+            "aspect_ratio": spec.aspect_ratio,
+            "generate_audio": spec.generate_audio,
+            "return_last_frame": False,  # single call → no chain needed
+            "poll_interval_s": 5,
+            "timeout_s": 900,
+        }
+        single_result = await asyncio.to_thread(atlas_client.generate_video, **atlas_kwargs)
+        clip_url = single_result.get("video_url")
+        if not clip_url:
+            raise RuntimeError(f"Single-call render returned no video_url. {single_result}")
+
+        clip_path = work_dir / "single_call.mp4"
+        await _download_file(clip_url, clip_path)
+        clip_paths = [clip_path]
+        chain_meta = [{
+            "shot_id": "ALL",
+            "model_key": ref_key_default,
+            "render_mode": "single_call_multi_shot",
+            "video_url": clip_url,
+            "last_frame_url": None,
+            "duration_s": spec.total_duration_s,
+            "shot_timing": spec.shot_timing,  # for downstream audio_timeline
+        }]
+
+        # Skip per-shot loop entirely — go straight to assemble
+        last_frame_urls_by_shot_id = {}
+        _update_job(
+            jobs_store, job_id, status="rendering", progress=80,
+            current_step="single_call_done", scene_count=1,
+        )
+        # Continue to assemble stage below using clip_paths + chain_meta
+        _SKIP_PER_SHOT_LOOP = True
+    elif strategy == "single_call_time_coded":
+        # ========================================================
+        # STRATEGY B — SINGLE CALL TIME-CODED (Seedance 1.5 Pro)
+        # ========================================================
+        _update_job(jobs_store, job_id, current_step="single_call_render_15pro")
+        work_dir = Path(tempfile.gettempdir()) / f"cineforge_{job_id}"
+        work_dir.mkdir(parents=True, exist_ok=True)
+
+        spec = build_seedance_15_time_coded(
+            bible=bible,
+            shots=list(shots),
+            reference_images=reference_images,
+            model_key=ref_key_default,
+            resolution=resolution,
+        )
+        # Seedance 1.5 Pro i2v takes single `image` ref — DO NOT append board
+        # (would overflow max_refs=1 and likely break the call)
+        atlas_kwargs = {
+            "model_key": ref_key_default,
+            "prompt": spec.prompt,
+            "negative_prompt": spec.negative_prompt,
+            "image": spec.reference_image_urls[0] if spec.reference_image_urls else None,
+            "duration_s": spec.total_duration_s,
+            "resolution": spec.resolution,
+            "aspect_ratio": spec.aspect_ratio,
+            "generate_audio": spec.generate_audio,
+            "return_last_frame": False,
+            "poll_interval_s": 5,
+            "timeout_s": 900,
+        }
+        single_result = await asyncio.to_thread(atlas_client.generate_video, **atlas_kwargs)
+        clip_url = single_result.get("video_url")
+        if not clip_url:
+            raise RuntimeError(f"Single-call time-coded render returned no video_url. {single_result}")
+
+        clip_path = work_dir / "single_call.mp4"
+        await _download_file(clip_url, clip_path)
+        clip_paths = [clip_path]
+        chain_meta = [{
+            "shot_id": "ALL",
+            "model_key": ref_key_default,
+            "render_mode": "single_call_time_coded",
+            "video_url": clip_url,
+            "last_frame_url": None,
+            "duration_s": spec.total_duration_s,
+            "shot_timing": spec.shot_timing,
+        }]
+        last_frame_urls_by_shot_id = {}
+        _update_job(
+            jobs_store, job_id, status="rendering", progress=80,
+            current_step="single_call_done", scene_count=1,
+        )
+        _SKIP_PER_SHOT_LOOP = True
+    else:
+        _SKIP_PER_SHOT_LOOP = False
+
     # Stage 1 — Reference-chained render loop.
     # We invoke Scene Generation Agent LAZILY per shot (right before its render
     # call) so the LLM sees the live `last_frame_url` and can format the prompt
     # accordingly (chain frame carries identity → drop char refs etc.).
-    work_dir = Path(tempfile.gettempdir()) / f"cineforge_{job_id}"
-    work_dir.mkdir(parents=True, exist_ok=True)
+    if not _SKIP_PER_SHOT_LOOP:
+        work_dir = Path(tempfile.gettempdir()) / f"cineforge_{job_id}"
+        work_dir.mkdir(parents=True, exist_ok=True)
 
-    # BUG #3 fix — track last_frame by shot_id, not just "the previous one
-    # we rendered". This is required when a shot chains back to a shot earlier
-    # than the immediate predecessor (e.g. flashback / cutaway pattern where
-    # S3.previous_shot_id == "S1"). The previous implementation always passed
-    # the most-recently-rendered last_frame, which silently drifted identity.
-    last_frame_urls_by_shot_id: dict[str, Optional[str]] = {}
-    clip_paths: list[Path] = []
-    chain_meta: list[dict] = []
-    total_shots = len(shots)
+        # BUG #3 fix — track last_frame by shot_id, not just "the previous one
+        # we rendered". This is required when a shot chains back to a shot earlier
+        # than the immediate predecessor (e.g. flashback / cutaway pattern where
+        # S3.previous_shot_id == "S1"). The previous implementation always passed
+        # the most-recently-rendered last_frame, which silently drifted identity.
+        last_frame_urls_by_shot_id = {}
+        clip_paths = []
+        chain_meta = []
 
-    for i, shot in enumerate(shots):
+    # V4.5 — for-loop skips entirely when single-call mode (shots_to_iter=[])
+    shots_to_iter = [] if _SKIP_PER_SHOT_LOOP else list(shots)
+    total_shots = len(shots_to_iter)
+
+    for i, shot in enumerate(shots_to_iter):
         _update_job(
             jobs_store, job_id,
             status="rendering",
