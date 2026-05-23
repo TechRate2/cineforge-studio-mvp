@@ -20,7 +20,10 @@ export type VideoModel =
   | 'seedance_2_0'
   | 'seedance_2_0_fast';
 
-export type AspectRatio = '9:16' | '16:9' | '1:1';
+// V5.7 — widened to match per-model BE specs (Seedance 2.0/Fast accept all 7;
+// Vidu Q3 accepts 5; Seedance 1.5 Pro accepts 6; Wan 2.7 i2v ignores aspect).
+// Per-model FE dropdown filters via MODEL_CONFIGS[*].aspect_ratio_options.
+export type AspectRatio = '9:16' | '16:9' | '1:1' | '3:4' | '4:3' | '21:9' | 'adaptive';
 
 export type JobStatusEnum =
   | 'pending'

@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { LucideIcon } from 'lucide-react';
 import { Upload, X, User, Package, Image as ImageIcon, Loader2 } from 'lucide-react';
@@ -29,13 +29,23 @@ export function ReferenceZones({ value, onChange, maxRefs = 9 }: Props) {
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
 
+  // V5.7 CRITICAL FIX — stale closure race: when user uploaded Character +
+  // Product near-simultaneously, both handleFiles() captured `value` at start
+  // (both empty {images:[], roles:[]}). Whoever finished LAST called onChange
+  // with `...value (stale empty)` → overwrote the earlier upload entirely.
+  // valueRef mirrors latest props so post-await reads see fresh state.
+  const valueRef = useRef(value);
+  useEffect(() => { valueRef.current = value; }, [value]);
+
   async function handleFiles(zoneKey: 'character' | 'product' | 'storyboard', files: FileList | null) {
     if (!files || files.length === 0) return;
     const list = Array.from(files);
 
-    // V5.1 — hard cap BEFORE upload so we don't waste R2 bandwidth on rejects
+    // V5.1 — hard cap BEFORE upload so we don't waste R2 bandwidth on rejects.
+    // Use valueRef so the cap reflects any uploads that finished while this
+    // zone was still picking files.
     if (zoneKey !== 'storyboard') {
-      const remaining = Math.max(0, maxRefs - value.images.length);
+      const remaining = Math.max(0, maxRefs - valueRef.current.images.length);
       if (remaining === 0) {
         toast.error(`Đã đạt limit ${maxRefs} reference cho model này. Xóa ảnh cũ trước khi upload.`);
         return;
@@ -50,34 +60,40 @@ export function ReferenceZones({ value, onChange, maxRefs = 9 }: Props) {
     const urls = await Promise.all(list.map((f) => uploadMediaToR2(f)));
     setUploading((u) => ({ ...u, [zoneKey]: false }));
     const role = ZONES.find((z) => z.key === zoneKey)!.role;
+
+    // V5.7 — read LATEST value from ref (post-await closure may be stale)
+    const current = valueRef.current;
     if (zoneKey === 'storyboard') {
-      onChange({ ...value, storyboardImages: [...value.storyboardImages, ...urls] });
+      onChange({ ...current, storyboardImages: [...current.storyboardImages, ...urls] });
       toast.success(`Đã upload ${urls.length} ảnh storyboard`);
       return;
     }
     onChange({
-      ...value,
-      images: [...value.images, ...urls],
-      roles: [...value.roles, ...urls.map(() => role)],
+      ...current,
+      images: [...current.images, ...urls],
+      roles: [...current.roles, ...urls.map(() => role)],
     });
     toast.success(`Đã upload ${urls.length} ảnh ${role?.replace('_', ' ') ?? ''}`);
   }
 
   function removeAt(zoneKey: string, idx: number) {
+    // V5.7 — use latest ref so remove-while-uploading doesn't drop the
+    // freshly uploaded image (same stale-closure class as the upload race).
+    const current = valueRef.current;
     if (zoneKey === 'storyboard') {
-      onChange({ ...value, storyboardImages: value.storyboardImages.filter((_, i) => i !== idx) });
+      onChange({ ...current, storyboardImages: current.storyboardImages.filter((_, i) => i !== idx) });
       return;
     }
     const target = ZONES.find((z) => z.key === zoneKey)!.role;
-    const indicesOfRole = value.roles
+    const indicesOfRole = current.roles
       .map((r, i) => (r === target ? i : -1))
       .filter((i) => i >= 0);
     const actualIdx = indicesOfRole[idx];
     if (actualIdx === undefined) return;
     onChange({
-      images: value.images.filter((_, i) => i !== actualIdx),
-      roles: value.roles.filter((_, i) => i !== actualIdx),
-      storyboardImages: value.storyboardImages,
+      images: current.images.filter((_, i) => i !== actualIdx),
+      roles: current.roles.filter((_, i) => i !== actualIdx),
+      storyboardImages: current.storyboardImages,
     });
   }
 

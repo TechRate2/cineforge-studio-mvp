@@ -92,7 +92,7 @@ export default function StudioPage() {
     return () => clearTimeout(t);
   }, [brief, model, aspect, resolution, duration, audioMode, context]);
 
-  // Sync resolution to model on change
+  // Sync resolution + aspect + duration to model on change
   useEffect(() => {
     const cfg = getModelConfig(model);
     if (!cfg.resolution_options.includes(resolution)) {
@@ -103,7 +103,11 @@ export default function StudioPage() {
     } else if (duration > cfg.max_duration_s) {
       setDuration(cfg.max_duration_s);
     }
-  }, [model, resolution, duration]);
+    // V5.7 — snap aspect to a valid option for the picked model (Wan 2.7 has [])
+    if (cfg.aspect_ratio_options.length > 0 && !cfg.aspect_ratio_options.includes(aspect)) {
+      setAspect(cfg.aspect_ratio_options[0]);
+    }
+  }, [model, resolution, duration, aspect]);
 
   // V5.2 — Style preset one-click apply
   const handlePickPreset = useCallback((preset: StylePreset) => {

@@ -9,7 +9,7 @@
  * - Seedance 2.0 → max 12 files (9 images + 3 videos + 3 audio)
  */
 
-import type { VideoModel } from '../types/backend';
+import type { VideoModel, AspectRatio } from '../types/backend';
 
 export interface ModelConfig {
   id: VideoModel;
@@ -32,6 +32,9 @@ export interface ModelConfig {
   // Vidu Q3 dùng 540p/720p/1080p (KHÔNG có 480p); Wan dùng 720P/1080P uppercase
   resolution_options: string[];
   resolution_default: string;
+  // V5.7 — aspect ratios per-model (synced với BE VIDEO_MODEL_SPECS[*].aspect_ratio.options).
+  // Wan 2.7 i2v: empty array → FE hides aspect dropdown (image-derived).
+  aspect_ratio_options: AspectRatio[];
   // V3.1 — num_shots override (Seedance 2.0/Fast multi-shot pattern Topview)
   // Khi supports_num_shots_override=true → UI hiện dropdown "Số shot: Auto/2/3/4/5"
   supports_num_shots_override?: boolean;
@@ -59,6 +62,7 @@ export const MODEL_CONFIGS: Record<VideoModel, ModelConfig> = {
     syntax_style: 'Multi-shot timeline + @image refs',
     resolution_options: ['480p', '720p', '720p-SR', '1080p', '1080p-SR'],
     resolution_default: '720p',
+    aspect_ratio_options: ['9:16', '16:9', '1:1', '4:3', '3:4', '21:9', 'adaptive'],
   },
   vidu_q3: {
     id: 'vidu_q3',
@@ -76,6 +80,7 @@ export const MODEL_CONFIGS: Record<VideoModel, ModelConfig> = {
     syntax_style: 'Detailed scene description với 1-4 ảnh anchor',
     resolution_options: ['540p', '720p', '1080p'],
     resolution_default: '720p',
+    aspect_ratio_options: ['16:9', '9:16', '3:4', '4:3', '1:1'],
     reference_hint_vn: '💡 Vidu Q3 mạnh nhất khi upload 2-3 ảnh product MULTI-ANGLE (front + side + detail). Identity consistency tăng rõ rệt.',
   },
 
@@ -99,6 +104,7 @@ export const MODEL_CONFIGS: Record<VideoModel, ModelConfig> = {
     // làm user mất tuỳ chọn rẻ hơn (~30%) ở quality 720p.
     resolution_options: ['720p', '1080p'],
     resolution_default: '720p',
+    aspect_ratio_options: ['16:9', '9:16', '3:4', '4:3', '1:1'],
     reference_hint_vn: '💡 Vidu Q3 Mix hiểu @image_1, @image_2 tags. Upload tối đa 4 ảnh — primary subject ở vị trí đầu.',
   },
 
@@ -122,6 +128,8 @@ export const MODEL_CONFIGS: Record<VideoModel, ModelConfig> = {
     syntax_style: 'Portrait + pre-rendered TTS URL (driven audio)',
     resolution_options: ['480p', '720p', '1080p'],
     resolution_default: '720p',
+    // Wan 2.7 i2v derives aspect from input portrait — FE hides dropdown via empty array.
+    aspect_ratio_options: [],
     reference_hint_vn: '💡 Wan 2.7: upload 1 ảnh PORTRAIT (front-facing, MOUTH UNOBSTRUCTED). Duration CHỈ chọn 5s hoặc 10s. Audio dialogue cần TTS pre-render → backend tự pass vào field `audio` để lip-sync.',
   },
 
@@ -145,6 +153,7 @@ export const MODEL_CONFIGS: Record<VideoModel, ModelConfig> = {
     syntax_style: 'Image-to-video — pass 1 anchor image, prompt mô tả motion',
     resolution_options: ['480p', '720p'],
     resolution_default: '720p',
+    aspect_ratio_options: ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'],
     reference_hint_vn: '💡 Seedance 1.5 Pro chỉ nhận 1 ảnh anchor (image-to-video). Prompt mô tả motion + camera move; reference khác đưa qua Storyboard zone.',
   },
 
@@ -166,6 +175,7 @@ export const MODEL_CONFIGS: Record<VideoModel, ModelConfig> = {
     // BUG #4 fix — backend spec also lists 1440p-SR; expose it here.
     resolution_options: ['480p', '720p', '720p-SR', '1080p', '1080p-SR', '1440p-SR'],
     resolution_default: '720p',
+    aspect_ratio_options: ['9:16', '16:9', '1:1', '4:3', '3:4', '21:9', 'adaptive'],
     supports_num_shots_override: true,
     num_shots_range: [2, 5],
     reference_hint_vn: '💡 Seedance 2.0 nhận tới 9 ảnh + 3 video refs. Upload: 1 nhân vật + 1 product + 2-3 setting/lighting refs. Mỗi shot 3-5s sweet spot.',
@@ -188,6 +198,7 @@ export const MODEL_CONFIGS: Record<VideoModel, ModelConfig> = {
     syntax_style: 'Multi-shot timeline với audio native',
     resolution_options: ['480p', '720p', '720p-SR', '1080p-SR', '1440p-SR'],
     resolution_default: '720p',
+    aspect_ratio_options: ['9:16', '16:9', '1:1', '4:3', '3:4', '21:9', 'adaptive'],
     supports_num_shots_override: true,
     num_shots_range: [1, 3],  // Fast variant best 1-2 shots
     reference_hint_vn: '💡 Seedance 2.0 Fast = rapid preview. 1-2 ref đủ. Sweet spot 1 shot 3-5s. Iterate ý tưởng rẻ trước khi gen full.',
@@ -199,17 +210,24 @@ export function getModelConfig(model: VideoModel): ModelConfig {
 }
 
 /**
- * Audio mode compatibility per model.
- * Một số model KHÔNG support 1 số audio mode.
+ * V5.7 — Audio mode compatibility per model (synced với BE audio_capability):
+ *
+ * - silent_native: Always supported (no TTS, model gen audio or silent track)
+ * - dialogue_vo: Pre-rendered TTS + overlay. Best for Wan 2.7 (lip-sync via
+ *   `audio` field). Also OK for native-audio models as post-production overlay.
+ * - asmr_macro: SFX overlay, always supported (no model dependency)
+ *
+ * Currently all models accept all 3 modes — silent_only flag isn't strictly
+ * enforced in BE pipeline; downstream layer handles audio independently from
+ * the video render. Function kept for forward compatibility.
  */
 export function isAudioModeSupported(model: VideoModel, audioMode: string): boolean {
   const config = MODEL_CONFIGS[model];
-
-  // Seedance 1.5 Pro silent only — nếu user chọn dialogue_vo phải overlay post
-  if (config.supports_silent_only && audioMode === 'dialogue_vo') {
-    return false; // ⚠️ Not native, must overlay TTS post-production
-  }
-
+  // No hard restriction in V5.7 — all current models accept all 3 modes.
+  // Keep the function so PromptCardV2 can call it without conditional logic.
+  void model;
+  void audioMode;
+  void config;
   return true;
 }
 

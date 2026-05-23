@@ -53,11 +53,8 @@ interface Props {
   isEnhancing?: boolean;
 }
 
-const ASPECTS: { v: AspectRatio; label: string }[] = [
-  { v: '9:16', label: '9:16' },
-  { v: '16:9', label: '16:9' },
-  { v: '1:1', label: '1:1' },
-];
+// V5.7 — aspect dropdown now built dynamically per model from cfg.aspect_ratio_options
+// (was: hardcoded to 3 values, hiding 40% of BE-supported aspects).
 
 const DURATION_OPTIONS_DEFAULT = [5, 8, 10, 15, 20, 30, 45, 60];
 const AUDIO_LABELS: Record<AudioMode, string> = {
@@ -86,6 +83,9 @@ export function PromptCardV2({
   // Available durations — respect discrete model constraints
   const durations = cfg.duration_discrete
     ?? DURATION_OPTIONS_DEFAULT.filter((d) => d <= cfg.max_duration_s);
+
+  // V5.7 — dynamic aspect dropdown from current model. Wan 2.7 i2v returns [].
+  const aspectOptions = cfg.aspect_ratio_options ?? ['9:16', '16:9', '1:1'];
 
   // V5.1 — Vidu Q3 has a vendor-side prompt cap (~1000 chars) and the backend
   // silently truncates anything past it. Warn the user in the brief area when
@@ -199,15 +199,17 @@ export function PromptCardV2({
           </select>
         </SettingPill>
 
-        <SettingPill icon={ChevronDown} label="aspect">
-          <select
-            value={aspect}
-            onChange={(e) => onAspect(e.target.value as AspectRatio)}
-            className="bg-transparent outline-none text-xs font-medium pr-1"
-          >
-            {ASPECTS.map((a) => <option key={a.v} value={a.v}>{a.label}</option>)}
-          </select>
-        </SettingPill>
+        {aspectOptions.length > 0 && (
+          <SettingPill icon={ChevronDown} label="aspect">
+            <select
+              value={aspectOptions.includes(aspect) ? aspect : aspectOptions[0]}
+              onChange={(e) => onAspect(e.target.value as AspectRatio)}
+              className="bg-transparent outline-none text-xs font-medium pr-1"
+            >
+              {aspectOptions.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </SettingPill>
+        )}
 
         <SettingPill icon={ChevronDown} label="res">
           <select
