@@ -45,8 +45,14 @@ class TimelineManifest:
     total_duration_s: float = 0.0
 
 
-def ffprobe_duration(audio_path: str) -> float:
-    """Return audio duration in seconds via ffprobe. Fallback 2.0 on error."""
+def ffprobe_duration(audio_path: str) -> Optional[float]:
+    """Return audio duration in seconds via ffprobe, or None if probe fails.
+
+    AUDIT FIX L5: silent fallback to a fixed 2.0s was hiding broken TTS
+    artifacts — caller could think they had a 2-second clip when the file
+    was actually 0 bytes or 30 seconds long. Now returns None on any
+    failure so callers can branch (skip clip vs. use coarse estimate).
+    """
     try:
         out = subprocess.check_output([
             "ffprobe", "-v", "error",
@@ -55,8 +61,9 @@ def ffprobe_duration(audio_path: str) -> float:
             audio_path,
         ], stderr=subprocess.STDOUT, timeout=10)
         return float(out.decode().strip())
-    except (subprocess.CalledProcessError, ValueError, FileNotFoundError):
-        return 2.0
+    except (subprocess.CalledProcessError, ValueError, FileNotFoundError, subprocess.TimeoutExpired):
+        logger.warning(f"[audio_timeline] ffprobe fail on {audio_path}")
+        return None
 
 
 def build_timeline(
@@ -90,6 +97,13 @@ def build_timeline(
             logger.warning(f"[audio_timeline] voice clip missing: {path}")
             continue
         actual_dur = ffprobe_duration(path)
+        if actual_dur is None:
+            # AUDIT FIX L5: skip the clip rather than silently treating a broken
+            # file as 2s of silence. Caller still gets the rest of the timeline.
+            logger.warning(
+                f"[audio_timeline] {shot_id} skipped — ffprobe failed (file size? codec?)"
+            )
+            continue
         shot_dur = float(shot.get("duration_s") or 2.0)
         # If TTS audio exceeds shot duration, log warning — caller may want
         # to speed up TTS or split dialogue. We DO NOT auto-clip here so
@@ -115,10 +129,13 @@ def build_timeline(
             for i, sfx_path in enumerate(sfx_list):
                 if not Path(sfx_path).exists():
                     continue
+                sfx_dur = ffprobe_duration(sfx_path)
+                if sfx_dur is None:
+                    continue
                 manifest.sfx_clips.append(AudioClip(
                     path=sfx_path,
                     start_s=float(shot.get("start_s") or 0.0) + i * 0.15,
-                    duration_s=ffprobe_duration(sfx_path),
+                    duration_s=sfx_dur,
                     volume=0.4,
                     role="sfx",
                 ))

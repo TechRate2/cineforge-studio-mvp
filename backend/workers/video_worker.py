@@ -726,6 +726,7 @@ async def _pre_render_dialogue_tts(
     preset = preset or "mai"
 
     out: dict[str, str] = {}
+    SUCCESS_STATUSES = {"completed", "succeeded", "success"}
     for shot in shots:
         line = (shot.audio.dialogue_vn or "").strip()
         if not line:
@@ -736,7 +737,10 @@ async def _pre_render_dialogue_tts(
                 text=line,
                 preset=preset,
             )
-            history_id = submit_resp.get("history_id") or submit_resp.get("id")
+            # AUDIT FIX L4 — mirror audio_direct.py key-order convention
+            # (`id` first, `history_id` fallback) so we agree with the existing
+            # production endpoint on key precedence when both are present.
+            history_id = submit_resp.get("id") or submit_resp.get("history_id")
             if not history_id:
                 logger.warning(
                     f"[VideoWorker V4] TTS submit for {shot.shot_id} no history_id, resp={submit_resp}"
@@ -745,7 +749,19 @@ async def _pre_render_dialogue_tts(
             final = await asyncio.to_thread(
                 genmax_client.poll_until_done, history_id, timeout_s=60, interval_s=2.0
             )
-            audio_url = (final.get("result") or {}).get("audio_url")
+            # AUDIT FIX M4 — verify status terminal-success AND grab audio_url
+            # from nested result OR top-level (matches audio_direct.py:132).
+            status = (final.get("status") or "").lower()
+            if status not in SUCCESS_STATUSES:
+                logger.warning(
+                    f"[VideoWorker V4] TTS {shot.shot_id} status='{status}' "
+                    f"err={final.get('error') or final.get('detail_error')}"
+                )
+                continue
+            audio_url = (
+                (final.get("result") or {}).get("audio_url")
+                or final.get("audio_url")
+            )
             if audio_url:
                 out[shot.shot_id] = audio_url
                 logger.debug(

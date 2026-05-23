@@ -24,6 +24,13 @@ from loguru import logger
 from agent.schemas import DirectorPlan
 
 
+# AUDIT FIX L3 — prompt length cap. Seedream v4.5 docs do not publish an
+# explicit max-chars value but the platform-rule-of-thumb is to keep T2I
+# prompts under ~5000 characters; longer prompts get summarized and lose
+# precision. For 20+ shot plans the per-panel block can push over this.
+_MAX_PROMPT_CHARS = 5000
+
+
 # ============================================================
 # Prompt builder — composes the single ultra-wide board prompt
 # ============================================================
@@ -129,6 +136,27 @@ HARD CONSTRAINTS:
   - Sans-serif headings, mono digits for timestamps
   - Professional director board, similar to Hollywood production design sheet"""
 
+    if len(prompt) > _MAX_PROMPT_CHARS:
+        # Drop oldest middle panel descriptions first (keep top header, char
+        # anchor, footer constraints intact). Industry rule: image model
+        # prioritizes first + last ~30% of prompt.
+        overflow = len(prompt) - _MAX_PROMPT_CHARS
+        # Trim the panels_block while preserving prompt scaffold
+        trimmed_panels = panels_block
+        while len(trimmed_panels) > 0 and overflow > 0:
+            # Drop one panel line at a time from the MIDDLE
+            lines = trimmed_panels.split("\n")
+            if len(lines) <= 2:
+                break
+            mid = len(lines) // 2
+            removed = lines.pop(mid)
+            overflow -= len(removed) + 1
+            trimmed_panels = "\n".join(lines)
+        prompt = prompt.replace(panels_block, trimmed_panels + "\n[... older panels condensed for prompt cap ...]")
+        logger.warning(
+            f"[master_board] prompt was {_MAX_PROMPT_CHARS + overflow} chars, "
+            f"trimmed mid-panels to fit {_MAX_PROMPT_CHARS} cap"
+        )
     return prompt
 
 
