@@ -1,9 +1,11 @@
 'use client';
 import { useState } from 'react';
-import { Check, AlertTriangle, Film, BookText, Gauge, Loader2, Sparkles } from 'lucide-react';
+import { Check, AlertTriangle, Film, BookText, Gauge, Loader2, Sparkles, LayoutGrid, RotateCcw, Download } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import type { LucideIcon } from 'lucide-react';
-import type { DirectorPlan, Shot } from '@/lib/studio/use-director-plan';
+import type { DirectorPlan, Shot, StorytellingIssue } from '@/lib/studio/use-director-plan';
+import { useMasterBoard } from '@/lib/studio/use-master-board';
+import { useRefineShot } from '@/lib/studio/use-refine-shot';
 
 interface Props {
   open: boolean;
@@ -11,12 +13,24 @@ interface Props {
   plan: DirectorPlan | null;
   onApprove: () => void;
   isRendering?: boolean;
+  storytellingIssues?: StorytellingIssue[];
+  referenceImages?: string[];
+  settings?: Record<string, unknown>;
+  onRefineJobStarted?: (jobId: string) => void;
 }
 
-type Tab = 'bible' | 'shots' | 'eval';
+type Tab = 'bible' | 'shots' | 'board' | 'eval';
 
-export function DirectorPlanModal({ open, onClose, plan, onApprove, isRendering }: Props) {
+export function DirectorPlanModal({
+  open, onClose, plan, onApprove, isRendering,
+  storytellingIssues = [],
+  referenceImages = [],
+  settings = {},
+  onRefineJobStarted,
+}: Props) {
   const [tab, setTab] = useState<Tab>('bible');
+  const master = useMasterBoard();
+  const refine = useRefineShot();
 
   return (
     <Modal
@@ -34,14 +48,43 @@ export function DirectorPlanModal({ open, onClose, plan, onApprove, isRendering 
           <div className="px-6 md:px-8 border-b border-hairline flex items-center gap-1 sticky top-0 bg-surface-1/95 backdrop-blur z-10">
             <TabBtn active={tab === 'bible'} onClick={() => setTab('bible')} icon={BookText} label="Continuity Bible" />
             <TabBtn active={tab === 'shots'} onClick={() => setTab('shots')} icon={Film} label={`Shot List · ${plan.shot_list.length}`} />
-            <TabBtn active={tab === 'eval'} onClick={() => setTab('eval')} icon={Gauge} label="Evaluation" badge={plan.evaluation.overall_score} />
+            <TabBtn active={tab === 'board'} onClick={() => setTab('board')} icon={LayoutGrid} label="Storyboard Board" />
+            <TabBtn active={tab === 'eval'} onClick={() => setTab('eval')} icon={Gauge} label="Evaluation" badge={plan.evaluation.overall_score} issuesCount={storytellingIssues.length} />
           </div>
 
           {/* Content */}
           <div className="flex-1 min-h-0 overflow-y-auto px-6 md:px-8 py-6">
             {tab === 'bible' && <BibleView plan={plan} />}
-            {tab === 'shots' && <ShotsView shots={plan.shot_list} />}
-            {tab === 'eval' && <EvalView plan={plan} />}
+            {tab === 'shots' && (
+              <ShotsView
+                shots={plan.shot_list}
+                onRefine={async (shotId) => {
+                  try {
+                    const res = await refine.refine({
+                      plan, shotId,
+                      referenceImages,
+                      settings,
+                    });
+                    onRefineJobStarted?.(res.job_id);
+                  } catch (e) {
+                    console.error('Refine fail', e);
+                  }
+                }}
+                refiningShotId={refine.isLoading ? refine.lastResponse?.shot_id ?? '__pending__' : null}
+              />
+            )}
+            {tab === 'board' && (
+              <BoardView
+                plan={plan}
+                board={master.board}
+                isLoading={master.isLoading}
+                error={master.error}
+                onGen={() => master.generate(plan)}
+              />
+            )}
+            {tab === 'eval' && (
+              <EvalView plan={plan} storytellingIssues={storytellingIssues} />
+            )}
           </div>
 
           {/* Footer */}
@@ -72,8 +115,8 @@ export function DirectorPlanModal({ open, onClose, plan, onApprove, isRendering 
   );
 }
 
-function TabBtn({ active, onClick, icon: Icon, label, badge }: {
-  active: boolean; onClick: () => void; icon: LucideIcon; label: string; badge?: number;
+function TabBtn({ active, onClick, icon: Icon, label, badge, issuesCount }: {
+  active: boolean; onClick: () => void; icon: LucideIcon; label: string; badge?: number; issuesCount?: number;
 }) {
   return (
     <button
@@ -90,8 +133,97 @@ function TabBtn({ active, onClick, icon: Icon, label, badge }: {
           {badge.toFixed(1)}
         </span>
       )}
+      {issuesCount !== undefined && issuesCount > 0 && (
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full ml-1 bg-accent-orange/20 text-accent-orange font-bold">
+          {issuesCount}
+        </span>
+      )}
       {active && <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-cta-gradient" />}
     </button>
+  );
+}
+
+// ============================================================
+// Master Storyboard Board view — V4 Sprint1
+// ============================================================
+function BoardView({ plan, board, isLoading, error, onGen }: {
+  plan: DirectorPlan;
+  board: ReturnType<typeof useMasterBoard>['board'];
+  isLoading: boolean;
+  error: string | null;
+  onGen: () => void;
+}) {
+  if (!board && !isLoading && !error) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-14 h-14 rounded-card bg-cta-gradient/15 grid place-items-center mx-auto mb-4 border border-accent-magenta/30">
+          <LayoutGrid size={26} className="text-accent-magenta" />
+        </div>
+        <h3 className="h-card mb-2">Master Storyboard Board</h3>
+        <p className="text-sm text-text-muted max-w-md mx-auto mb-2">
+          Gen <b>1 ảnh ultra-wide</b> chứa toàn bộ {plan.shot_list.length} panel + key visual + palette swatch + sound design + notes — kiểu director's sheet.
+        </p>
+        <p className="text-[11px] text-text-subtle max-w-md mx-auto mb-6">
+          Lợi ích: identity character lock 100% qua tất cả panel (cùng pixel canvas), chỉ <b>$0.04</b> thay vì $0.43 cho 12 panel riêng.
+          Sau khi gen, board sẽ làm style reference cho mọi shot Seedance.
+        </p>
+        <button onClick={onGen} className="btn-cta">
+          <Sparkles size={14} /> Generate Board · ~$0.04
+        </button>
+      </div>
+    );
+  }
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <div className="surface-2 rounded-card p-4 flex items-center gap-3">
+          <Loader2 size={16} className="animate-spin text-accent-magenta" />
+          <div className="text-sm">Seedream v4.5 đang dựng board... ~30-60s</div>
+        </div>
+        <div className="aspect-[16/9] rounded-card surface-2 shimmer" />
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="surface-2 rounded-card p-5 border-accent-orange/40">
+        <div className="flex items-start gap-3">
+          <AlertTriangle size={18} className="text-accent-orange shrink-0 mt-0.5" />
+          <div>
+            <div className="text-sm font-semibold text-accent-orange">Master Board gen failed</div>
+            <p className="text-xs text-text-muted mt-2 font-mono">{error}</p>
+            <button onClick={onGen} className="btn-outline mt-4">
+              <RotateCcw size={14} /> Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (!board) return null;
+  return (
+    <div className="space-y-4">
+      <div className="relative rounded-card overflow-hidden border border-hairline">
+        <img src={board.board_url} alt="Master storyboard board" className="w-full" />
+      </div>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="text-xs text-text-muted">
+          {board.size} · ${board.cost_usd.toFixed(3)} · {board.elapsed_s}s
+        </div>
+        <div className="flex gap-2">
+          <a href={board.board_url} download target="_blank" rel="noopener noreferrer" className="btn-outline">
+            <Download size={14} /> Download PNG
+          </a>
+          <button onClick={onGen} className="btn-outline">
+            <RotateCcw size={14} /> Regen
+          </button>
+        </div>
+      </div>
+      <details className="surface-2 rounded-card p-3 text-xs">
+        <summary className="cursor-pointer text-text-muted">Show prompt used (debug)</summary>
+        <pre className="mt-3 text-[11px] text-text-subtle whitespace-pre-wrap font-mono">{board.prompt}</pre>
+      </details>
+    </div>
   );
 }
 
@@ -177,7 +309,11 @@ function BibleView({ plan }: { plan: DirectorPlan }) {
   );
 }
 
-function ShotsView({ shots }: { shots: Shot[] }) {
+function ShotsView({ shots, onRefine, refiningShotId }: {
+  shots: Shot[];
+  onRefine?: (shotId: string) => void;
+  refiningShotId?: string | null;
+}) {
   return (
     <div className="space-y-3">
       {shots.map((s, i) => (
@@ -190,9 +326,21 @@ function ShotsView({ shots }: { shots: Shot[] }) {
               </div>
               <p className="text-xs text-text-subtle mt-1">{s.emotion_beat}</p>
             </div>
-            <div className="text-right shrink-0">
-              <div className="text-xs text-text-muted">{s.start_s}–{s.end_s}s</div>
-              <div className="text-[10px] text-text-subtle">{s.duration_s}s · {s.visual.camera_shot}</div>
+            <div className="text-right shrink-0 flex items-start gap-2">
+              <div>
+                <div className="text-xs text-text-muted">{s.start_s}–{s.end_s}s</div>
+                <div className="text-[10px] text-text-subtle">{s.duration_s}s · {s.visual.camera_shot}</div>
+              </div>
+              {onRefine && (
+                <button
+                  onClick={() => onRefine(s.shot_id)}
+                  disabled={refiningShotId === s.shot_id || refiningShotId === '__pending__'}
+                  title="Re-render this shot only (~$0.20-0.30)"
+                  className="btn-icon shrink-0 hover:text-accent-magenta disabled:opacity-50"
+                >
+                  {refiningShotId === s.shot_id ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                </button>
+              )}
             </div>
           </div>
 
@@ -235,7 +383,7 @@ function ShotsView({ shots }: { shots: Shot[] }) {
   );
 }
 
-function EvalView({ plan }: { plan: DirectorPlan }) {
+function EvalView({ plan, storytellingIssues = [] }: { plan: DirectorPlan; storytellingIssues?: StorytellingIssue[] }) {
   const e = plan.evaluation;
   const scores = [
     { k: 'Overall', v: e.overall_score, w: 'wide' },
@@ -267,6 +415,30 @@ function EvalView({ plan }: { plan: DirectorPlan }) {
           </div>
         ))}
       </div>
+
+      {/* V4 — Storytelling validator issues (PRODUCT_OPENS, MISSING_HOOK, etc.) */}
+      {storytellingIssues.length > 0 && (
+        <section>
+          <h3 className="text-[11px] uppercase tracking-wider text-text-subtle mb-3 font-semibold">
+            Storytelling rule check · {storytellingIssues.length} issue{storytellingIssues.length > 1 ? 's' : ''}
+          </h3>
+          <ul className="space-y-2">
+            {storytellingIssues.map((iss, i) => (
+              <li key={i}
+                  className={`px-3 py-2.5 rounded-md border text-sm flex items-start gap-2
+                              ${iss.severity === 'error'
+                                ? 'border-accent-orange/40 bg-accent-orange/8 text-accent-orange'
+                                : 'border-accent-yellow/40 bg-accent-yellow/8 text-accent-yellow'}`}>
+                <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <div className="font-mono text-[10px] mb-0.5">[{iss.severity.toUpperCase()}] {iss.code}{iss.shot_id ? ` · ${iss.shot_id}` : ''}</div>
+                  <div className="text-text">{iss.message}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {e.red_flags?.length > 0 && (
         <FlagList title="Red flags" items={e.red_flags} tone="rose" icon={AlertTriangle} />

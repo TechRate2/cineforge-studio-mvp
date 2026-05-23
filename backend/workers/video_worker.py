@@ -167,6 +167,32 @@ async def render_plan(
 
     ref_key_default, i2v_key_default = _resolve_models(user_model)
 
+    # V4 Sprint1 Task F — Auto pre-render dialogue TTS per-shot when:
+    #   audio_plan.mode == "dialogue_vo" AND no driven_audio_urls/voice_audio_url yet
+    # Wan 2.7 i2v will auto-receive the per-shot URL via shot.audio.dialogue_vn
+    # → lip-sync khớp môi VN. The assemble layer also gets per-shot voice clips
+    # for the new audio_timeline builder (per-shot start_s sync).
+    if audio_plan and audio_plan.get("mode") == "dialogue_vo":
+        already_has = bool(
+            audio_plan.get("driven_audio_urls")
+            or audio_plan.get("voice_audio_url")
+        )
+        if not already_has:
+            try:
+                tts_map = await _pre_render_dialogue_tts(
+                    job_id=job_id, shots=list(shots),
+                    voice_persona=(bible.characters[0].voice_persona if bible.characters else None),
+                )
+                if tts_map:
+                    audio_plan = {**audio_plan, "driven_audio_urls": tts_map}
+                    logger.info(
+                        f"[VideoWorker V4] {job_id} auto-prerendered {len(tts_map)} TTS clip(s)"
+                    )
+            except Exception as e:
+                logger.warning(
+                    f"[VideoWorker V4] {job_id} TTS pre-render fail (continuing silent): {e}"
+                )
+
     # ---- Optional Cost Gate (Stage 0) ----------------------------------------
     # Render shot[0] with the Fast tier, then eval. If pass → continue with the
     # user's chosen model for the rest. If fail → fail-fast, save 80-90% spend.
@@ -360,6 +386,22 @@ async def render_plan(
     target_resolution = _resolution_for_aspect(bible.aspect_ratio, resolution)
     audio_plan = audio_plan or {"mode": "silent_native"}
 
+    # V4 Sprint1 Task B — Build per-shot voice timeline if we have TTS URLs.
+    # Download each TTS audio locally and prepare shots_for_timeline manifest
+    # so AssembleWorker uses audio_timeline.build_timeline (per-shot sync).
+    voice_clips_by_shot_id: dict[str, str] = {}
+    driven_urls = audio_plan.get("driven_audio_urls") or {}
+    if driven_urls:
+        tts_dir = work_dir / "tts"
+        tts_dir.mkdir(exist_ok=True)
+        for shot_id, url in driven_urls.items():
+            local_path = tts_dir / f"{shot_id}.mp3"
+            try:
+                await _download_file(url, local_path)
+                voice_clips_by_shot_id[shot_id] = str(local_path)
+            except Exception as e:
+                logger.warning(f"[VideoWorker V4] download TTS for {shot_id} fail: {e}")
+
     await asyncio.to_thread(
         assembler.assemble,
         video_paths=[str(p) for p in clip_paths],
@@ -367,6 +409,8 @@ async def render_plan(
         output_path=str(final_mp4),
         bgm_path=audio_plan.get("bgm_path"),
         target_resolution=target_resolution,
+        shots_for_timeline=[s.model_dump() for s in shots] if voice_clips_by_shot_id else None,
+        voice_clips_by_shot_id=voice_clips_by_shot_id or None,
     )
 
     # Stage 4 — Color consistency pass (Bible-driven)
@@ -643,3 +687,72 @@ def _apply_color_consistency(input_path: str, output_path: str, bible_color_grad
         logger.warning(f"[VideoWorker V3] color pass fail (using ungraded): {e}")
         import shutil
         shutil.copy(input_path, output_path)
+
+
+# ============================================================
+# V4 Sprint1 Task F — Auto pre-render dialogue TTS per shot
+# ============================================================
+async def _pre_render_dialogue_tts(
+    job_id: str,
+    shots: list[Shot],
+    voice_persona: Optional[str] = None,
+) -> dict[str, str]:
+    """Pre-render TTS Việt for every shot that has dialogue_vn.
+
+    Returns: {shot_id: audio_url} for use as Wan-driven audio + assemble timeline.
+
+    Voice preset selection priority:
+        1. `voice_persona` arg (if provided and matches a preset key)
+        2. ENV `GENMAX_DEFAULT_PRESET`
+        3. Hard fallback "mai"
+    """
+    try:
+        from vendors.genmax import genmax_client, VIETNAMESE_VOICE_PRESETS
+    except ImportError:
+        return {}
+    if genmax_client is None:
+        logger.info(f"[VideoWorker V4] {job_id} GenMax client unavailable — skip TTS pre-render")
+        return {}
+
+    # Pick preset
+    import os
+    preset = None
+    if voice_persona and voice_persona in VIETNAMESE_VOICE_PRESETS:
+        preset = voice_persona
+    elif os.getenv("GENMAX_DEFAULT_PRESET"):
+        env_preset = os.getenv("GENMAX_DEFAULT_PRESET")
+        if env_preset in VIETNAMESE_VOICE_PRESETS:
+            preset = env_preset
+    preset = preset or "mai"
+
+    out: dict[str, str] = {}
+    for shot in shots:
+        line = (shot.audio.dialogue_vn or "").strip()
+        if not line:
+            continue
+        try:
+            submit_resp = await asyncio.to_thread(
+                genmax_client.text_to_speech_by_preset,
+                text=line,
+                preset=preset,
+            )
+            history_id = submit_resp.get("history_id") or submit_resp.get("id")
+            if not history_id:
+                logger.warning(
+                    f"[VideoWorker V4] TTS submit for {shot.shot_id} no history_id, resp={submit_resp}"
+                )
+                continue
+            final = await asyncio.to_thread(
+                genmax_client.poll_until_done, history_id, timeout_s=60, interval_s=2.0
+            )
+            audio_url = (final.get("result") or {}).get("audio_url")
+            if audio_url:
+                out[shot.shot_id] = audio_url
+                logger.debug(
+                    f"[VideoWorker V4] TTS {shot.shot_id} → {audio_url[:60]}..."
+                )
+        except Exception as e:
+            logger.warning(
+                f"[VideoWorker V4] TTS fail for {shot.shot_id} (continuing): {e}"
+            )
+    return out

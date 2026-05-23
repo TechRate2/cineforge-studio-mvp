@@ -154,6 +154,25 @@ class StoryboardRequest(BaseModel):
     )
 
 
+class MasterBoardRequest(BaseModel):
+    """V4 Sprint1 — request body for single-image director's storyboard board."""
+    plan: DirectorPlan
+    image_model: str = Field(
+        "bytedance/seedream-v4.5",
+        description="Image model — Seedream v4.5 default (ultra-wide 6240*2656). "
+                    "Alternatives: google/nano-banana-pro/text-to-image",
+    )
+
+
+class MasterBoardResponse(BaseModel):
+    plan_id: str
+    board_url: str
+    prompt: str
+    size: str
+    cost_usd: float
+    elapsed_s: float
+
+
 class GenerateRequest(BaseModel):
     """Render an approved DirectorPlan (canonical Human-in-the-Loop path).
 
@@ -505,6 +524,66 @@ async def gen_storyboard(request: StoryboardRequest):
         3,
     )
     return plan
+
+
+# ============================================================
+# POST /storyboard/master — V4 Sprint1 single-image director board
+# ============================================================
+@router.post("/storyboard/master", response_model=MasterBoardResponse)
+async def gen_master_storyboard(request: MasterBoardRequest) -> MasterBoardResponse:
+    """Gen ONE ultra-wide director's storyboard board (12-panel grid on 1 canvas).
+
+    Replaces the 12-separate-image flow with a SINGLE Seedream v4.5 call.
+    Industry pattern (AtlasCloud 9-Panel Anchor): all panels share pixels →
+    same outfit/hair/face locked across panels. Becomes a style_reference for
+    every Seedance shot render downstream → global identity anchoring.
+
+    Cost: ~$0.036 (Seedream) or ~$0.084 (Nano Banana Pro) per board.
+    """
+    import time
+    from vendors.atlascloud import atlas_client
+    from agent.storyboard_board import (
+        build_master_board_prompt, board_size_for_aspect,
+    )
+    if atlas_client is None:
+        raise HTTPException(503, "AtlasCloud not configured")
+
+    plan = request.plan
+    t_start = time.time()
+    prompt = build_master_board_prompt(plan)
+    size = board_size_for_aspect(plan.continuity_bible.aspect_ratio)
+
+    try:
+        res = await asyncio.to_thread(
+            atlas_client.generate_image,
+            prompt=prompt,
+            model=request.image_model,
+            size=size,
+            n=1,
+        )
+    except Exception as e:
+        logger.error(f"[master_board] gen fail: {e}")
+        raise HTTPException(502, f"Master board gen failed: {e}") from e
+
+    board_url = res.get("url") or res.get("image_url") or ""
+    if not board_url:
+        raise HTTPException(502, f"Image model returned no URL: {res}")
+
+    cost_map = {
+        "bytedance/seedream-v4.5": 0.036,
+        "google/nano-banana-pro/text-to-image": 0.084,
+        "google/nano-banana-2/text-to-image": 0.048,
+    }
+    cost = cost_map.get(request.image_model, 0.05)
+
+    return MasterBoardResponse(
+        plan_id=plan.plan_id,
+        board_url=board_url,
+        prompt=prompt,
+        size=size,
+        cost_usd=cost,
+        elapsed_s=round(time.time() - t_start, 2),
+    )
 
 
 # ============================================================

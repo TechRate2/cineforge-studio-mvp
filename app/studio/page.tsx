@@ -49,7 +49,7 @@ export default function StudioPage() {
   }, [model, resolution, duration]);
 
   // Director plan flow
-  const { createPlan, plan, progress, isLoading, error, reset } = useDirectorPlan();
+  const { createPlan, plan, progress, isLoading, error, storytellingIssues, reset } = useDirectorPlan();
   const [showPlanModal, setShowPlanModal] = useState(false);
 
   // Open modal when plan ready
@@ -220,6 +220,17 @@ export default function StudioPage() {
         plan={plan}
         onApprove={handleApproveAndRender}
         isRendering={isRendering}
+        storytellingIssues={storytellingIssues}
+        referenceImages={referenceZones.images}
+        settings={{
+          audio_mode: audioMode, model, duration_s: duration,
+          aspect_ratio: aspect, resolution, num_shots: numShots,
+        }}
+        onRefineJobStarted={(rid) => {
+          setJobId(rid);
+          setShowPlanModal(false);
+          setShowJobModal(true);
+        }}
       />
       <JobResultModal
         open={showJobModal}

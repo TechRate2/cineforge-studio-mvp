@@ -193,17 +193,26 @@ export const DIRECTOR_STAGE_LABELS_VN: Record<string, string> = {
 // ============================================================
 // Hook
 // ============================================================
+export interface StorytellingIssue {
+  code: string;
+  severity: 'error' | 'warning' | string;
+  message: string;
+  shot_id?: string | null;
+}
+
 export function useDirectorPlan() {
   const [plan, setPlan] = useState<DirectorPlan | null>(null);
   const [progress, setProgress] = useState<ProgressEvent | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [storytellingIssues, setStorytellingIssues] = useState<StorytellingIssue[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
   const createPlan = useCallback(async (req: PlanRequest) => {
     setIsLoading(true);
     setError(null);
     setPlan(null);
+    setStorytellingIssues([]);
     setProgress({ stage: 'init', status: 'running', message: 'Connecting...' });
 
     abortRef.current?.abort();
@@ -246,7 +255,12 @@ export function useDirectorPlan() {
             continue;
           }
           if (evType === 'stage') {
-            setProgress(payload as ProgressEvent);
+            const ev = payload as ProgressEvent;
+            // V4 — surface storytelling_check stage as separate state for UI display
+            if (ev.stage === 'storytelling_check' && Array.isArray((ev as { issues?: unknown }).issues)) {
+              setStorytellingIssues((ev as unknown as { issues: StorytellingIssue[] }).issues);
+            }
+            setProgress(ev);
           } else if (evType === 'complete') {
             const finalPlan = payload as DirectorPlan;
             setPlan(finalPlan);
@@ -277,10 +291,11 @@ export function useDirectorPlan() {
     setPlan(null);
     setProgress(null);
     setError(null);
+    setStorytellingIssues([]);
     setIsLoading(false);
   }, []);
 
-  return { createPlan, plan, progress, isLoading, error, reset };
+  return { createPlan, plan, progress, isLoading, error, storytellingIssues, reset };
 }
 
 // ============================================================

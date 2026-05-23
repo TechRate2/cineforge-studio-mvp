@@ -202,13 +202,28 @@ class DirectorAgent:
         director_user = json.dumps(director_input, ensure_ascii=False, indent=2)
 
         # ===== Stage C: Director LLM call =====
+        # V4 Sprint1 — max_tokens auto-scale theo duration:
+        #   <=15s: 8000 tokens (5-10 shot, JSON đầy đủ)
+        #   16-30s: 12000 tokens (10-15 shot)
+        #   31-60s: 16000 tokens (15-25 shot)
+        #   >60s: 20000 tokens (25-40 shot, long-form)
+        # Tránh truncate JSON trên long-form.
+        _dur = int(tech_config.get("duration_s") or 15)
+        if _dur <= 15:
+            _max_tokens = 8000
+        elif _dur <= 30:
+            _max_tokens = 12000
+        elif _dur <= 60:
+            _max_tokens = 16000
+        else:
+            _max_tokens = 20000
         try:
             raw = await asyncio.to_thread(
                 llm.complete,
                 system_prompt=director_system,
                 user_message=director_user,
                 task="generator",  # heavy reasoning → DeepSeek-V4-Pro / Claude
-                max_tokens=8000,
+                max_tokens=_max_tokens,
                 temperature=0.65,
             )
         except Exception as e:

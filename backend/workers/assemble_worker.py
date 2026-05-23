@@ -32,6 +32,9 @@ class AssembleWorker:
         output_path: str,
         bgm_path: Optional[str] = None,
         target_resolution: Optional[tuple[int, int]] = None,  # (width, height) — None=9:16 default
+        shots_for_timeline: Optional[list[dict]] = None,  # V4 Sprint1 — per-shot sync
+        voice_clips_by_shot_id: Optional[dict[str, str]] = None,  # V4 Sprint1
+        sfx_clips_by_shot_id: Optional[dict[str, list[str]]] = None,  # V4 Sprint1
     ) -> str:
         """Ghép tất cả thành MP4 final.
 
@@ -69,7 +72,22 @@ class AssembleWorker:
         # Step 2: Add audio overlay
         with_audio_path = self.work_dir / "with_audio.mp4"
 
-        if mode == "dialogue_vo" and voice_url:
+        # V4 Sprint1 — prefer per-shot timeline when caller supplies shots + clips
+        if shots_for_timeline and (voice_clips_by_shot_id or sfx_clips_by_shot_id):
+            from workers.audio_timeline import build_timeline, render_timeline_to_audio
+            manifest = build_timeline(
+                shots=shots_for_timeline,
+                voice_clips_by_shot_id=voice_clips_by_shot_id or {},
+                sfx_clips_by_shot_id=sfx_clips_by_shot_id,
+                bgm_path=bgm_path,
+            )
+            render_timeline_to_audio(manifest, str(concat_path), str(with_audio_path))
+            logger.info(
+                f"[assemble] per-shot timeline: {len(manifest.voice_clips)} voice, "
+                f"{len(manifest.sfx_clips)} sfx, total={manifest.total_duration_s}s"
+            )
+        elif mode == "dialogue_vo" and voice_url:
+            # Legacy fallback — single voice file overlay
             self._overlay_voiceover(
                 str(concat_path),
                 voice_url,
