@@ -473,6 +473,21 @@ def _llm_build(
     JSON contract. We never tolerate fences or prose.
     """
     system = load_system_prompt("scene")
+    # V4 — derive drama-beat intent from shot.purpose so the LLM can adapt
+    # camera/lighting language to the beat phase (hook vs reveal vs cta).
+    _BEAT_INTENT = {
+        "hook":      "PATTERN INTERRUPT beat — extreme/anomaly camera, high contrast cut, NO product, max scroll-stop impact.",
+        "setup":     "SETUP beat — introduce character + world, slow natural pacing.",
+        "pain":      "PAIN beat — show problem viewer recognizes, MS handheld, softer warmth.",
+        "tension":   "TENSION/ESCALATION beat — close-up intercuts, faster pacing, shadow growth.",
+        "escalation":"TENSION/ESCALATION beat — close-up intercuts, faster pacing, shadow growth.",
+        "reveal":    "REVEAL beat — product as the answer, slow push-in OR pull-out, warm key light bloom.",
+        "proof":     "PROOF/DEMO beat — feature shown via action, static or slow dolly, clean lighting.",
+        "demo":      "PROOF/DEMO beat — feature shown via action, static or slow dolly, clean lighting.",
+        "cta":       "CTA beat — static or push-in on logo/phrase, brand-color back-light, explicit imperative verb in caption.",
+        "transition":"TRANSITION beat — smooth bridge between phases, motion match.",
+    }
+    beat_intent = _BEAT_INTENT.get((shot.purpose or "").lower())
     payload = {
         "bible": bible.model_dump(),
         "shot": shot.model_dump(),
@@ -480,9 +495,10 @@ def _llm_build(
         "model_format_hint": MODEL_FORMAT_HINTS.get(model_key, "single_descriptive"),
         "last_frame_url": last_frame_url,
         "reference_images": ref_urls,
-        # Sprint5 C1 — expose video refs to the LLM so it can place @video_N
-        # tags in the prompt where they make narrative sense.
         "reference_videos": reference_videos or [],
+        # V4 — explicit beat-aware hint so the LLM doesn't have to infer from
+        # shot.purpose alone. Falls back gracefully when purpose is unknown.
+        "beat_intent": beat_intent,
     }
     user_msg = json.dumps(payload, ensure_ascii=False)
 

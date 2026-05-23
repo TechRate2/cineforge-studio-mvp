@@ -305,6 +305,27 @@ class DirectorAgent:
             logger.warning(f"[DirectorAgent] plan {plan_id} validation warnings: {warnings}")
         plan = continuity_manager.sanitize_plan(plan)
 
+        # V4 — storytelling hard-rule check (product timing, double-contrast,
+        # hook presence, face anchor). SOFT: log warnings, surface to caller via
+        # progress event, but never block the plan. User decides via UI.
+        try:
+            from agent.storytelling import validate_plan as _story_validate
+            story_issues = _story_validate(plan.model_dump())
+            if story_issues:
+                logger.info(
+                    f"[DirectorAgent] storytelling check: "
+                    f"{len(story_issues)} issue(s): "
+                    f"{[i.code for i in story_issues]}"
+                )
+                await _emit(
+                    "storytelling_check", "done",
+                    issues=[{"code": i.code, "severity": i.severity,
+                             "message": i.message, "shot_id": i.shot_id}
+                            for i in story_issues],
+                )
+        except Exception as e:
+            logger.warning(f"[DirectorAgent] storytelling validator fail (non-blocking): {e}")
+
         await _emit("director", "done",
                     shots=len(parsed_shots),
                     duration_total=sum(s.duration_s for s in parsed_shots),
@@ -560,22 +581,32 @@ class DirectorAgent:
         ref_hints: list[dict],
     ) -> dict:
         # V3.1 — inject model capability summary so the Director plans within
-        # the chosen model's hard constraints (max refs, discrete durations,
-        # audio mode, image-tag support, etc.).
+        # the chosen model's hard constraints.
         from agent.model_capabilities import summary_for_director_prompt
+        # V4 — inject storytelling skeleton (hook patterns + beat sheet + hard rules)
+        from agent.storytelling import (
+            hook_patterns_block, beat_sheet_block, hard_rules_block, niche_slot_block,
+        )
         tc = dict(tech_config)
         tc["model_capability_notes"] = summary_for_director_prompt(
             tc.get("model", "auto")
         )
+        duration_s = int(tc.get("duration_s") or 15)
         return {
             "product_input": product_input,
             "reference_images": reference_images,
-            "reference_hints": ref_hints,  # Vision-pass output, optional
+            "reference_hints": ref_hints,
             "reference_videos": reference_videos,
             "user_brief": user_brief,
             "context_injection": context_injection,
             "tech_config": tc,
             "niche_hint": niche_hint or "auto",
+            "storytelling_context": {
+                "hook_patterns": hook_patterns_block(),
+                "beat_sheet": beat_sheet_block(duration_s),
+                "hard_rules": hard_rules_block(),
+                "niche_slots": niche_slot_block(),
+            },
         }
 
     # ============================================================
