@@ -92,7 +92,9 @@ export function ReferenceZones({ value, onChange, maxRefs = 9 }: Props) {
       {ZONES.map((zone) => {
         const Icon = zone.icon;
         const items = imagesForZone(zone.key);
-        // V5.1 — per-zone capacity (storyboard unlimited; others share maxRefs across roles)
+        // V5.4 — shared pool: character + product zones consume from `value.images`
+        // (pooled to maxRefs); storyboard is its own bucket. atLimit reflects pool
+        // exhaustion so the user sees clearly when ANY non-storyboard zone is full.
         const totalUsed = value.images.length;
         const atLimit = zone.key !== 'storyboard' && totalUsed >= maxRefs;
         return (

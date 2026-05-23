@@ -17,7 +17,7 @@ import { useEnhanceBrief } from '@/lib/studio/use-enhance-brief';
 import { getModelConfig, MODEL_CONFIGS } from '@/lib/studio/model-config';
 import { type StylePreset } from '@/lib/studio/style-presets';
 import type { VideoModel, AspectRatio, AudioMode } from '@/lib/types/backend';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, ChevronDown, Sparkles } from 'lucide-react';
 
 /** V5.2 — auto-save key for draft brief + settings */
 const DRAFT_STORAGE_KEY = 'cineforge:draft_v1';
@@ -49,6 +49,7 @@ export default function StudioPage() {
   const [audioMode, setAudioMode] = useState<AudioMode>('silent_native');
   const [numShots, setNumShots] = useState<number | null>(null);
   const [activePresetId, setActivePresetId] = useState<string | undefined>();
+  const [showPresets, setShowPresets] = useState(false);
 
   // V5.2 — hydrate draft on mount (24h TTL)
   const hydratedRef = useRef(false);
@@ -231,21 +232,13 @@ export default function StudioPage() {
 
   return (
     <div className="min-h-full">
-      <section className="px-5 md:px-10 pt-12 md:pt-16 pb-6 max-w-container mx-auto text-center">
+      <section className="px-5 md:px-10 pt-12 md:pt-16 pb-8 max-w-container mx-auto text-center">
         <h1 className="text-4xl md:text-5xl lg:text-[56px] font-extrabold tracking-tight leading-tight">
           Create Any Video, Just Tell Your <span className="text-gradient">Agent</span>
         </h1>
         <p className="text-sm text-text-muted mt-3 max-w-2xl mx-auto">
           Mô tả ý tưởng → AI dựng kế hoạch shot-by-shot → render thật. Niche-agnostic, identity-locked, audio sync.
         </p>
-      </section>
-
-      {/* V5.2 — Style presets one-click */}
-      <section className="px-5 md:px-10 pb-6 max-w-3xl mx-auto">
-        <h3 className="text-[11px] uppercase tracking-wider text-text-subtle mb-2 px-1">
-          Bắt đầu nhanh · click 1 preset
-        </h3>
-        <StylePresets onPick={handlePickPreset} activeId={activePresetId} />
       </section>
 
       {/* Main compact input card */}
@@ -297,6 +290,24 @@ export default function StudioPage() {
             </div>
           </div>
         )}
+
+        {/* V5.4 — Optional preset suggestions. Default collapsed — Director Agent
+            tự hiểu từ brief, không bắt buộc preset (Topview/Higgsfield UX). */}
+        <div className="mt-4">
+          <button
+            onClick={() => setShowPresets((s) => !s)}
+            className="inline-flex items-center gap-1.5 text-[11px] text-text-subtle hover:text-text-muted transition"
+          >
+            <Sparkles size={11} />
+            {showPresets ? 'Ẩn template' : 'Bí ý tưởng? Xem 6 template gợi ý'}
+            <ChevronDown size={11} className={`transition ${showPresets ? 'rotate-180' : ''}`} />
+          </button>
+          {showPresets && (
+            <div className="mt-3 animate-fade-in">
+              <StylePresets onPick={(p) => { handlePickPreset(p); setShowPresets(false); }} activeId={activePresetId} />
+            </div>
+          )}
+        </div>
       </section>
 
       {/* V5.2 — Recent generations carousel */}
