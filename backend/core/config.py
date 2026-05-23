@@ -32,7 +32,12 @@ class Settings(BaseSettings):
     # Default DeepSeek V4 Flash (50× rẻ Claude Sonnet, vẫn đủ cho prompt gen)
     llm_provider: str = "atlascloud"  # "atlascloud" | "anthropic"
     llm_model_analyzer: str = "deepseek-ai/deepseek-v4-flash"  # cheap fast for insight extraction
-    llm_model_generator: str = "deepseek-ai/deepseek-v4-pro"   # smarter for prompt crafting
+    # V5.5 — switched default generator to flash. Pro is 12× more expensive
+    # ($1.68/$3.38 per 1M tokens vs $0.14/$0.28) and the cost/quality ratio
+    # tilted in flash's favor after Director Agent V4 prompt hardening +
+    # storytelling validators fix drift downstream. Override LLM_MODEL_GENERATOR
+    # env to opt back into pro for premium tier.
+    llm_model_generator: str = "deepseek-ai/deepseek-v4-flash"
     llm_model_vision: str = "qwen/qwen3-vl-30b-a3b-instruct"   # vision-capable (product image analysis)
     llm_model_premium: str = "anthropic/claude-sonnet-4.6"     # opt-in premium
 
