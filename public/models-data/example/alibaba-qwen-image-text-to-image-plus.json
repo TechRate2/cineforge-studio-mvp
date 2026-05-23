@@ -1,0 +1,19 @@
+{
+	"examples": [
+		{
+			"inputs": {
+				"prompt": "A cute cat sitting on a windowsill looking at the rain, anime style",
+				"negative_prompt": "bad anatomy, extra limbs",
+				"size": "1328*1328",
+				"num_images": 1,
+				"seed": -1,
+				"enable_prompt_expansion": true
+			},
+			"outputs": {
+				"outputs": [
+					"https://static.atlascloud.ai/media/images/20260108-2ae9bf52-b6b7-4bbd-9484-d2c936eb756c.png"
+				]
+			}
+		}
+	]
+}

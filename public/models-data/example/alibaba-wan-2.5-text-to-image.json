@@ -1,0 +1,134 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "seed": 386456529,
+                "size": "1024*1024",
+                "prompt": "A full-body shot of an Asian model with sharp, defined facial features and wet, slicked-back hair, her gaze is firm and direct. She is wearing an asymmetrical, sculptural, heavy-fabric pure white dress. The background is a minimalist concrete architecture with harsh light and shadow play. Dramatic, hard lighting, like intense afternoon sun, creates clean, long shadows. In the style of Peter Lindbergh, shot on a Hasselblad medium format camera, black and white photography, fine-grained, hyperrealistic, 8K.\n\n",
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/a29ab77c84fb44419cdad165678ab3c9_1.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 167238583,
+                "size": "1024*1322",
+                "prompt": "A fair-skinned model with classical beauty, lounging on a velvet chaise lounge, surrounded by old books and withered roses. She is wearing a baroque-style lace gown, her expression is languid and contemplative. The scene is a dim, old library, with a single stream of Rembrandt-style light from a side window illuminating her face and figure. Composition inspired by a John William Waterhouse painting, rich in narrative. The overall tones are deep and heavy, with strong chiaroscuro, creating an oil painting texture and detail.\n\n\n\n",
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/71ab17fc863f4d49a823637ef2592b1f_1.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 856430326,
+                "size": "1024*1322",
+                "prompt": "Close-up portrait of a model whose face is partially covered in flowing liquid metal or an iridescent, second-skin-like substance. She has otherworldly, light purple eyes and stares directly into the camera. The background is completely blurred out, leaving only a soft halo of light. The lighting is even and ethereal, as if from a bioluminescent source. Inspired by the style of Nick Knight, the image emphasizes surreal textures and subtle color gradients, exceptionally sharp, with breathtaking detail, 16K.\n\n\n",
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/e7faf9bb0d21486da00cc9746006c366_1.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 963405275,
+                "size": "1024*1322",
+                "prompt": "A little boy sitting on the floor with his golden retriever, both looking at each other lovingly, soft natural light from a window, lifestyle photography, heartwarming and realistic",
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/75faf9cd6cda47d39efd5a967d6fc172_1.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 432659949,
+                "size": "1024*1322",
+                "prompt": "A young male model standing in front of a minimalist concrete wall, wearing oversized streetwear hoodie, cargo pants, and white sneakers, hands in pockets, casual but stylish pose, editorial fashion photography, hyper realistic details\n",
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/6a981346099349b884918b333517ce36_1.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 1336960560,
+                "size": "1024*1322",
+                "prompt": "A young businessman standing near a modern glass building, wearing a dark suit and tie, looking confident, golden hour lighting, realistic fashion photography, urban city background, professional but natural style.\n\n\n",
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/3d9e598dd79d4c6aa6506d192ac5349b_1.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 1762355901,
+                "size": "1280*720",
+                "prompt": "A professional man in his 40s, neatly groomed beard, wearing a tailored gray suit, standing confidently in a modern office lobby, realistic corporate headshot, clean lighting, natural expression.",
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/bc1f10542c4d499d89089984e4aca0a3_1.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 990166537,
+                "size": "1024*1024",
+                "prompt": "An astronaut in a spacesuit walking on the red desert of Mars, a giant dust storm rising behind, Earth is a tiny blue dot in the vast black sky. Cinematic, wide-angle shot, 4K, Interstellar movie style.\n\n\n",
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/a5cf5449d12d4a2493970350186b3858_1.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 1045281204,
+                "size": "1280*720",
+                "prompt": "An exhausted ballerina in a haute couture gown, sitting in an empty subway car, her pointe shoes resting on the seat beside her. The city's nightscape rushes by outside the window. The atmosphere is quiet and lonely after a performance. In the style of candid documentary photography, lit by the carriage's fluorescent lights, cool color palette, photorealistic detail, 8K.\n\n\n\n\n",
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/786193f8f8e44799be4ab240d748c19c_1.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 1309202833,
+                "size": "1024*1322",
+                "prompt": "A fit man, mid-workout, is captured in a dynamic shot as he drinks water. Sweat glistens on his muscular physique, prominently highlighting his defined abs and biceps. The water he's drinking is dramatically rendered, showing the splash and movement as it enters his mouth, conveying refreshment and exertion.\n\n",
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/38bcf2d68f4741eb85ff3407d7caf917_1.png"
+                ]
+            }
+        }
+    ]
+}

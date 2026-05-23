@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "alibaba/wan-2.7-pro/image-edit",
+                "prompt": "Remove all text from the image and change the bird's color to pure white while preserving the original lighting, background, and details.",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/e7669d1686a7a86ce8711a6fbf263c7a.jpg"
+                ],
+                "size": "2K",
+                "n": 1
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/080a4d68e8c51998eb29f5ef901f9169.png"
+                ]
+            }
+        }
+    ]
+}

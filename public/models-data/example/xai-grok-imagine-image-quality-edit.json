@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "xai/grok-imagine-image-quality/edit",
+                "prompt": "Transform the image into a dynamic Western comic book style, emphasizing bold outlines, vivid colors, dramatic shading, and exaggerated expressions. Include halftone textures, action lines, and stylized backgrounds to capture the energy and flair of classic superhero comics. High contrast and cinematic composition to enhance visual impact.",
+                "num_images": 1,
+                "aspect_ratio": "auto",
+                "resolution": "1k",
+                "enable_base64_output": false,
+                "image_urls": [
+                    "https://static.atlascloud.ai/media/images/a5873fad24e35b73c27baac6adfb2faa.jpg"
+                ]
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/0ab427703a7b797586e91be8cea4a324.jpeg"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,17 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "minimax/hailuo-02/i2v-pro",
+                "image": "https://static.atlascloud.ai/media/images/1751885591673251332_d8mieaOL.jpeg",
+                "prompt": "The boxer in the image throws fast punches in a gritty underground gym, bobbing and weaving, sweat flying, dramatic lighting with dust in the air, camera circles around with intense close-ups",
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/1d0aa9a62c3d55d5b9ae08605c211bf7.mp4"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "duration": 8,
+                "resolution": "720p",
+                "aspect_ratio": "16:9",
+                "generate_audio": true,
+                "prompt": "A car slowly driving down a quiet road, surrounded by a calm landscape, subtle motion, soft sunlight illuminating the scene, cinematic camera movement, peaceful atmosphere.",
+                "model": "google/veo3.1/text-to-video"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/74973c10821b4fd9a3d6db15655bea6b_1.mp4",
+                    "https://static.atlascloud.ai/media/videos/11c96bbd695d81955a73d203ecf2880d.mp4"
+                ]
+            }
+        }
+    ]
+}

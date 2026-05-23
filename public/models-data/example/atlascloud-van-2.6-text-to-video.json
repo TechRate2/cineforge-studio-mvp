@@ -1,0 +1,52 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "seed": -1,
+                "size": "1920*1080",
+                "prompt": "A cinematic sci-fi trailer. Shot 1: Wide shot, a lonely explorer in a battered spacesuit walking across a desolate red Martian desert, a massive derelict spaceship in the distance. Shot 2: Close-up, the explorer stops and wipes dust off their helmet visor, eyes widening in shock. Shot 3: Over-the-shoulder shot, revealing a glowing, bioluminescent blue flower blooming rapidly in front of them. 8k resolution, highly detailed, consistent character.",
+                "duration": 15,
+                "shot_type": "multi",
+                "enable_prompt_expansion": true,
+                "model": "atlascloud/van-2.6/text-to-video"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/67e4b3e7-eee2-43cd-a903-d97f05336d63.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": -1,
+                "size": "1920*1080",
+                "prompt": "A 15-second fixed-camera time-lapse video. An ancient oak tree stands alone on a grassy hill. The video transitions smoothly through four seasons: starting with lush green leaves in Spring, turning golden yellow in Autumn, and finally, the branches becoming bare and covered in heavy snow in Winter. Clouds move rapidly across the sky, changing lighting conditions, photorealistic, seamless transitions.",
+                "duration": 15,
+                "shot_type": "multi",
+                "enable_prompt_expansion": true,
+                "model": "atlascloud/van-2.6/text-to-video"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/b7775a52-8a85-466a-9721-700587e4950f.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": -1,
+                "size": "1920*1080",
+                "prompt": "Dimly lit old-style cha chaan teng corner, \"Huinantian\" humid air heavy, cinematic medium shot, Asian man B, 30-35 years old, lean build, immaculately parted short hair, slightly flattened by humidity. He has a sculpted square face, tight jawline, deep and slightly weary eyes gazing forward, brows subtly furrowed, forehead and cheeks subtly glistening with moisture, thin, strong lips, faint stubble. He wears a well-tailored dark grey suit jacket, tie slightly loosened, suit fabric subtly reflecting a wet sheen. A half-burnt cigarette in his hand, smoke suppressed by humidity, a few butts in the ashtray. An almost untouched coffee in front, faint steam rising, seemingly subdued by humidity. Background features heavily blurred silhouettes of diners, smoke swirling, visible moisture on walls. Warm yellow tones, high contrast lighting, film grain, Wong Kar-wai style --ar 16:9",
+                "duration": 15,
+                "shot_type": "multi",
+                "enable_prompt_expansion": false,
+                "model": "atlascloud/van-2.6/text-to-video"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/66ae9626-6527-49fa-8f11-2995ef006e63.mp4"
+                ]
+            }
+        }
+    ]
+}

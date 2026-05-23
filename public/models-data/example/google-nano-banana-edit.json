@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/bff4d3409c5e26e36745e600802a7a6f.png"
+                ],
+                "model": "google/nano-banana/edit",
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "output_format": "default",
+                "prompt": "Transform the image into a gothic style, with dark, moody tones, intricate details, and dramatic lighting. Add elements like ornate patterns, shadows, and a mysterious, eerie atmosphere.",
+                "aspect_ratio": "1:1"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/043420c850b719126e561c596f6c8c5a.png"
+                ]
+            }
+        }
+    ]
+}

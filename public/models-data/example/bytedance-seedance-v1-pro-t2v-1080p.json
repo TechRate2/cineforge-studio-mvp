@@ -1,0 +1,19 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-v1-pro-t2v-1080p",
+                "seed": -1,
+                "prompt": "A line of small yellow ducklings walking together through a wide green field, gently waddling forward in a calm and playful manner.\n\nThe first duckling at the front proudly carries a small red flag, holding it upright as if leading the group.\n\nSoft grass sways lightly in the breeze, with wildflowers scattered across the field, creating a peaceful countryside atmosphere.\n\nThe ducklings move in a neat line, occasionally bobbing their heads, with natural and adorable walking motion.\n\nWarm daylight with soft sunlight, pastel green and golden-yellow color palette, cozy and heartwarming mood.\n\nSlow cinematic side-tracking camera movement, eye-level perspective, smooth and stable motion.\n\nWholesome animated realism style, slightly whimsical but natural, clean and gentle visual tone.\n\nHigh resolution, smooth transitions, professional color grading.\n\nNo text, no logos, no watermarks.",
+                "duration": 5,
+                "aspect_ratio": "16:9",
+                "camera_fixed": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/c557d4fa34df3aac074d1c3f2df3bc0a.mp4"
+                ]
+            }
+        }
+    ]
+}

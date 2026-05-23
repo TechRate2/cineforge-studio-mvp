@@ -1,0 +1,104 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "prompt": "breathtaking mountain landscape at sunrise, golden light spilling over snowy peaks, clouds drifting slowly across the sky, river flowing gently in the valley, camera panning smoothly from left to right, ultra high resolution, vibrant colors, cinematic atmosphere\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/53d4fe543e0b46ab94e7005bd8df5e2a_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Luxury sports car driving along a coastal highway during golden hour, waves crashing against cliffs, aerial drone shot transitioning to low-angle tracking, sunlight flares across the lens, ultra crisp detail, commercial film look\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/4bdf91beef584bd98f4b7e6ecde35486_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Mountain valley at dawn, mist drifting over pine trees, a wild white horse galloping across the meadow, sunlight breaking through clouds, camera slowly dollying forward, soft focus on foreground flowers, cinematic 4K with warm golden tones\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/5f9fbaaad31e4153a1ceedcf42277437_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Anime-style magical forest at twilight, cute girl in a flowing dress holding a glowing lantern, walking over a wooden bridge as fireflies fly around, camera gently panning upward to reveal the night sky full of stars, vibrant colors, Ghibli-inspired art style\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/15fa1a4126eb45e59633354209d9d59d_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Urban street in Tokyo at sunset, young woman with long black hair wearing a white trench coat and holding a coffee cup, walking forward with hair swaying in the wind, neon signs reflecting on wet pavement, smooth camera tracking from the side, cinematic lighting, 4K ultra-realistic\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/a34ab959acc8486d84debd49b7a727d7_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "ultra detailed cyberpunk city at night, neon lights reflecting on wet streets, flying cars zooming past, holographic billboards flickering, camera slowly tracking forward through the bustling street, people in futuristic outfits walking by, cinematic lighting, high contrast shadows, dynamic depth of field\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/0b5a7d9394904c239b16f76e90490d25_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "a young woman in a flowing white dress walking through a field of blooming lavender, petals drifting in the wind, soft sunlight filtering through the clouds, camera following from behind with gentle dolly movement, pastel tones, dreamy cinematic mood\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/df5b6d67aacd468ea944a614b48b4a4d_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "majestic lion walking slowly across the savannah at golden hour, wind blowing through its mane, dust swirling in the background, camera following at low angle, ultra detailed fur texture, warm color grading, realistic natural sound atmosphere\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/a5c0b1d93fd34e41bd74fa72e79e14de_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "couple walking hand in hand under an umbrella on a rainy Paris street, reflections of street lamps in puddles, camera slowly tracking from behind, raindrops hitting the umbrella surface, warm golden glow, gentle slow motion, cinematic romantic lighting\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/5485a52c22f44f1a88c35e427fc011af_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "aerial drone shot flying over a city skyline at dawn, soft golden light reflecting off skyscraper windows, morning fog slowly clearing, cars starting to move on the streets below, smooth forward motion, high dynamic range urban cinematic look\n\n\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/3ed279db182c42b8afc261cee77e9b2d_1.mp4"
+                ]
+            }
+        }
+    ]
+}

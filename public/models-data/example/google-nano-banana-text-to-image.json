@@ -1,0 +1,19 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "google/nano-banana/text-to-image",
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "output_format": "default",
+                "prompt": "Cyberpunk female warrior with silver-blue short hair and glowing yellow eyes, a mechanical arm bursting with red energy, neon city night background, high-contrast lighting, ultra-detailed sci-fi illustration.",
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/e96fbded8b7e8b2b6bea19df8fbe2902.png"
+                ]
+            }
+        }
+    ]
+}

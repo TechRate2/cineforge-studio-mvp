@@ -1,0 +1,64 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "prompt": "Cyberpunk action scene. Two cyborg samurais dash past each other on a rainy street. They strike with glowing laser katanas. A burst of blue and red sparks explodes in the center of the frame. The camera pans quickly to follow the movement. Unreal Engine 5 render, high octane.",
+                "duration": 5,
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/cca3509d2be64490b6fdc9cd0baabd6e_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Cinematic drone shot, aerial view gliding swiftly over a snow-capped mountain range during golden hour. The camera pushes forward through volumetric clouds to reveal a hidden valley with a glowing ancient temple. Realistic lighting, 4k, smooth motion, high fidelity.",
+                "duration": 5,
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/f47d903ece404f658de03c6d4ff82311_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "First-person view (FPV) of an astronaut walking through a dark, abandoned spaceship corridor with a flashlight. The beam cuts through floating dust particles. Suddenly, the red emergency lights flicker on one by one down the hallway, revealing a massive alien structure at the end. Handheld camera movement, heavy atmosphere, cinematic lighting.",
+                "duration": 5,
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/54d29ccfd64148d2b98623f0310f19ca_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Extreme close-up of a texture that looks like rock. Suddenly, the 'rock' moves and an enormous dragon eye opens, the pupil contracting in the light. The camera quickly zooms out to reveal the dragon's head emerging from a misty mountain range. Debris falling, epic scale, hyper-realistic texture.",
+                "duration": 5,
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/ca8424ebb8944528814aa1c91076d8e4_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "GoPro POV shot, fisheye lens. Skiing down a steep, vertical snowy mountain peak at extreme speed. Powder snow sprays into the camera lens. The sun is setting in the distance creating a lens flare. Intense speed, camera shake, wind visual effects, adrenaline rush.",
+                "duration": 5,
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/7052f724f61745c287586bff4ece6c77_1.mp4"
+                ]
+            }
+        }
+    ]
+}

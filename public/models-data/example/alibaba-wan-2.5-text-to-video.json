@@ -1,0 +1,116 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "seed": 1010059064,
+                "size": "1280*720",
+                "prompt": "A middle-aged man sitting at a wooden desk in a cozy study room, surrounded by bookshelves and a warm lamp glow. He opens an old book and reads aloud with a calm, deep voice: 'History teaches us more than just facts… it shows us who we are.' The room has subtle background sounds: pages turning, the faint ticking of a clock, and distant rain against the window.",
+                "duration": 5,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/cdd4d0ac6dda45ac89a2d3bd34c80c43_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 166269531,
+                "size": "1280*720",
+                "prompt": "A young man in his early 30s sits in a modern studio, wearing a navy blazer and white shirt. Soft lighting illuminates his face. He speaks directly to the camera, his lips moving naturally as he says: “Welcome to today’s interview. We’re going to explore how AI is changing our daily lives.” His gestures are subtle, occasionally raising his hands for emphasis, creating a professional and engaging tone.",
+                "duration": 5,
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/1c87080e4e2448339187fe6b27901822_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 1128150254,
+                "size": "1280*720",
+                "prompt": "A cinematic opening sequence of a sci-fi movie: a spaceship travels across the galaxy, and the movie title “星河远征 · Galactic Odyssey” emerges in golden 3D letters, with flawless kerning and no distortion, floating stably in space as the camera rotates.\n",
+                "duration": 5,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/5f98dad3b9b14b0cb8242ef547e21ff0_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 1423783751,
+                "size": "1280*720",
+                "prompt": "A handsome, muscular man with well-defined abs is catching his breath after an intense workout. Sweat drips down his torso. He is shirtless, wearing only black athletic shorts, and is leaning against gym equipment. The lighting comes from the upper side, highlighting the contours of his chest and arms. The scene is filled with a raw, masculine energy, hyper-realistic, high-contrast lighting.\n\n",
+                "duration": 5,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/a3a71ab3b7974b5fbf9d8aa520fcfaa6_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 2144773029,
+                "size": "1280*720",
+                "prompt": "A graceful ballerina with her hair in a messy bun, performing a powerful and emotional contemporary ballet routine. She is in a minimalist, dark art studio. Abstract patterns of light and shadow, projected from a hidden source, dance across her body and the surrounding walls, constantly shifting with her movements. The camera focuses on the tension in her muscles and the expressive gestures of her hands. A single, dramatic slow-motion shot captures her mid-air leap, with the light patterns swirling around her like a galaxy. Moody, artistic, high contrast.\n",
+                "duration": 5,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/b307545a075140b88dad46987fee196b_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 1809252551,
+                "size": "1280*720",
+                "prompt": "A young couple sitting on a park bench during sunset. The woman leans her head on the man’s shoulder. He whispers softly: 'No matter where we go, I’ll always be here with you.' The sound includes the rustling of leaves, distant laughter of children playing, and the gentle hum of cicadas in the evening air.",
+                "duration": 5,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/bfd1c3ef4f2c453a8c01ac179ae9306c_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 884095733,
+                "size": "1280*720",
+                "prompt": "A low-angle panning shot of a concrete wall under a highway overpass at night. Graffiti of a young man comes to life and starts rapping. The style is a dynamic blend of 2D street art animation on a realistic, dark, cinematic background. Cityscape is visible in the distance.\n\n",
+                "duration": 5,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/bf5b8a2280854ac6b318bd39af859319_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 804420086,
+                "size": "1280*720",
+                "prompt": "A 3D animated, anthropomorphic badger wearing a brown leather vest is angrily sweeping yellow autumn leaves from the doorway of his rustic wooden cabin. The style is reminiscent of a Pixar film, with detailed fur and expressive animation. Sunny day, lush green meadow with a forest in the background.\n\n",
+                "duration": 5,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/35f3b28115324ac6b48ccdba2535200d_1.mp4"
+                ]
+            }
+        }
+    ]
+}

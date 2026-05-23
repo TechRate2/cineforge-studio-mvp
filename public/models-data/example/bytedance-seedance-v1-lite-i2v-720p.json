@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-v1-lite-i2v-720p",
+                "seed": -1,
+                "prompt": "A cinematic, ultra-realistic futuristic cityscape at sunset, featuring a sleek advanced aircraft flying smoothly between towering skyscrapers. The city is filled with neon holograms, vertical highways, and floating platforms, showcasing a highly advanced future world. The aircraft has a streamlined metallic body with glowing energy thrusters, subtle heat distortion, and realistic reflections. Soft volumetric light beams cut through atmospheric haze, while distant flying vehicles move through the sky. The camera tracks alongside the aircraft, then gently rises to reveal the vast scale of the city. Epic sci-fi atmosphere, high dynamic range, cinematic color grading, smooth motion, IMAX quality, photorealistic, no text, no watermark.",
+                "duration": 10,
+                "image": "https://atlas-img.oss-accelerate-overseas.aliyuncs.com/images/29fdb041-b519-4d83-a731-094b197f8f3d.png",
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/ef8ff50434f147c9b73bc5b9cbddeb7f_1.mp4",
+                    "https://www.sophnet.com/api/oss-videos/1/doubao-seedance-1-0-lite-i2v/02176709478540100000000000000000000ffffac19188d29cf40.mp4?X-Tos-Algorithm=TOS4-HMAC-SHA256&X-Tos-Credential=AKLTYWJkZTExNjA1ZDUyNDc3YzhjNTM5OGIyNjBhNDcyOTQ%2F20251230%2Fcn-beijing%2Ftos%2Frequest&X-Tos-Date=20251230T114058Z&X-Tos-Expires=86400&X-Tos-Signature=0ca51bbfee9c86caca9c725af53c3ca698f91dd2fe2cb75317d68b3ea99c09f2&X-Tos-SignedHeaders=host"
+                ]
+            }
+        }
+    ]
+}

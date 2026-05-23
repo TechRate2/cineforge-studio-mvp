@@ -1,0 +1,28 @@
+{
+  "examples": [
+    {
+      "inputs": {
+        "prompt": "A young female artist on a hillside is painting on an easel, facing a field of lavender. She smiles to herself as she dabs a stroke of purple onto the canvas, a light breeze rustling her hair.",
+        "duration": 5,
+        "sound": true
+      },
+      "outputs": {
+        "outputs": [
+          "https://static.atlascloud.ai/media/videos/19401eb5f8ef4c35a4017460876110de_1.mp4"
+        ]
+      }
+    },
+    {
+      "inputs": {
+        "prompt": "An elderly man with deep wrinkles sits by a window, his gaze fixed on something far away. His mouth twitches almost imperceptibly as if lost in memory.",
+        "duration": 5,
+        "sound": true
+      },
+      "outputs": {
+        "outputs": [
+          "https://static.atlascloud.ai/media/videos/2bdb3b519c014c5c9ec1f34648db3e03_1.mp4"
+        ]
+      }
+    }
+  ]
+}

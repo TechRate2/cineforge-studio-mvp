@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "alibaba/wan-2.2-spicy/video-extend-lora",
+                "duration": 5,
+                "resolution": "480p",
+                "seed": -1,
+                "prompt": "A colossal whale appears in the sky and slowly swims through the clouds like an ocean creature, mist drifting around its body, surreal dreamlike atmosphere, cinematic wide shot, soft dramatic lighting.",
+                "video": "https://static.atlascloud.ai/media/videos/94d28fc95615fd106a36a3746df8239a.mp4"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/d6caa54dfd077dc80f2d9e42b613f0cb.mp4",
+                    "https://static.atlascloud.ai/media/videos/43333e4fbfa8d76ffd3bdadd54a29015.mp4",
+                    "https://static.atlascloud.ai/media/videos/7c66283ab1d7a8cc552771d000e6ffd2.mp4",
+                    "https://static.atlascloud.ai/media/videos/d1276be275c9a156ae4b20c2b76ffd04.mp4"
+                ]
+            }
+        }
+    ]
+}

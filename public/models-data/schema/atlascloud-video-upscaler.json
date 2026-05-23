@@ -1,0 +1,163 @@
+{
+  "info": {
+    "title": "AtlasCloud API",
+    "version": "1.0.0",
+    "description": "The AtlasCloud API."
+  },
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/model/generateVideo": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "The request status."
+          }
+        }
+      },
+      "x-api-name": "model_run"
+    },
+    "/api/v1/model/prediction/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "description": "Request ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "Result of the request."
+          }
+        }
+      },
+      "x-api-name": "model_result"
+    }
+  },
+  "components": {
+    "schemas": {
+      "Input": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "Model name.",
+            "default": "atlascloud/video-upscaler"
+          },
+          "video": {
+            "description": "Input video URL to upscale. The server probes video metadata before billing and processing. Maximum duration: 53s for 1080p and 23s for 2k. Input fps must be 30 or lower.",
+            "type": "string",
+            "x-format": "video",
+            "x-input-video-limits": {
+              "max_fps": 30,
+              "max_frames_by_target_resolution": {
+                "1080p": 1590,
+                "2k": 690
+              }
+            }
+          },
+          "target_resolution": {
+            "default": "1080p",
+            "description": "Output resolution for video upscaling. 2k uses the 2560x1440 pixel tier. 4K is not currently exposed.",
+            "enum": [
+              "1080p",
+              "2k"
+            ],
+            "type": "string",
+            "x-ui-component": "select",
+            "x-duration-limits": {
+              "unit": "seconds",
+              "source": "server_probe",
+              "limits": {
+                "1080p": 53,
+                "2k": 23
+              }
+            }
+          }
+        },
+        "required": [
+          "model",
+          "video"
+        ],
+        "type": "object",
+        "x-order-properties": [
+          "model",
+          "video",
+          "target_resolution"
+        ]
+      },
+      "PredictionResponse": {
+        "properties": {
+          "created_at": {
+            "description": "ISO timestamp of when the request was created.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "has_nsfw_contents": {
+            "description": "Array of boolean values indicating NSFW detection for each output.",
+            "items": {
+              "type": "boolean"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "Unique identifier for the prediction.",
+            "type": "string"
+          },
+          "model": {
+            "description": "Model ID used for the prediction.",
+            "type": "string"
+          },
+          "outputs": {
+            "description": "Array of URLs to the generated content. Empty when status is not completed.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "description": "Status of the task: created, processing, completed, or failed.",
+            "type": "string"
+          },
+          "urls": {
+            "description": "Object containing related API endpoints.",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.atlascloud.ai"
+    }
+  ]
+}

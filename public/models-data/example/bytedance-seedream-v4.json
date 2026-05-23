@@ -1,0 +1,191 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "Documentary photography style: A girl stands in an old-fashioned alleyway, smiling at the camera.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/44ca2ec9aede46a98acbb61bc45ed37f_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "Cthulhu-style: A girl stands before an ancient castle, facing the camera.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/05227e416b4d45abb142e195753cf3b4_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "Urban photography: The bustling streets of Tokyo",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/cf6a0b7fc64d4e86b9c651828498137f_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "Cinematic quality: The princess and the web consultant embrace before the castle, gazing at each other with tender affection.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/ec98d8078a9a4a9eb98c90c85d4c4f10_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "Close-up of a girl's face, side lighting",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/124148a3d74341f28b70906390c367c0_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "Outdoor photography: A teenage girl with a backpack is rock climbing on a mountain peak.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/4e998fab919645648eeb9692f28f946c_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "Rococo style, a young girl in an ornate dress",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/9cf5617ccf26404a8721ce3963b95dd3_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "Relief style, a Cupid angel",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/6b58224dc4e04d7690f3a2e95742874d_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "A girl dressed in elegant attire walks along a tree-lined path, holding a parasol, in the style of a Monet oil painting.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/0074ca9f6dc04643afcccb0f0f9d69f2_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "An elderly man sits in the park, documentary photography, Leica monochrome filter, faded high contrast, surreal composition.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/96805f9098e74ebea65f6ce84f85d96b_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "Design a retro website for a high-end art museum, adopting an earthy color tone, with a concise and neat layout,focusing on displaying large images of the museum's collection of artworks.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/f39d7ee1dd394d67835735792fea8741_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "Draw a chart showing the typical vegetation distribution in four diferent climate zones: tropical rainforest. temperate forest，desert, and tundra.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/68e563b91be245db87e0ecf96181355c_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "model": "bytedance/seedream-v4",
+                "enable_base64_output": false,
+                "size": "2048*2048",
+                "enable_sync_mode": false,
+                "prompt": "A girl dancing in a garden, flowing movement, soft natural light, cinematic composition, shallow depth of field, film still style, realistic"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/7e9f4f57e240261135e765bacdae7e3f.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1a16c6790f4677b7c34f34b45879d4c8.jpeg"
+                ],
+                "model": "bytedance/seedream-v4",
+                "enable_base64_output": false,
+                "size": "2048*2048",
+                "enable_sync_mode": false,
+                "prompt": "Replace the person in the image with a clay sculpture style."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/548c3b0c4f115acf2cd0053ad8615fa5.jpeg"
+                ]
+            }
+        }
+    ]
+}

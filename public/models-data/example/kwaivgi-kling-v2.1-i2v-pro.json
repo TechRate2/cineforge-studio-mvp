@@ -1,0 +1,104 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "prompt": "A beautiful young woman with long wavy hair, laughing loudly, her hair swaying in the wind, dressed in a stylish blue trench coat, standing in a sunny city street, cinematic close-up shot, 8K, high detail, photorealistic, ultra realistic, volumetric lighting."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/02f0180e6e4445ac855821b69df0d79a_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A majestic waterfall cascades down moss-covered rocks into a pristine mountain lake. The water sparkles under the morning sunlight, and a gentle mist rises from the surface. Leaves on nearby trees rustle in the breeze."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/74faaa65eb1c4ab8878a9cb495eccebf_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A highly detailed shot of a futuristic racing car speeding on a neon-lit track. The car's tires leave a blue light trail. The background is blurred, motion blur effect, cyberpunk aesthetic, high speed, dynamic angle, 8K, cinematic.\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/80229629ea6749b3b3e5912030488a4f_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A majestic magic dragon, a close-up shot, breathing fire over an ancient castle on a mountain cliff, surrounded by epic mountains and clouds. Dramatic lighting, fantasy art, cinematic, hyper-realistic, volumetric light, 4K, wide shot."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/882be900ff7e48af973c20511b8754cd_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A cute fawn running through a sun-drenched forest with blooming wildflowers. The sun shines through the trees, casting beautiful light rays. Soft focus, macro photography, fairytale vibe, dreamy atmosphere, vibrant colors, UHD, slow motion."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/dec0e9a51f6b498496c860e6c0c9c61a_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A busy street in Tokyo at night after rain. People are walking by, blurred reflections of neon signs and city lights on the wet pavement. Tilt-shift effect, cinematic, detailed, street photography, moody lighting, 4K, time-lapse feel."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/dafe234005ac4378b6b120ffbec22904_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A striking view of a young female fashion model with flowing blonde hair, wearing a vibrant emerald green dress, dramatically twirling on a rooftop overlooking a bustling cityscape at sunset. The camera is a sweeping orbital shot circling her, capturing the movement of her dress and hair against the urban backdrop. Golden hour light casting long shadows, wind gently blowing her hair, creating a sense of freedom and energy, high fashion editorial, cinematic, 8k, ultra-detailed."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/3d6fd76c387042d99f9bce5214419b0d_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A lone knight on a horse, galloping furiously across a vast, windswept grassland. The clouds above are moving swiftly, and the sun is setting in the background. Wide, epic shot, cinematic, dramatic lighting, 8K, photorealistic.\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/1f630b272b0547cb9bfbe3eecbad2331_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A futuristic soldier, equipped with advanced gear, running through a neon-lit, cyberpunk city at night. The camera is in a handheld shot, giving it a shaky, first-person perspective. Fast-paced action, blurred lights, high-energy, cinematic."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/dbb7166990c34d2baf43a925910dd5d5_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A young woman standing alone on a bridge at night, her hair gently swaying in the breeze, her gaze distant as she looks at the city lights in the distance. A car drives past the frame, leaving a blur of light and shadow. The camera circles around from behind her to the side, then briefly freezes, capturing her contemplative expression. Melancholic, serene, emotional, cinematic, high contrast.\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/8e1e3888d59e4530a87a770c00b4222c_1.mp4"
+                ]
+            }
+        }
+    ]
+}

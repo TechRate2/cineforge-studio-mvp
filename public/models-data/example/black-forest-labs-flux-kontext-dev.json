@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "black-forest-labs/flux-kontext-dev",
+                "seed": -1,
+                "prompt": "Change the clothing color to red.",
+                "num_images": 1,
+                "guidance_scale": 2.5,
+                "num_inference_steps": 28,
+                "enable_base64_output": false,
+                "enable_safety_checker": true,
+                "image": "https://static.atlascloud.ai/media/images/7bc3936f49f01fde24555c107a239f27.jpg"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/95a34e8b9af540de1e6f10fa70bd235a.jpeg"
+                ]
+            }
+        }
+    ]
+}

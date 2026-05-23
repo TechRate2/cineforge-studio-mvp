@@ -1,0 +1,19 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/dc0051d2c757c405abcc66db9e73731b.jpg",
+                "model": "kwaivgi/kling-v2.6-std/motion-control",
+                "video": "https://static.atlascloud.ai/media/videos/29538d8995e0a9ba017469aab11b2172.mp4",
+                "prompt": "Replace the characters in the video with the characters from the image, while strictly maintaining the characters' movements.",
+                "keep_original_sound": true,
+                "character_orientation": "video"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/5dec49a5c962268ebca2f5de57cb072f.mp4"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,16 @@
+{
+  "examples": [
+    {
+      "inputs": {
+        "model": "atlascloud/video-upscaler",
+        "video": "https://static.atlascloud.ai/media/videos/af3ce4416487e61f8b299c5dc42642e3.mp4",
+        "target_resolution": "1080p"
+      },
+      "outputs": {
+        "outputs": [
+          "https://static.atlascloud.ai/media/videos/2eea90ad-8bcb-4b41-b1e2-ea074da14c2b.mp4"
+        ]
+      }
+    }
+  ]
+}

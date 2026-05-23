@@ -1,0 +1,38 @@
+{
+    "model": "kwaivgi/kling-video-o3-pro/video-edit",
+    "examples": [
+        {
+            "inputs": {
+                "images": [],
+                "model": "kwaivgi/kling-video-o3-pro/video-edit",
+                "keep_original_sound": true,
+                "prompt": "Adjust the color to a purple gradient.",
+                "video": "https://static.atlascloud.ai/media/videos/f8ad0428b6da02c0274ea66ce40e8d4a.mp4"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/dfc72d0d305ab54ef8860541998d3374.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/cf2067cc24772b71936727ae579bdcdb.png"
+                ],
+                "model": "kwaivgi/kling-video-o3-pro/video-edit",
+                "aspect_ratio": "16:9",
+                "duration": 5,
+                "keep_original_sound": true,
+                "sound": false,
+                "prompt": "Replace the characters in the video with the characters in the picture.",
+                "video": "https://static.atlascloud.ai/media/videos/f78348ab6c007bafb509cb893b85e9ef.mp4"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/7f1e1d66f8bdfb3f5c4ccd61089ca64c.mp4"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,17 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedream-v5.0-lite",
+                "enable_base64_output": false,
+                "size": "2048*2048",
+                "prompt": "Two martial artists facing each other on the peak of a misty mountain.\nFlowing traditional Hanfu robes moving in the wind.\nAncient Chinese swords reflecting cold light.\nSea of clouds below the cliff, dramatic sky at sunset.\nCinematic wide shot, dynamic composition, ultra detailed, wuxia aesthetic, epic atmosphere, 4K."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/30501f5d36268feb49f6709db16490ec.jpeg"
+                ]
+            }
+        }
+    ]
+}

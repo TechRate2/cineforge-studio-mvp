@@ -1,0 +1,38 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "atlascloud/wan-2.2-turbo-spicy/infinite-image-to-video-lora",
+                "duration": 5,
+                "resolution": "720p",
+                "seed": -1,
+                "high_noise_loras": [
+                    {
+                        "path": "https://huggingface.co/rahul7star/wan2.2Lora/resolve/main/Wan2.2_BP-v1-HighNoise-I2V_T2V.safetensors?download=true",
+                        "scale": 1
+                    }
+                ],
+                "low_noise_loras": [
+                    {
+                        "path": "https://huggingface.co/rahul7star/wan2.2Lora/resolve/main/Wan2.2_BP-v1-LowNoise-I2V_T2V.safetensors?download=true",
+                        "scale": 1
+                    }
+                ],
+                "loras": [],
+                "prompt": [
+                    "A cinematic aerial shot slowly glides above a vast turquoise canyon sea surrounded by towering limestone cliffs. Crystal-clear water reveals submerged rock formations beneath the surface. A lone wooden sailing ship drifts peacefully through the glowing blue lagoon. Warm golden sunlight pierces through soft mist, volumetric lighting, ultra-detailed environment, fantasy realism, atmospheric depth, slow camera movement, cinematic composition, Unreal Engine, 8K.",
+                    "The camera flies low across the shimmering water, weaving between giant vertical sea pillars and narrow canyon passages. Reflections ripple realistically as the ship sails deeper into the mysterious hidden world. Small waves collide gently against rocky cliffs covered with lush vegetation. Soft fog hangs in the distance, epic exploration mood, dynamic perspective, realistic water simulation, highly cinematic.",
+                    "The camera dives beneath the crystal-clear ocean surface, revealing ancient submerged ruins carved into the canyon floor. Sunlight rays scatter through the water, illuminating forgotten stone pathways and giant underwater statues covered in coral and algae. Schools of glowing fish swim slowly around the ruins. Ethereal atmosphere, underwater fantasy realism, slow-motion particles, cinematic underwater lighting.",
+                    "A close cinematic tracking shot follows behind the wooden sailing ship as its sails flutter in the wind. The vessel moves through glowing teal waters while massive cliffs rise dramatically on both sides. Tiny waterfalls stream down the rock walls into the lagoon below. Realistic cloth physics, gentle ocean movement, immersive cinematic travel sequence, adventure fantasy aesthetic.",
+                    "The hidden ocean canyon transforms during sunset as warm orange light floods the landscape. Long shadows stretch across the water while the sailing ship drifts toward the horizon. Mist rolls between the cliffs, creating layers of atmospheric depth. Birds circle above the canyon peaks. Dreamlike cinematic fantasy, golden-hour lighting, emotional and majestic mood."
+                ],
+                "image": "https://static.atlascloud.ai/media/images/e2a00d9f3f5f2a8133b1f714613fcb56.jpg"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/e14e5655-79b9-421a-a2e7-f93de166ec72.mp4"
+                ]
+            }
+        }
+    ]
+}

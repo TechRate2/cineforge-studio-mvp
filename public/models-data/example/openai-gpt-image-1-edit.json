@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "openai/gpt-image-1/edit",
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "quality": "medium",
+                "size": "auto",
+                "image": "https://static.atlascloud.ai/media/images/6884fa621d0a8aadbeb87d76f31d4f63.jpg",
+                "prompt": "Extend and complete the original image while perfectly preserving its visual style, composition, lighting, and color grading. Seamlessly introduce a full-body football player into the scene, wearing the exact same shoes from the original image as the central focus. The player should be naturally integrated with correct perspective, scale, and shadows, matching the environment and artistic direction. Capture the athlete in a dynamic, high-energy moment (such as sprinting, dribbling, or striking the ball) to enhance visual impact. Use cinematic framing and depth to subtly highlight the shoes as the hero product, ensuring they remain the most eye-catching element. Maintain full consistency in texture, tone, and atmosphere so the final image feels like a cohesive and authentic extension of the original, ultra-detailed, high realism, and visually striking."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/9e4a9d3783c1119f52f5f56a84f17b19.png"
+                ]
+            }
+        }
+    ]
+}

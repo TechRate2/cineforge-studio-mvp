@@ -1,0 +1,144 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "prompt": "The woman walks forward"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/506b126030aa4d0fab097a0ea965da6c_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Homem andando em direção à câmera"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/24f46124a1a64304847db313ee1d1055_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A woman is dancing"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/1d81414ea75e44a998c07cb5a4281697_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "The woman is smiling"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/b1eea5d6427e4fb8b205b5aee16d45f5_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Children happily chase bubbles and try to pop them"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/bee96a68861e41759300cbc552a42af3_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "The camera zooms in, the man naturally opens his arms, glasses gazing into the distance, high quality, 4k"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/31f268935a604c6ab026b2365e0f40a0_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A giant fox made of glowing crystals, running through a magical forest at night, leaving a trail of sparkling particles behind it. The plants in the forest also emit a soft glow, creating a mysterious and dreamlike atmosphere."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/5e63e22ad366480590594f8f2cb7c391_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "An ancient castle floating on a sea of clouds, with waterfalls pouring from the castle's edge into the clouds. A giant white dragon takes off from one of the castle's towers and soars upward. Use a wide-angle long shot, soft golden light, to create a serene and majestic atmosphere."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/a7674684ad454a66bdd2ba0db23ad8de_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A child in a raincoat, stomping in puddles on a city street after the rain, splashing ripples in a circle. The reflection of streetlights shimmers on the wet pavement. Low-angle shot, neon lighting, creating a warm and nostalgic atmosphere."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/ac49ea70540b49ca9ffadada8d613788_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A majestic white horse, galloping across a vast, snow-covered plain, its hooves kicking up flurries of snow. Tracking side view, soft overcast lighting, the scene presents a serene and mystical mood."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/26c4b15bf2624e3fbe9a25a31b350354_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Massive colorful flowers hang overhead. Slowly panning camera, soft pastel-colored lighting, a lively and magical atmosphere."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/99f03ac002d84a618f1986035f33a67d_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A lonely lighthouse, standing firm against a furious ocean storm. Crashing waves engulf its base, and lightning flashes across the dark sky. Dramatic long shot, intense stormy lighting, powerful and isolated atmosphere."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/56ac68c9a1284c97a6cb23c1e0327b01_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A playful puppy, excitedly chasing a rolling ball across a lush green park. Its ears flap in the wind, and its tail wags furiously. Low-angle tracking shot, bright daylight, energetic and cheerful ambiance."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/8dd774acf40142749eb444d9154069ca_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A whimsical hot air balloon, shaped like a friendly dragon, gracefully ascending over a vibrant, blooming valley. Sunlight bathes the scene, illuminating the intricate patterns of the dragon's scales. Wide panoramic shot, soft morning glow, fairytale-like atmosphere."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/4276c087c42848fcbf92c7300f169e4f_1.mp4"
+                ]
+            }
+        }
+    ]
+}

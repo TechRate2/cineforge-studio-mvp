@@ -1,0 +1,89 @@
+# HOOKS BANK — Supplement & Health VN
+# Authority + personal journey tone, KHÔNG miracle claims.
+
+hooks:
+  - id: tpcn_doctor_friend
+    type: authority
+    fits: [AUTHORITY_TESTIMONIAL]
+    target_emotion: "trust"
+    trending_score: 8
+    template: "Bác sĩ {chuyên khoa} của mình bảo dùng {sản phẩm}, mình hỏi tại sao thì..."
+    examples:
+      - "Bác sĩ da liễu của mình bảo uống collagen này 30 ngày — kết quả..."
+      - "Dược sĩ chị họ recommend vitamin D này — đây là lý do"
+
+  - id: tpcn_30_day_journey
+    type: satisfying_visual_proof
+    fits: [BEFORE_AFTER_JOURNEY]
+    target_emotion: "transformation"
+    trending_score: 9
+    template: "Sau {N} ngày uống {sản phẩm}, đây là thay đổi mình thấy"
+    examples:
+      - "Sau 30 ngày uống biotin này, đây là thay đổi tóc mình"
+      - "60 ngày dùng probiotic — chỉ số cholesterol mình sốc"
+      - "Mình ngừng cà phê sáng 3 tuần — đây là điều xảy ra"
+
+  - id: tpcn_morning_pain
+    type: relatable_emotion
+    fits: [PROBLEM_AGITATE_SOLUTION]
+    target_emotion: "empathy"
+    trending_score: 8
+    template: "Có ai sáng dậy {pain point} không? Mình từng vậy đến khi..."
+    examples:
+      - "Có ai sáng dậy mệt mỏi mãi không hết không? Mình từng vậy đến khi..."
+      - "Có ai đau bụng sau khi ăn không? Đây là lý do mình tìm ra"
+      - "Có chị nào tóc rụng nhiều sau sinh không?"
+
+  - id: tpcn_stop_taking_x
+    type: controversial
+    fits: [AUTHORITY_TESTIMONIAL]
+    target_emotion: "shock"
+    trending_score: 7
+    template: "Mình đã ngừng {hành động phổ biến} 30 ngày — kết quả khiến mình bất ngờ"
+    examples:
+      - "Mình đã ngừng cà phê sáng 3 tuần — đây là điều xảy ra"
+      - "Mình đã ngừng uống coca 60 ngày — sốc kết quả"
+
+  - id: tpcn_personal_confession
+    type: relatable_emotion
+    fits: [PROBLEM_AGITATE_SOLUTION, BEFORE_AFTER_JOURNEY]
+    target_emotion: "vulnerability"
+    trending_score: 9
+    template: "Mình thú thật — {confession sức khoẻ cá nhân}"
+    examples:
+      - "Mình thú thật — 30 tuổi mới phát hiện thiếu vitamin D3"
+      - "Mình thú thật — sau sinh 6 tháng còn rụng tóc"
+      - "Mình thú thật — uống coffee 5 ly/ngày đã làm hỏng giấc ngủ"
+
+  - id: tpcn_research_simplified
+    type: curiosity_gap
+    fits: [AUTHORITY_TESTIMONIAL]
+    target_emotion: "intelligent curiosity"
+    trending_score: 7
+    template: "Mình đọc {N} bài research về {topic} và đây là tóm tắt"
+    examples:
+      - "Mình đọc 12 bài research về collagen và đây là tóm tắt"
+      - "Mình đọc nghiên cứu Harvard về vitamin D — bất ngờ"
+
+  - id: tpcn_doctor_explanation
+    type: authority
+    fits: [AUTHORITY_TESTIMONIAL]
+    target_emotion: "education"
+    trending_score: 6
+    template: "Bác sĩ giải thích {tại sao bạn cần X} — mình ghi lại để chia sẻ"
+    examples:
+      - "Bác sĩ giải thích tại sao phụ nữ 30+ cần collagen — mình ghi lại"
+      - "Dược sĩ chỉ ra 3 sai lầm khi uống vitamin C"
+
+scoring_weights:
+  trending_alignment: 0.20
+  pattern_interrupt: 0.20
+  relatability: 0.20
+  authenticity: 0.30  # CỰC CAO — supplement audience cảnh giác AI-slop/fake
+  cta_setup: 0.10
+
+ranker_strategy:
+  variants_to_generate: 5
+  top_n_keep: 3
+  diversity_constraint: true
+  forbidden_claim_strict_filter: true  # auto-reject variant có claim cấm

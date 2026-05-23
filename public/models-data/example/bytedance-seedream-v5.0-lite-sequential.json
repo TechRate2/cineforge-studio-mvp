@@ -1,0 +1,18 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedream-v5.0-lite/sequential",
+                "enable_base64_output": false,
+                "max_images": 1,
+                "size": "2048*2048",
+                "prompt": "Martial artists fighting in front of a grand ancient Chinese palace.\nFlying swords, flowing robes, dynamic mid-air combat.\nRed pillars and golden rooftops in the background.\nEpic scale, dramatic sky, cinematic motion blur, ultra detailed, wuxia fantasy style, 4K."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/eae2eb172546dc458223b2e0433e7195.jpeg"
+                ]
+            }
+        }
+    ]
+}

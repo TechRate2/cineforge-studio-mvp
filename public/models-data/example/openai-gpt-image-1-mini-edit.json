@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/763a95728c969f56ce2047b9fdbf56ad.jpg"
+                ],
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "prompt": "Transform the original scene into a bold American animation style, featuring clean linework, strong outlines, and simplified yet expressive character design. Use vibrant, high-contrast colors with clear color blocking and stylized shading rather than realistic rendering. The lighting should be graphic and punchy, with defined highlights and shadows that enhance readability and impact. Maintain the original composition and action, but reinterpret details with a slightly exaggerated, dynamic aesthetic typical of modern American cartoons. Smooth motion, expressive poses, and a polished, high-energy visual tone. Crisp, stylized, animation-ready, consistent art direction, high clarity and visual appeal.",
+                "model": "openai/gpt-image-1-mini/edit"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/98cc38d2f1958acf50e6885457a11c10.png"
+                ]
+            }
+        }
+    ]
+}

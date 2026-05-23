@@ -1,0 +1,39 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "atlascloud/wan-2.2-turbo/infinite-image-to-video-lora",
+                "duration": 5,
+                "resolution": "720p",
+                "seed": -1,
+                "high_noise_loras": [
+                    {
+                        "path": "https://huggingface.co/rahul7star/wan2.2Lora/resolve/main/Wan2.2_BP-v1-HighNoise-I2V_T2V.safetensors?download=true",
+                        "scale": 1
+                    }
+                ],
+                "low_noise_loras": [
+                    {
+                        "path": "https://huggingface.co/rahul7star/wan2.2Lora/resolve/main/Wan2.2_BP-v1-LowNoise-I2V_T2V.safetensors?download=true",
+                        "scale": 1
+                    }
+                ],
+                "loras": [],
+                "prompt": [
+                    "A futuristic silver racing car sits motionless inside a vast minimalist white studio. A glowing green rectangular light panel illuminates the rear of the vehicle, reflecting beautifully across the glossy floor. The camera slowly pushes forward, revealing aerodynamic curves, aggressive body kits, and carbon fiber details. Soft volumetric lighting, ultra-clean luxury automotive aesthetic, cinematic studio atmosphere, photorealistic, 8K.",
+                    "The camera smoothly circles around the silver hypercar in slow motion while soft ambient light glides across its polished metallic body. Reflections ripple naturally across the glossy floor beneath the car. Subtle fog drifts through the minimalist studio environment. Premium concept-car presentation, cinematic lens compression, elegant movement, ultra-detailed automotive rendering.",
+                    "Extreme macro close-up shots reveal spinning bronze wheels, carbon fiber textures, aerodynamic vents, glowing headlights, and sharp body panel edges. Tiny reflections move across the surface as studio lights subtly shift position. Hyper-detailed automotive cinematography, luxury performance engineering aesthetic, clean futuristic lighting.",
+                    "The green backlight intensifies dramatically as the vehicle slowly powers on. Headlights glow softly, aerodynamic components subtly adjust, and faint reflections pulse across the floor. The environment becomes darker while neon green light creates a futuristic sci-fi atmosphere. Cinematic contrast, atmospheric haze, high-end concept reveal.",
+                    "The hypercar suddenly launches forward across an endless reflective white space. The camera tracks low beside the car while reflections stretch beneath it. Motion blur and soft green light streaks create a surreal futuristic racing environment. Dynamic cinematic speed shot, ultra-smooth camera motion, luxury racing energy.",
+                    "The minimalist studio transitions into a futuristic neon city at night. Rain falls softly onto reflective streets as the silver racing car drifts through glowing green and white lights. Water sprays from the tires while skyscraper reflections distort across the wet pavement. Cyberpunk automotive commercial aesthetic, cinematic realism, moody atmosphere."
+                ],
+                "image": "https://static.atlascloud.ai/media/images/8bd40fb95fe6904b38c64a4ca7e76a83.jpg"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/894ff8e8-14ff-4d6f-aeb2-92853cde4163.mp4"
+                ]
+            }
+        }
+    ]
+}

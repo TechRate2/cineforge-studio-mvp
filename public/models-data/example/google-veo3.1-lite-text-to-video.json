@@ -1,0 +1,19 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "google/veo3.1-lite/text-to-video",
+                "aspect_ratio": "16:9",
+                "duration": 8,
+                "resolution": "720p",
+                "seed": -1,
+                "prompt": "A supercar blasting through the desert at incredible speed, sandstorms spiraling in its wake, towering dunes stretching to the horizon, dramatic sunlight and long shadows, dynamic aerial camera tracking the car, cinematic blockbuster style, ultra-realistic, intense motion blur."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/ab9da2f60067f6dea6ea0b6803cdf5a4.f4v"
+                ]
+            }
+        }
+    ]
+}

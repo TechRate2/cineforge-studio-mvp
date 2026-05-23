@@ -1,0 +1,203 @@
+{
+    "info": {
+        "title": "AtlasCloud API",
+        "version": "1.0.0",
+        "description": "The AtlasCloud API."
+    },
+    "openapi": "3.0.0",
+    "paths": {
+        "/api/v1/model/generateImage": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Input"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "The request status."
+                    }
+                }
+            },
+            "x-api-name": "model_run"
+        },
+        "/api/v1/model/prediction/{request_id}": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "request_id",
+                        "required": true,
+                        "schema": {
+                            "description": "Request ID",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "Result of the request."
+                    }
+                }
+            },
+            "x-api-name": "model_result"
+        }
+    },
+    "components": {
+        "schemas": {
+            "Input": {
+                "type": "object",
+                "properties": {
+                    "model": {
+                        "type": "string",
+                        "description": "Model name.",
+                        "default": "alibaba/happyhorse-1.0/reference-to-video",
+                        "enum": [
+                            "alibaba/happyhorse-1.0/reference-to-video"
+                        ]
+                    },
+                    "prompt": {
+                        "description": "Text prompt describing the desired video and how the reference images should be used. Maximum length is 2500 characters.",
+                        "type": "string"
+                    },
+                    "images": {
+                        "description": "Reference image URLs. Provide 1 to 9 images. Supported formats are JPEG, JPG, PNG, BMP, and WEBP. Each image can be up to 10 MB, with the shorter side at least 400 px and at least 40% of the longer side.",
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 9,
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "resolution": {
+                        "default": "1080P",
+                        "description": "Output video resolution.",
+                        "enum": [
+                            "720P",
+                            "1080P"
+                        ],
+                        "type": "string"
+                    },
+                    "ratio": {
+                        "default": "16:9",
+                        "description": "Aspect ratio of the generated video.",
+                        "enum": [
+                            "16:9",
+                            "9:16",
+                            "1:1",
+                            "4:3",
+                            "3:4"
+                        ],
+                        "type": "string"
+                    },
+                    "duration": {
+                        "default": 5,
+                        "minimum": 3,
+                        "maximum": 15,
+                        "description": "Video duration in seconds.",
+                        "type": "integer"
+                    },
+                    "seed": {
+                        "default": -1,
+                        "minimum": -1,
+                        "maximum": 2147483647,
+                        "description": "Random seed for video generation. Use -1 for a random seed.",
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "model",
+                    "prompt",
+                    "images"
+                ],
+                "x-order-properties": [
+                    "model",
+                    "prompt",
+                    "images",
+                    "resolution",
+                    "ratio",
+                    "duration",
+                    "seed"
+                ]
+            },
+            "PredictionResponse": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "integer"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/PredictionData"
+                    }
+                }
+            },
+            "PredictionData": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Unique ID of the generation task."
+                    },
+                    "model": {
+                        "type": "string",
+                        "description": "Model used for the generation."
+                    },
+                    "outputs": {
+                        "type": "array",
+                        "description": "Generated video results. Each item is a video URL.",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "urls": {
+                        "type": "object",
+                        "properties": {
+                            "get": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Current task status, such as created, processing, completed, unknown, or failed."
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "error": {
+                        "type": "string",
+                        "description": "Error message returned when the task fails."
+                    }
+                }
+            }
+        }
+    },
+    "servers": [
+        {
+            "url": "https://api.atlascloud.ai"
+        }
+    ]
+}

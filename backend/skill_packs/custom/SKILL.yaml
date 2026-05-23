@@ -1,0 +1,80 @@
+# SKILL PACK: Custom (fallback cho niche không match)
+# Khi NicheRouter không detect được niche cụ thể → load pack này.
+# User có thể override mọi setting qua Context Injection.
+
+id: custom
+name_vn: "Tùy chỉnh — Niche khác"
+name_en: "Custom"
+version: "1.0.0"
+target_market: "VN"
+last_updated: "2026-05-20"
+
+activation:
+  shopee_categories: []  # any
+  product_keywords: []   # any
+  min_confidence: 0.0    # always fallback
+
+preferred_models:
+  llm_strategist: "deepseek-ai/deepseek-v4-pro"
+  llm_copywriter: "deepseek-ai/deepseek-v4-flash"
+  llm_critic: "deepseek-ai/deepseek-v4-pro"
+  vision: "qwen/qwen3-vl-30b-a3b-instruct"
+
+  video_default: "vidu_q3"
+  video_premium: "seedance_2_0"
+  video_budget: "seedance_2_0_fast"
+
+  voice_gender: "any"
+  voice_vibe: "any"
+
+  persona_filter:
+    gender: "any"
+    age_range: [18, 50]
+    vibes: ["gen_z_casual", "millennial_warm", "professional", "lifestyle_aspirational"]
+
+recommended_frameworks:
+  - id: "POV_VISUAL_PROOF"
+    when: "Default safe choice"
+  - id: "CURIOSITY_GAP"
+    when: "Sản phẩm có angle bất ngờ"
+  - id: "PROBLEM_AGITATE_SOLUTION"
+    when: "Pain point rõ"
+  - id: "AUTHORITY_TESTIMONIAL"
+    when: "Có expert/influencer"
+
+tone_guide:
+  primary: "Adapt theo user_brief — neutral, tự nhiên"
+  avoid: "marketing fluff generic"
+  language_register: "informal VN"
+  pronouns_preferred: ["mình", "em", "tôi"]
+
+must_include:
+  - "Real context injection nếu user paste"
+  - "CTA conversational"
+
+forbidden_claims:
+  vi_law_compliance:
+    - "Tốt nhất Việt Nam"
+    - "100% an toàn tuyệt đối"
+    - "Chữa khỏi bệnh"
+
+pacing_defaults:
+  duration_15s:
+    shots: 4
+  duration_30s:
+    shots: 6
+  duration_60s:
+    shots: 10
+
+best_post_times_vn:
+  weekday: ["12:00 - 13:00", "20:00 - 22:00"]
+  weekend: ["10:00 - 12:00", "20:00 - 22:30"]
+
+viral_signals:
+  high_engagement_triggers:
+    - "POV format trending"
+    - "Honest review tone"
+    - "Real context (pain/review user paste)"
+  saturated_avoid:
+    - "Generic 'Hi mọi người' opening"
+    - "Logo-first opening"

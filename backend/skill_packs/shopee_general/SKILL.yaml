@@ -1,0 +1,100 @@
+# SKILL PACK: Shopee/Lazada Product Ads (VN — general)
+# Fallback skill pack cho mọi sản phẩm Shopee/Lazada không fit niche cụ thể.
+
+id: shopee_general
+name_vn: "Shopee/Lazada Product Ads (VN)"
+name_en: "Shopee/Lazada Product Ads"
+version: "1.0.0"
+target_market: "VN"
+last_updated: "2026-05-20"
+
+activation:
+  shopee_categories: []   # any (fallback)
+  product_keywords: []    # any
+  min_confidence: 0.0     # always pass
+
+preferred_models:
+  llm_strategist: "deepseek-ai/deepseek-v4-pro"
+  llm_copywriter: "deepseek-ai/deepseek-v4-flash"
+  llm_critic: "deepseek-ai/deepseek-v4-pro"
+  vision: "qwen/qwen3-vl-30b-a3b-instruct"
+
+  video_default: "seedance_2_0_fast"      # cost-efficient cho seller batch
+  video_premium: "seedance_2_0_fast"
+  video_budget: "seedance_2_0_fast"
+
+  voice_gender: "female"               # seller VN audience phổ biến nữ
+  voice_vibe: "gen_z_casual"
+
+  persona_filter:
+    gender: "F"
+    age_range: [22, 38]
+    vibes: ["gen_z_casual", "millennial_warm", "lifestyle_aspirational"]
+
+recommended_frameworks:
+  - id: "PROBLEM_AGITATE_SOLUTION"
+    when: "Product giải quyết pain rõ ràng (gia dụng, mẹ-bé, tools)"
+    description: "Show problem → amplify → introduce product"
+
+  - id: "PRICE_COMPARISON"
+    when: "Product giá tốt vs competitor"
+    description: "Hook bằng giá shock, body so sánh"
+
+  - id: "LIFESTYLE_ASPIRATION"
+    when: "Product cải thiện lifestyle (home decor, gadget, fashion casual)"
+    description: "Show life before/after có product"
+
+  - id: "SOCIAL_PROOF_VOLUME"
+    when: "Product đã có nhiều review tốt"
+    description: "Highlight rating + 'X người mua tuần qua'"
+
+tone_guide:
+  primary: "Năng động, gần gũi, Gen Z Shopee-native"
+  avoid: "corporate, 'siêu phẩm', 'đỉnh nóc'"
+  language_register: "informal VN, có thể mix english Gen Z slang"
+  pronouns_preferred: ["mình", "em"]
+
+  example_natural_phrases:
+    - "Mua thử trên Shopee Mall"
+    - "Em ghim link bio nha"
+    - "Trộm vía giá tốt"
+    - "Code giảm 30k cho 100 đơn đầu"
+
+must_include:
+  - "Giá VND hiển thị overlay text"
+  - "Logo Shopee/Lazada/Tiki để build trust"
+  - "CTA conversational ('link bio', 'comment X em gửi link')"
+  - "Origin/authenticity signal ('Shopee Mall chính hãng')"
+
+forbidden_claims:
+  vi_law_compliance:
+    - "Tốt nhất Việt Nam" # cần ranking thật
+    - "Rẻ nhất thị trường"
+    - "Đảm bảo hài lòng 100%" # over-promise
+
+  marketing_red_flags:
+    - "So sánh trực tiếp competitor có tên — vd: 'tốt hơn Apple', 'rẻ hơn Vietnam Airline'"
+    - "Gọi competitor là Fake/giả/dỏm"
+
+pacing_defaults:
+  duration_15s:
+    shots: 4
+  duration_30s:
+    shots: 6
+  duration_60s:
+    shots: 10
+
+best_post_times_vn:
+  weekday: ["12:00 - 13:00", "20:00 - 22:00"]
+  weekend: ["10:00 - 12:00", "20:00 - 23:00"]
+
+viral_signals:
+  high_engagement_triggers:
+    - "Giảm giá flash sale 24h"
+    - "Code giảm exclusive cho follower"
+    - "Mua 1 tặng 1"
+    - "Review thật + nhược điểm honest"
+
+  saturated_avoid:
+    - "Top 1 best-seller — đã saturated"
+    - "Unbox vô tri — không add value"

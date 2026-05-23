@@ -1,0 +1,21 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "alibaba/wan-2.7/video-edit",
+                "resolution": "1080P",
+                "prompt_extend": true,
+                "watermark": false,
+                "seed": -1,
+                "prompt": "A massive spaceship slowly glides past a lone astronaut floating in the silence of space, the astronaut gently rotating in zero gravity, distant stars and a glowing planet in the background, the camera drifting alongside them, cinematic lighting, ultra-realistic, epic sci-fi atmosphere.",
+                "duration": 9,
+                "video": "https://static.atlascloud.ai/media/videos/0eea0de33c736934cf43d193d84f6ae9.mp4"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/18157492d68afb10578d110df3f9c441.mp4"
+                ]
+            }
+        }
+    ]
+}

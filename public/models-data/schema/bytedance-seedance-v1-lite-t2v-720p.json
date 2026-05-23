@@ -1,0 +1,182 @@
+{
+  "info": {
+    "title": "AtlasCloud API",
+    "version": "1.0.0",
+    "description": "The AtlasCloud API."
+  },
+  "paths": {
+    "/api/v1/model/generateVideo": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "The request status."
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Input"
+              }
+            }
+          },
+          "required": true
+        }
+      },
+      "x-api-name": "model_run"
+    },
+    "/api/v1/model/result/{request_id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "Result of the request."
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            },
+            "required": true
+          }
+        ]
+      },
+      "x-api-name": "model_result"
+    }
+  },
+  "openapi": "3.0.0",
+  "servers": [
+    {
+      "url": "https://api.atlascloud.ai"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Input": {
+        "type": "object",
+        "required": [
+          "model",
+          "prompt",
+          "duration"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "model name",
+            "default": "bytedance/seedance-v1-lite-t2v-720p"
+          },
+          "seed": {
+            "type": "integer",
+            "default": -1,
+            "description": "The random seed to use for the generation. -1 means a random seed will be used."
+          },
+          "prompt": {
+            "type": "string",
+            "default": "Neon-toned, blending retro print aesthetics with street style. A cool frog wearing a hoodie and sunglasses nods to the beat. Behind it, a neon-pink backdrop gently pulses.",
+            "maxLength": 2000,
+            "description": "Text prompt for video generation; Positive text prompt; Cannot exceed 2000 characters."
+          },
+          "duration": {
+            "step": 5,
+            "type": "integer",
+            "default": 5,
+            "maximum": 10,
+            "minimum": 5,
+            "description": "The duration of the generated media in seconds."
+          },
+          "aspect_ratio": {
+            "enum": [
+              "21:9",
+              "16:9",
+              "4:3",
+              "1:1",
+              "3:4",
+              "9:16"
+            ],
+            "type": "string",
+            "default": "16:9",
+            "description": "The aspect ratio of the generated video.",
+            "x-ui-component": "select"
+          },
+          "camera_fixed": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether to fix the camera position."
+          }
+        },
+        "x-order-properties": [
+          "model",
+          "prompt",
+          "aspect_ratio",
+          "duration",
+          "camera_fixed",
+          "seed"
+        ]
+      },
+      "PredictionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the prediction, the ID of the prediction to get."
+          },
+          "urls": {
+            "type": "object",
+            "description": "Object containing related API endpoints."
+          },
+          "model": {
+            "type": "string",
+            "description": "Model ID used for the prediction."
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the task: created, processing, completed, or failed."
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of URLs to the generated content (empty when status is not completed)."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO timestamp of when the request was created (e.g., “2023-04-01T12:34:56.789Z”)."
+          },
+          "has_nsfw_contents": {
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            },
+            "description": "Array of boolean values indicating NSFW detection for each output."
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "in": "header",
+        "name": "Authorization",
+        "type": "apiKey"
+      }
+    }
+  }
+}

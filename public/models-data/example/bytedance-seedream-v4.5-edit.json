@@ -1,0 +1,75 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "prompt": "dit this image into a clean, minimal exhibition poster without any meaningless filler text.\nKeep the desert landscape, the two standing figures, the mirrors, and the glowing neon circle in the center, preserving the overall composition and realistic photographic style.\nSimplify the typography: keep only the main title ‘DESERT REFLECTIONS’ at the top in bold white sans-serif, and one short subtitle under it: ‘New Media Installations by Studio Meridian’.\nRemove all other small blocks of text from the sky area so the design feels spacious and minimal.\nSlightly enhance the sky with a soft gradient from pale blue to turquoise and add a subtle hint of tiny stars for a dreamy atmosphere, with gentle grain and high-end art poster look, no extra logos or text.",
+                "model": "bytedance/seedream-v4.5/edit"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/7f85e2d32bce4d7e8500ca849fdac104_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "it this image into a luxurious night-time black & gold campaign visual.\nKeep the same serum bottle and cream jar in their original positions, shapes and reflections, but place them on a glossy black marble surface with subtle golden highlights and a soft glow around the base of the products.\nReplace the bright background with a dark, slightly blurred gradient from deep charcoal to rich gold, with a few soft bokeh lights suggesting a glamorous evening atmosphere.\nUpdate the typography to match the new style: keep the brand name ‘LUMINA SKIN’ at the top in elegant gold serif letters, and keep the lines ‘Hydrating Renewal Serum’ and ‘Daily Radiance Care’ below in clean white sans-serif.\nAt the bottom, keep the tagline ‘Lightweight serum formula · suitable for all skin types’ in small, sharp white text, perfectly legible.\nOverall: high-contrast black and gold color palette, premium beauty advertising style, ultra-realistic lighting and reflections, 4K, no extra elements.",
+                "model": "bytedance/seedream-v4.5/edit"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/08ded92d4ab24b79a23f5c7ad9fdaf5c_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Keep the model's pose and the flowing shape of the liquid clothing unchanged. Change the clothing material from silver metal to completely transparent clear water (or glass). Through the liquid water flow, the details of the model's skin can be seen. The light and shadow change from reflection to refraction.",
+                "model": "bytedance/seedream-v4.5/edit"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/4393a4322a484609b7b8122ac69a3c52_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Edit this image into a futuristic tech headquarters lobby at night.\nKeep the original architecture, marble materials, curved reception desk, and overall perspective, as well as the city skyline visible through the glass.\nTransform the glowing logo on the central column into a sleek holographic emblem and add the golden brand name ‘SEQUENCE LABS’ subtly integrated beneath it in clean sans-serif typography, sharp and legible.\nAdd a few translucent holographic information panels floating near the reception desk and along the balconies, showing minimal graphs and icons without readable detailed text.\nSlightly intensify the warm indirect lighting and add soft cyan accents to the holograms, reflections on the floor, and edges of the columns, while preserving a realistic photographic look.\nKeep the people as elegant silhouettes in business attire, walking or talking, not the main focus.\nOverall mood: premium, minimalist, cinematic tech-company lobby, 4K, no extra clutter.",
+                "model": "bytedance/seedream-v4.5/edit"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/ac2bbc3ba6b84c3682044c9d050df975_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Edit this image into a high-end futuristic fragrance campaign visual, 4K resolution.\nKeep the original desert setting, the tall mirrors, and the two models with their sculptural gowns and metallic bodices, preserving their poses and faces.\nIn the center foreground, between the two models and slightly closer to the camera, add a tall, elegant glass perfume bottle standing on the sand, filled with softly glowing lilac liquid that reflects the neon ring and mirror lights.\nSlightly intensify the sunset colors into a richer gradient of pink, lilac, and deep blue, and add subtle glowing edges around the mirrors and circular light on the sand for a more surreal, futuristic mood, while maintaining a realistic photographic look.\nAt the top center, add the brand name ‘MIRAGE’ in refined serif typography, sharp and clean.\nAt the bottom, add a small tagline in white sans-serif: ‘Eau de Parfum — Beyond Reality’.\nOverall style: luxury fashion fragrance advertisement, cinematic lighting, smooth skin tones, crisp details, no other elements or logos.",
+                "model": "bytedance/seedream-v4.5/edit"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/7e8cd4119ff5419798405fe9fe0daa35_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/f4c21638848c8b759b933ac5daa6ee87.jpeg"
+                ],
+                "model": "bytedance/seedream-v4.5/edit",
+                "enable_base64_output": false,
+                "size": "2048*2048",
+                "prompt": "Create a poster-style image based on the provided picture.\\nEmphasize a clean, strong composition with the main subject centered and clearly defined.\\nEnhance colors and contrast slightly while maintaining a refined, high-quality aesthetic.\\nAdd subtle graphic design elements such as soft gradients, light textures, or minimal framing to give it a professional poster look.\\nInclude the title \\\"Forest Holiday\\\" in elegant English typography at the top or bottom of the poster, wellintegrated into the design.\\nUse cinematic lighting, sharp focus on the subject, and balanced negative space."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/71f59a50bf44994c553cc3760df56d3d.jpeg"
+                ]
+            }
+        }
+    ]
+}

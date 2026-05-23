@@ -1,0 +1,177 @@
+{
+  "info": {
+    "title": "AtlasCloud API",
+    "version": "1.0.0",
+    "description": "The AtlasCloud API."
+  },
+  "paths": {
+    "/api/v1/model/generateImage": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "The request status."
+          }
+        }
+      },
+      "x-api-name": "model_run"
+    },
+    "/api/v1/model/result/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "description": "Request ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "Result of the request."
+          }
+        }
+      },
+      "x-api-name": "model_result"
+    }
+  },
+  "openapi": "3.0.0",
+  "servers": [
+    {
+      "url": "https://api.atlascloud.ai"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Input": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "model name",
+            "default": "bytedance/seedream-v4/edit-sequential"
+          },
+          "enable_base64_output": {
+            "default": false,
+            "description": "If enabled, the output will be encoded into a BASE64 string instead of a URL. This property is only available through the API.",
+            "disabled": true,
+            "type": "boolean"
+          },
+          "images": {
+            "description": "The image to edit, can be a URL or base64 encoded image.",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "type": "array"
+          },
+          "max_images": {
+            "default": 1,
+            "description": "The number of images to generate. max 14",
+            "maximum": 14,
+            "minimum": 1,
+            "type": "integer",
+            "x-ui-component": "slider"
+          },
+          "prompt": {
+            "description": "The prompt to generate an image from.",
+            "type": "string"
+          },
+          "size": {
+            "default": "2048*2048",
+            "description": "The size of the generated media in pixels (width*height).",
+            "maximum": 4096,
+            "minimum": 1024,
+            "type": "string"
+          }
+        },
+        "required": [
+          "model",
+          "prompt"
+        ],
+        "type": "object",
+        "x-order-properties": [
+          "model",
+          "prompt",
+          "images",
+          "size",
+          "max_images",
+          "enable_base64_output"
+        ]
+      },
+      "PredictionResponse": {
+        "properties": {
+          "created_at": {
+            "description": "ISO timestamp of when the request was created (e.g., \"2023-04-01T12:34:56.789Z\").",
+            "format": "date-time",
+            "type": "string"
+          },
+          "has_nsfw_contents": {
+            "description": "Array of boolean values indicating NSFW detection for each output.",
+            "items": {
+              "type": "boolean"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "Unique identifier for the prediction, the ID of the prediction to get.",
+            "type": "string"
+          },
+          "model": {
+            "description": "Model ID used for the prediction.",
+            "type": "string"
+          },
+          "outputs": {
+            "description": "Array of URLs to the generated content (empty when status is not completed).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "description": "Status of the task: created, processing, completed, or failed.",
+            "type": "string"
+          },
+          "urls": {
+            "description": "Object containing related API endpoints.",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "in": "header",
+        "name": "Authorization",
+        "type": "apiKey"
+      }
+    }
+  }
+}

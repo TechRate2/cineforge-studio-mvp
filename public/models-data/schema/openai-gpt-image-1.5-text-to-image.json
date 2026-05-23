@@ -1,0 +1,185 @@
+{
+	"info": {
+	  "description": "The AtlasCloud API.",
+	  "title": "AtlasCloud API",
+	  "version": "1.0.0"
+	},
+	"paths": {
+	  "/api/v1/model/generateImage": {
+		"post": {
+		  "responses": {
+			"200": {
+			  "content": {
+				"application/json": {
+				  "schema": {
+					"$ref": "#/components/schemas/PredictionResponse"
+				  }
+				}
+			  },
+			  "description": "The request status."
+			}
+		  },
+		  "requestBody": {
+			"required": true,
+			"content": {
+			  "application/json": {
+				"schema": {
+				  "$ref": "#/components/schemas/Input"
+				}
+			  }
+			}
+		  }
+		},
+		"x-api-name": "model_run"
+	  },
+	  "/api/v1/model/result/{request_id}": {
+		"get": {
+		  "responses": {
+			"200": {
+			  "content": {
+				"application/json": {
+				  "schema": {
+					"$ref": "#/components/schemas/PredictionResponse"
+				  }
+				}
+			  },
+			  "description": "Result of the request."
+			}
+		  },
+		  "parameters": [
+			{
+			  "in": "path",
+			  "name": "request_id",
+			  "schema": {
+				"type": "string",
+				"description": "Request ID"
+			  },
+			  "required": true
+			}
+		  ]
+		},
+		"x-api-name": "model_result"
+	  }
+	},
+	"openapi": "3.0.0",
+	"servers": [
+	  {
+		"url": "https://api.atlascloud.ai"
+	  }
+	],
+	"components": {
+	  "schemas": {
+		"Input": {
+		  "properties": {
+			"enable_base64_output": {
+			  "default": false,
+			  "description": "If enabled, the output will be encoded into a BASE64 string instead of a URL. This property is only available through the API.",
+			  "disabled": true,
+			  "type": "boolean"
+			},
+			"enable_sync_mode": {
+			  "default": false,
+			  "description": "If set to true, the function will wait for the result to be generated and uploaded before returning the response. It allows you to get the result directly in the response. This property is only available through the API.",
+			  "disabled": true,
+			  "type": "boolean"
+			},
+			"output_format": {
+			  "default": "jpeg",
+			  "description": "The format of the output image.",
+			  "enum": [
+				"jpeg",
+				"png"
+			  ],
+			  "type": "string"
+			},
+			"prompt": {
+			  "description": "The positive prompt for the generation.",
+			  "minLength": 1,
+			  "type": "string"
+			},
+			"quality": {
+			  "default": "medium",
+			  "description": "The quality of the generated image.",
+			  "enum": [
+				"low",
+				"medium",
+				"high"
+			  ],
+			  "type": "string"
+			},
+			"size": {
+			  "default": "1024x1024",
+			  "description": "The size of the generated media in pixels (width*height).",
+			  "enum": [
+				"1024x1024",
+				"1024x1536",
+				"1536x1024"
+			  ],
+			  "type": "string"
+			}
+		  },
+		  "required": [
+			"model",
+			"prompt"
+		  ],
+		  "type": "object",
+		  "x-order-properties": [
+			"prompt",
+			"size",
+			"quality",
+			"output_format",
+			"enable_sync_mode",
+			"enable_base64_output"
+		  ]
+		},
+		"PredictionResponse": {
+		  "properties": {
+			"model": {
+			  "type": "string",
+			  "description": "model name",
+			  "default": "openai/gpt-image-1.5/text-to-image"
+			},
+			"created_at": {
+			  "description": "ISO timestamp of when the request was created (e.g., “2023-04-01T12:34:56.789Z”).",
+			  "format": "date-time",
+			  "type": "string"
+			},
+			"has_nsfw_contents": {
+			  "description": "Array of boolean values indicating NSFW detection for each output.",
+			  "items": {
+				"type": "boolean"
+			  },
+			  "type": "array"
+			},
+			"id": {
+			  "description": "Unique identifier for the prediction, the ID of the prediction to get.",
+			  "type": "string"
+			},
+			"outputs": {
+			  "description": "Array of URLs to the generated content (empty when status is not completed).",
+			  "items": {
+				"type": "string"
+			  },
+			  "type": "array"
+			},
+			"status": {
+			  "description": "Status of the task: created, processing, completed, or failed.",
+			  "type": "string"
+			},
+			"urls": {
+			  "description": "Object containing related API endpoints.",
+			  "type": "object"
+			}
+		  },
+		  "type": "object"
+		}
+	  },
+	  "securitySchemes": {
+		"apiKeyAuth": {
+		  "in": "header",
+		  "name": "Authorization",
+		  "type": "apiKey"
+		}
+	  }
+	}
+  }

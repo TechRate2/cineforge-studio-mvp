@@ -1,0 +1,19 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "alibaba/happyhorse-1.0/text-to-video",
+                "resolution": "1080P",
+                "ratio": "16:9",
+                "duration": 5,
+                "seed": -1,
+                "prompt": "A lone traveler walks slowly across a vast desert at sunset, golden light casting long shadows on the rippled sand dunes. The wind gently lifts fine grains of sand into the air, creating a soft, cinematic haze. The camera follows from behind at a low angle, gradually circling to reveal the traveler’s silhouette against the glowing horizon. Subtle lens flare, ultra-realistic lighting, shallow depth of field, 4K cinematic quality, slow motion, highly detailed textures, atmospheric, dramatic mood."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/b1db09ef0a88000846761c552f529106.mp4"
+                ]
+            }
+        }
+    ]
+}

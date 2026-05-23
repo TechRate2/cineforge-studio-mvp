@@ -1,0 +1,52 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "resolution": "2k",
+                "prompt": "cyberpunk megacity at night, heavy rain, neon lights reflecting on wet streets, dense futuristic skyscrapers, giant holographic advertisements, flying vehicles in the sky, thick fog and atmospheric haze, moody cinematic lighting, dark dystopian atmosphere, ultra detailed, cinematic composition, 35mm film still, volumetric lighting, cyberpunk aesthetic",
+                "model": "google/nano-banana-2/text-to-image",
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "output_format": "default",
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/53c19aea28506c8f03ce9a69c8dfa4d0.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "resolution": "2k",
+                "model": "google/nano-banana-2/text-to-image",
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "output_format": "default",
+                "aspect_ratio": "16:9",
+                "prompt": "a vast open wilderness where colossal animal-like machines roam across green valleys and rivers, towering mountains and ancient futuristic ruins in the distance, a lone huntress observing from a cliff edge, wind sweeping across tall grass, sunlight illuminating metallic bodies of the machines, cinematic wide angle composition, monumental environmental scale, vibrant yet mysterious atmosphere, ultra realistic, horizon aesthetic"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/14b61438267980d29ddce08d5c2dddd8.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "resolution": "2k",
+                "model": "google/nano-banana-2/text-to-image",
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "output_format": "default",
+                "aspect_ratio": "16:9",
+                "prompt": "a lone futuristic courier walking through a vast desolate landscape during a heavy timefall rainstorm, carrying tall stacks of cargo containers on his back, dark clouds covering the sky, rain falling in long streaks and splashing on the ground, wet rocky terrain and muddy paths reflecting dim light, the courier wearing a high-tech delivery suit with cables and sensors, a transparent protective hood over his head, mist drifting across the valley, distant mountains fading into the rain, cinematic ultra wide shot, epic environmental scale, melancholic and tense atmosphere, ultra realistic, post-apocalyptic sci-fi world, death stranding style"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/faeb987b120c9a59b104f1765738bd1f.png"
+                ]
+            }
+        }
+    ]
+}

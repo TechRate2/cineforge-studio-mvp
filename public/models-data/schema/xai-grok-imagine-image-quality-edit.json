@@ -1,0 +1,195 @@
+{
+  "info": {
+    "title": "AtlasCloud API",
+    "version": "1.0.0",
+    "description": "The AtlasCloud API."
+  },
+  "paths": {
+    "/api/v1/model/prediction/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "description": "Request ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "Result of the request."
+          }
+        }
+      },
+      "x-api-name": "model_result"
+    },
+    "/api/v1/model/generateImage": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "The request status."
+          }
+        }
+      },
+      "x-api-name": "model_run"
+    }
+  },
+  "openapi": "3.0.0",
+  "servers": [
+    {
+      "url": "https://api.atlascloud.ai"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Input": {
+        "type": "object",
+        "required": [
+          "model",
+          "prompt",
+          "image_urls"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "Model name.",
+            "default": "xai/grok-imagine-image-quality/edit"
+          },
+          "prompt": {
+            "type": "string",
+            "default": "Render this as a pencil sketch with detailed shading.",
+            "description": "Editing instruction. For multi-image references, cite each input as <IMAGE_0>, <IMAGE_1>, ..."
+          },
+          "image_urls": {
+            "type": "array",
+            "description": "Source images. Each entry is either a public URL or a base64-encoded data URI (e.g. `data:image/png;base64,...`). At least one image is required; each input is billed at $0.01.",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "maxItems": 8
+          },
+          "num_images": {
+            "type": "integer",
+            "default": 1,
+            "enum": [1, 2, 3, 4],
+            "description": "Number of edited images to generate. Each output image is billed separately."
+          },
+          "aspect_ratio": {
+            "type": "string",
+            "default": "auto",
+            "enum": [
+              "auto",
+              "1:1",
+              "3:4",
+              "4:3",
+              "9:16",
+              "16:9",
+              "2:3",
+              "3:2",
+              "9:19.5",
+              "19.5:9",
+              "9:20",
+              "20:9",
+              "1:2",
+              "2:1"
+            ],
+            "description": "Aspect ratio of the edited image. With a single source image, the output respects the input's aspect ratio regardless of this value. `auto` lets the model pick."
+          },
+          "resolution": {
+            "type": "string",
+            "default": "1k",
+            "enum": [
+              "1k",
+              "2k"
+            ],
+            "description": "Output resolution. 1k = 1024x1024 ($0.05/image), 2k = 2048x2048 ($0.07/image)."
+          },
+          "enable_base64_output": {
+            "type": "boolean",
+            "title": "Enable Output base64",
+            "default": false,
+            "disabled": true,
+            "description": "If enabled, the output will be encoded into a BASE64 string instead of a URL."
+          }
+        },
+        "x-order-properties": [
+          "model",
+          "prompt",
+          "image_urls",
+          "num_images",
+          "aspect_ratio",
+          "resolution",
+          "enable_base64_output"
+        ]
+      },
+      "PredictionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the prediction, the ID of the prediction to get."
+          },
+          "urls": {
+            "type": "object",
+            "description": "Object containing related API endpoints."
+          },
+          "model": {
+            "type": "string",
+            "description": "Model ID used for the prediction."
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the task: created, processing, completed, or failed."
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of URLs to the edited images (empty when status is not completed)."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO timestamp of when the request was created."
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "in": "header",
+        "name": "Authorization",
+        "type": "apiKey"
+      }
+    }
+  }
+}

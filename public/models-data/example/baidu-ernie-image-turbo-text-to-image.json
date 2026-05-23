@@ -1,0 +1,23 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "baidu/ERNIE-Image-Turbo/text-to-image",
+                "size": "1024x1024",
+                "n": 1,
+                "seed": -1,
+                "use_pe": true,
+                "num_inference_steps": 8,
+                "guidance_scale": 1,
+                "enable_sync_mode": false,
+                "enable_base64_output": false,
+                "prompt": "Cinematic night city scene, towering skyscrapers under deep blue sky, warm window lights forming patterns across the skyline, cars streaming through avenues with glowing headlights, soft fog drifting between buildings, dramatic lighting, wide angle lens, anamorphic cinematic style, ultra detailed, 8k"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/9ee8d61fdc00691636096f8557a63d88.png"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,206 @@
+# HOOKS BANK — Beauty/Skincare UGC VN
+# 50+ hook templates được nghiên cứu từ video viral TikTok VN 2024-2026.
+# Copywriter HookWriter persona sẽ pick 5 hooks phù hợp + adapt context.
+#
+# Schema:
+#   id: unique id
+#   type: hook category (theo 6 hook types Influee/Vidlo)
+#   template: text template (có placeholder)
+#   fits: list framework phù hợp
+#   target_emotion: emotion trigger
+#   trending_score: 1-10 (mức độ hot tuần này, Trend Watcher update)
+#   examples: 2-3 variants concrete
+
+hooks:
+
+  # ============ POV / RELATABLE EMOTION ============
+  - id: pov_crush_compliment
+    type: relatable_emotion
+    fits: [POV_VISUAL_PROOF, CURIOSITY_GAP]
+    target_emotion: "playful surprise"
+    trending_score: 9
+    template: "POV: {người thân cận} tự nhiên hỏi '{câu khen về vẻ ngoài}'"
+    examples:
+      - "POV: bạn trai tự nhiên hỏi 'em đánh son gì mà bóng thế'"
+      - "POV: chị đại văn phòng vừa hỏi mình dùng gì cho da"
+      - "POV: mẹ chồng vào bếp nhìn da mình rồi nhăn trán"
+
+  - id: pov_morning_routine
+    type: relatable_emotion
+    fits: [PROBLEM_AGITATE_SOLUTION]
+    target_emotion: "intimate confession"
+    trending_score: 7
+    template: "POV: {giờ sáng}, bạn vừa thức dậy và {hành động routine}"
+    examples:
+      - "POV: 6h sáng, bạn vừa thức dậy và chưa rửa mặt"
+      - "POV: 7h sáng, bạn vừa nhìn gương và nhận ra..."
+      - "POV: chuẩn bị đi date mà da căng bóng đầy collagen"
+
+  - id: pov_competitor_betrayal
+    type: relatable_emotion
+    fits: [CURIOSITY_GAP]
+    target_emotion: "shock + curiosity"
+    trending_score: 8
+    template: "POV: bạn vừa phát hiện thứ {category} mà tất cả {audience} đang giấu"
+    examples:
+      - "POV: bạn vừa phát hiện serum mà tất cả beauty blogger đang giấu"
+      - "POV: tìm ra món skincare mà mấy chị MUA không bao giờ tag brand"
+
+  # ============ VISUAL PROOF / BEFORE-AFTER ============
+  - id: before_after_shock
+    type: satisfying_visual_proof
+    fits: [POV_VISUAL_PROOF, AUTHORITY_TESTIMONIAL]
+    target_emotion: "satisfaction + curiosity"
+    trending_score: 10
+    template: "Ngày 1 vs ngày {N}, mình không tin vào mắt mình"
+    n_options: [7, 14, 21, 30, 60]
+    examples:
+      - "Ngày 1 vs ngày 30, mình thật sự sốc"
+      - "Mới dùng 2 tuần và đây là da mình"
+      - "Trộm vía da mình sau 21 ngày — tự nhìn còn không tin"
+
+  - id: routine_reveal_glow
+    type: satisfying_visual_proof
+    fits: [POV_VISUAL_PROOF, AUTHORITY_TESTIMONIAL]
+    target_emotion: "aspiration"
+    trending_score: 8
+    template: "Đây là lý do mình {hành động bất thường liên quan skincare}"
+    examples:
+      - "Đây là lý do mình xoá hết 6 loại serum khỏi bàn trang điểm"
+      - "Đây là lý do mình ném 3 thỏi son drugstore vào thùng rác"
+      - "Đây là lý do mình không bao giờ dùng kem dưỡng quá 1 triệu nữa"
+
+  # ============ CURIOSITY GAP ============
+  - id: tested_n_kept_one
+    type: curiosity_gap
+    fits: [CURIOSITY_GAP, AUTHORITY_TESTIMONIAL]
+    target_emotion: "curiosity + authority"
+    trending_score: 9
+    template: "Mình đã thử {N} {sản phẩm category} giá {giá}, đây là {kết quả}"
+    examples:
+      - "Mình đã thử 12 thỏi son 800k+, đây là thỏi duy nhất mình giữ"
+      - "Mình đã thử 8 serum trị mụn trong 6 tháng, đây là cái duy nhất work"
+      - "Test 15 kem chống nắng — 14 cái loại bỏ, lý do?"
+
+  - id: pattern_break_money
+    type: curiosity_gap
+    fits: [CURIOSITY_GAP]
+    target_emotion: "value shock"
+    trending_score: 8
+    template: "{Sản phẩm} {giá cao} vs {giá thấp} — bạn không tin nổi cái nào tốt hơn"
+    examples:
+      - "Son 850k vs 50k — bạn không tin nổi cái nào tốt hơn"
+      - "Serum K-beauty 1tr vs serum drugstore VN 89k — kết quả gây sốc"
+      - "Kem chống nắng Nhật vs hàng VN — khác biệt 1 chi tiết"
+
+  - id: mystery_reveal
+    type: curiosity_gap
+    fits: [CURIOSITY_GAP]
+    target_emotion: "intrigue"
+    trending_score: 7
+    template: "Mình vừa tìm ra {sản phẩm} mà {pain point} biến mất chỉ trong {timeframe}"
+    examples:
+      - "Mình vừa tìm ra serum mà mụn ẩn biến mất chỉ trong 10 ngày"
+      - "Mình vừa khám phá kem dưỡng giúp da mịn như filter mà không cần app"
+
+  # ============ AUTHORITY / EXPERT ============
+  - id: doctor_friend_recommend
+    type: authority
+    fits: [AUTHORITY_TESTIMONIAL]
+    target_emotion: "trust + curiosity"
+    trending_score: 7
+    template: "{Người expert} của mình bảo dùng {sản phẩm}, mình hỏi tại sao thì..."
+    examples:
+      - "Bác sĩ da liễu của mình bảo dùng cái này, mình hỏi tại sao thì..."
+      - "Chị MUA chuyên nghiệp của mình chỉ dùng 1 loại son này"
+      - "Esthetician người Hàn dạy mình bí quyết này — không phải '10-step routine'"
+
+  - id: years_experience
+    type: authority
+    fits: [AUTHORITY_TESTIMONIAL, PROBLEM_AGITATE_SOLUTION]
+    target_emotion: "credibility"
+    trending_score: 6
+    template: "Sau {N} năm {kinh nghiệm liên quan beauty}, đây là {sản phẩm} duy nhất mình giữ"
+    examples:
+      - "Sau 8 năm test mỹ phẩm cho công ty, đây là serum duy nhất mình giữ"
+      - "Là MUA 5 năm, mình không bao giờ thiếu món này trong cọ trang điểm"
+
+  # ============ PROBLEM / PAIN POINT ============
+  - id: relatable_pain_morning
+    type: relatable_emotion
+    fits: [PROBLEM_AGITATE_SOLUTION]
+    target_emotion: "empathy"
+    trending_score: 8
+    template: "Có ai sáng nào dậy cũng {pain point} không?"
+    examples:
+      - "Có ai sáng nào dậy cũng thấy da xỉn, môi khô không?"
+      - "Có chị em nào dậy thấy mặt sưng phù vì thiếu ngủ không?"
+      - "Da nhạy cảm mà mỹ phẩm nào cũng đỏ rát — đây là cách mình xử"
+
+  - id: shame_confession
+    type: relatable_emotion
+    fits: [PROBLEM_AGITATE_SOLUTION]
+    target_emotion: "vulnerability"
+    trending_score: 9
+    template: "Mình thú thật — {confession liên quan beauty/skincare}"
+    examples:
+      - "Mình thú thật — da mình 30 tuổi mới nổi mụn nội tiết"
+      - "Mình thú thật — môi mình thâm 5 năm vì uống cà phê"
+      - "Mình thú thật — sau sinh 6 tháng da còn rạn"
+
+  # ============ TRENDING FORMATS 2026 (high priority) ============
+  - id: rant_about_industry
+    type: controversial
+    fits: [CURIOSITY_GAP, AUTHORITY_TESTIMONIAL]
+    target_emotion: "controversy"
+    trending_score: 9
+    template: "Mình nói thật, ngành mỹ phẩm VN đang {sự thật khó nghe}"
+    examples:
+      - "Mình nói thật, ngành mỹ phẩm VN đang scam mấy chị bằng 'whitening'"
+      - "Mình nói thật, 90% serum vitamin C trên Shopee đều fake"
+      - "Mình nói thật, mỹ phẩm thiên nhiên là khái niệm marketing lừa người"
+
+  - id: hot_take_simple
+    type: controversial
+    fits: [CURIOSITY_GAP]
+    target_emotion: "shock"
+    trending_score: 8
+    template: "Stop {hành động phổ biến}, đây là {alternative} đang viral"
+    examples:
+      - "Stop mua serum 1 triệu, đây là loại 89k đang viral"
+      - "Stop dùng 10-step routine, đây là minimalist 3-step đang win"
+      - "Stop tin influencer, đây là 1 sản phẩm thật sự work"
+
+  - id: chi_em_test
+    type: relatable_emotion
+    fits: [POV_VISUAL_PROOF]
+    target_emotion: "community"
+    trending_score: 7
+    template: "Mấy chị em ơi mình {test/try/use} cái này và..."
+    examples:
+      - "Mấy chị em ơi mình thử mặt nạ giấy này và da căng bóng luôn"
+      - "Mấy chị em U30 ơi mình tìm ra serum đáng tiền nhất"
+      - "Hội chị em da dầu ơi cứu tinh đây rồi"
+
+# ============================================
+# META — Critic + Ranker dùng để score hooks
+# ============================================
+
+scoring_weights:
+  trending_alignment: 0.30  # trend match có cao không
+  pattern_interrupt: 0.25   # 3s đầu có grab attention không
+  relatability: 0.20        # viewer cảm thấy là họ
+  authenticity: 0.15        # không AI-slop
+  cta_setup: 0.10           # hook có dẫn dắt tới body+CTA không
+
+# Pick strategy — Ranker dùng
+ranker_strategy:
+  variants_to_generate: 5      # gen 5 hook đầu
+  top_n_keep: 3                # giữ top 3 pair với body + cta
+  diversity_constraint: true   # KHÔNG cả 3 cùng type, phải đa dạng
+
+# Future expansion
+extensions:
+  add_seasonal_hooks: "Q4 2026"     # Tết, Valentine, Noel
+  add_skin_type_specific: "Q3 2026" # da dầu / da khô / da nhạy cảm
+  add_age_group_specific: "Q3 2026" # Gen Z / Millennial / U30

@@ -1,0 +1,23 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "black-forest-labs/flux-dev",
+                "seed": -1,
+                "size": "1024*1024",
+                "prompt": "A solitary person standing by a large window in a minimalist interior, soft daylight illuminating the space, gentle shadows, natural tones, realistic photography, calm and cinematic composition.\n",
+                "strength": 0.8,
+                "num_images": 1,
+                "guidance_scale": 3.5,
+                "num_inference_steps": 28,
+                "enable_base64_output": false,
+                "enable_safety_checker": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/f653fab1602d49527c97882902890713.jpeg"
+                ]
+            }
+        }
+    ]
+}

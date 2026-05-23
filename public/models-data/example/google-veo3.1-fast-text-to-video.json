@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "duration": 8,
+                "resolution": "1080p",
+                "aspect_ratio": "16:9",
+                "generate_audio": true,
+                "prompt": "An aerial cinematic shot of a race car rapidly driving through winding mountain roads, sharp hairpin turns carved into the cliffs, vast mountains stretching into the distance, golden sunlight illuminating the landscape, high-speed motion blur, epic cinematic atmosphere.",
+                "model": "google/veo3.1-fast/text-to-video"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/3f59fd0898ef4fe692a4d912090fe2e8_1.mp4",
+                    "https://static.atlascloud.ai/media/videos/38ee96c35acb6b72f7fa4386afc09c0e.mp4"
+                ]
+            }
+        }
+    ]
+}

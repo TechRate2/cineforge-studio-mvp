@@ -1,0 +1,17 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "minimax/hailuo-02/standard",
+                "prompt": "A graceful female ballet dancer performs under warm, golden light in a spacious sunlit studio with tall windows. She wears a flowing white tutu and soft pink pointe shoes, her arms extended elegantly as she spins mid-air in a grand jeté. The polished wooden floor reflects soft rays of sunlight. Dust particles shimmer in the air, adding a magical, uplifting mood. The color palette is bright and pastel—light peach, cream, and sky blue—evoking a dreamy, cinematic atmosphere full of energy and elegance.",
+                "duration": 6,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/2ea04e0c4979a0f3d5f4a1ed920728de.mp4"
+                ]
+            }
+        }
+    ]
+}

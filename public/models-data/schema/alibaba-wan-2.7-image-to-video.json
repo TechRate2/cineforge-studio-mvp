@@ -1,0 +1,210 @@
+{
+    "info": {
+        "title": "AtlasCloud API",
+        "version": "1.0.0",
+        "description": "The AtlasCloud API."
+    },
+    "openapi": "3.0.0",
+    "paths": {
+        "/api/v1/model/generateImage": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Input"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "The request status."
+                    }
+                }
+            },
+            "x-api-name": "model_run"
+        },
+        "/api/v1/model/prediction/{request_id}": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "request_id",
+                        "required": true,
+                        "schema": {
+                            "description": "Request ID",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "Result of the request."
+                    }
+                }
+            },
+            "x-api-name": "model_result"
+        }
+    },
+    "components": {
+        "schemas": {
+            "Input": {
+                "type": "object",
+                "properties": {
+                    "model": {
+                        "type": "string",
+                        "description": "Model name.",
+                        "default": "alibaba/wan-2.7/image-to-video",
+                        "enum": [
+                            "alibaba/wan-2.7/image-to-video"
+                        ]
+                    },
+                    "prompt": {
+                        "description": "Text prompt describing the desired video content. Maximum length is 5000 characters.",
+                        "type": "string"
+                    },
+                    "negative_prompt": {
+                        "description": "Text describing elements to exclude from the video. Maximum length is 500 characters.",
+                        "type": "string"
+                    },
+                    "image": {
+                        "description": "First-frame image URL. The video will start from this image. Supported formats: JPEG, JPG, PNG, BMP, WEBP. Maximum file size: 20 MB.",
+                        "type": "string"
+                    },
+                    "last_image": {
+                        "description": "Last-frame image URL. When provided together with `image`, generates a video transitioning from the first frame to this last frame.",
+                        "type": "string"
+                    },
+                    "video": {
+                        "description": "Video clip URL for video continuation. The model extends the content of this clip. Supported formats: mp4, mov. Duration: 2–10 seconds. Maximum file size: 100 MB.",
+                        "type": "string"
+                    },
+                    "audio": {
+                        "description": "Driving audio URL. The model uses this audio to drive lip-sync or action-matched video generation. Supported formats: wav, mp3. Duration: 2–30 seconds. Maximum file size: 15 MB. The alias `audio_url` is also accepted.",
+                        "type": "string"
+                    },
+                    "resolution": {
+                        "default": "1080P",
+                        "description": "Output video resolution. The video aspect ratio follows the input image or video. Higher resolution increases cost.",
+                        "enum": [
+                            "720P",
+                            "1080P"
+                        ],
+                        "type": "string"
+                    },
+                    "duration": {
+                        "default": 5,
+                        "minimum": 2,
+                        "maximum": 15,
+                        "description": "Video duration in seconds. Longer duration increases cost.",
+                        "type": "integer"
+                    },
+                    "prompt_extend": {
+                        "default": true,
+                        "description": "Whether to use AI to enhance the prompt for better video quality. Increases generation time.",
+                        "type": "boolean"
+                    },
+                    "seed": {
+                        "default": -1,
+                        "minimum": -1,
+                        "maximum": 2147483647,
+                        "description": "Random seed for video generation. Range: 0 to 2147483647. Use -1 for a random seed.",
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "model",
+                    "image"
+                ],
+                "x-order-properties": [
+                    "model",
+                    "prompt",
+                    "negative_prompt",
+                    "image",
+                    "last_image",
+                    "video",
+                    "audio",
+                    "resolution",
+                    "duration",
+                    "prompt_extend",
+                    "seed"
+                ]
+            },
+            "PredictionResponse": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "integer"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/PredictionData"
+                    }
+                }
+            },
+            "PredictionData": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Unique ID of the generation task."
+                    },
+                    "model": {
+                        "type": "string",
+                        "description": "Model used for the generation."
+                    },
+                    "outputs": {
+                        "type": "array",
+                        "description": "Generated video results. Each item is a video URL.",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "urls": {
+                        "type": "object",
+                        "properties": {
+                            "get": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Current task status, such as created, processing, completed, unknown, or failed."
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "error": {
+                        "type": "string",
+                        "description": "Error message returned when the task fails."
+                    }
+                }
+            }
+        }
+    },
+    "servers": [
+        {
+            "url": "https://api.atlascloud.ai"
+        }
+    ]
+}

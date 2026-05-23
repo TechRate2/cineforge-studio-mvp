@@ -1,0 +1,16 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "minimax/hailuo-02/t2v-pro",
+                "prompt": "A cinematic, ultra-realistic autumn park scene. Golden and amber leaves gently fall from tall trees, drifting slowly through the air. Sunlight filters through the branches, creating warm volumetric light rays and soft shadows on the ground. A quiet park path is covered with fallen leaves, subtly rustling in a light breeze. The camera moves slowly forward at walking pace, capturing leaves floating past the lens in slow motion. Warm color grading, shallow depth of field, natural atmospheric haze, calm and peaceful mood, film-like realism, IMAX-quality, photorealistic, no text, no watermark.\ncinematic establishing shot of an autumn park, gentle camera push-in, emotional tone, nostalgic mood",
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/81638c61cf266e8100753aba07f31c14.mp4"
+                ]
+            }
+        }
+    ]
+}

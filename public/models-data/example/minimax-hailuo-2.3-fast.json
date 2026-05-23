@@ -1,0 +1,19 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "minimax/hailuo-2.3/fast",
+                "duration": 6,
+                "enable_prompt_expansion": true,
+                "go_fast": true,
+                "prompt": "A powerful curved beam of light forcefully pierces through a transparent glass cube.\nThe impact creates sharp refractions and scattering light rays.\nFine cracks spread across the surface as shards subtly vibrate.\nCinematic lighting, high contrast, volumetric light, ultra-detailed glass texture, slow motion.",
+                "image": "https://static.atlascloud.ai/media/images/63eeaa494e1a4245ddab27159dcd59c6.png"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/ade68028ec61438551d2a7fe06530a68.mp4"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,171 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757414803256445130_67hywrpl.png"
+                ],
+                "prompt": "Turn this photo into a clay-style image. Place it in a Polaroid photo.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/e59356d330474447878127a8c476430b_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "3030*2048",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757415066110018235_jgy3chkl.png"
+                ],
+                "prompt": "Change the perspective from a level view to a top-down view, and adjust the foreground to a midground.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/174146ca84374051aef63585223bedd0_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "3030*2048",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757415813965189112_itPLHEAw.png"
+                ],
+                "prompt": "Generate a close-up shot of a dog lying on the grass.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/e3ca5419236946d2b2c45db6443d9384_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "3030*2048",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757416266918057581_u0fzvspk.png"
+                ],
+                "prompt": "Turn pictures into real TVs",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/bbd96f36c68747a9aee22a45bffa5f41_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "1294*2467",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757416448997964043_7fida52Y.png",
+                    "https://static.atlascloud.ai/media/images/1757416463113165076_bF334549.png"
+                ],
+                "prompt": "Add the crossbody bag shown in Figure 2 to the blue shaded area in Figure 1.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/faab1d60545a406f8dce2fdb6691bb2e_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "1661*2415",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757416700660907523_MZcyORU3.png",
+                    "https://static.atlascloud.ai/media/images/1757416742373942904_NKHDAwso.png",
+                    "https://static.atlascloud.ai/media/images/1757416726984218823_CKZVSOJH.png",
+                    "https://static.atlascloud.ai/media/images/1757416781617703258_LLURNJGC.png"
+                ],
+                "prompt": "Dress the model in Figure 1 with the outfits shown in Figures 2 and 3, and pair them with the shoes shown in Figure 4.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/62edd687c25247fbb1c15567664bc07c_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "3097*2535",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757417203714223030_Q1ZWSPMK.png",
+                    "https://static.atlascloud.ai/media/images/1757417224631683320_RX52XURN.png",
+                    "https://static.atlascloud.ai/media/images/1757417235048153264_4zQMJGCy.png"
+                ],
+                "prompt": "Combine the woman from Figure 1 and the man from Figure 2 into a single image, referencing the pose in Figure 3.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/8027ac61369043328b9217d303e4051e_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "3097*2364",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757417414687448126_DRzILR05.png",
+                    "https://static.atlascloud.ai/media/images/1757417435898250891_AV52YUQO.png"
+                ],
+                "prompt": "Generate a girl and a cow doll happily riding a roller coaster at the amusement park.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/cd36ebb8e0514bb1b3bc70328cf07e88_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "1945*2656",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757417808297936378_RU2ZVTOL.png"
+                ],
+                "prompt": "Generate a canvas bag based on this image.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/c76590bf1828486981d861f4ecac96d8_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "3191*3469",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757443314656348199_8lNJGCzv.jpg"
+                ],
+                "prompt": "$1b",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/9f33106a10f749e5b6daedf17ac54aa9_1.jpeg"
+                ]
+            }
+        }
+    ]
+}

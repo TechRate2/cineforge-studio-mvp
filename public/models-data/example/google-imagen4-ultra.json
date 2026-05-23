@@ -1,0 +1,18 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "google/imagen4-ultra",
+                "prompt": "A mystical black cat with glowing amber eyes peeks through lush blue flowers and vines, framed by a soft, glowing sunset in the background. The scene is filled with dreamy, vibrant colors and magical, sparkling details.",
+                "aspect_ratio": "16:9",
+                "negative_prompt": "",
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/6adf7ea1f5869a17fc6216623546b603.png"
+                ]
+            }
+        }
+    ]
+}

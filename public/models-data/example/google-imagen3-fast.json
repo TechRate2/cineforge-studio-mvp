@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "google/imagen3-fast",
+                "prompt": "A quiet city street after rain, reflections on the pavement, soft overcast light, muted colors, realistic photography, cinematic composition, calm and refined mood.",
+                "num_images": 1,
+                "aspect_ratio": "16:9",
+                "resolution": "1K",
+                "negative_prompt": "",
+                "enable_prompt_expansion": false,
+                "enable_base64_output": false,
+                "enable_sync_mode": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/8f9f7297afc4ab9340e494d50014a013.png"
+                ]
+            }
+        }
+    ]
+}

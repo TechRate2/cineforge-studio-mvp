@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "seed": -1,
+                "size": "1024*1024",
+                "model": "atlascloud/qwen-image/text-to-image",
+                "output_format": "jpeg",
+                "enable_sync_mode": false,
+                "enable_base64_output": false,
+                "prompt": "Breathtaking Avatar-inspired alien forest at twilight.  \nTall bioluminescent trees with translucent leaves glow soft blue-cyan, illuminating the scene.  \nGlowing plants, luminous flowers and floating spores fill the air.  \nGraceful blue-skinned Na’vi-like humanoid stands in foreground, tall & slender, subtle markings, expressive eyes.  \nMassive ancient trees and hanging vines fade into misty background.  \nRich yet harmonious palette: blues, greens, teals, soft purples.  \nCinematic sci-fi fantasy, ultra-detailed, ethereal & awe-inspiring mood.  \nSoft volumetric lighting, professional color grading, high resolution.  \nNo text, no logos, no watermarks."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/c9324809c116a835ed621673b5b895c1.jpeg"
+                ]
+            }
+        }
+    ]
+}

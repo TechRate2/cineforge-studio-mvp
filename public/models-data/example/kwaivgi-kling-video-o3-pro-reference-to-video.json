@@ -1,0 +1,25 @@
+{
+    "model": "kwaivgi/kling-video-o3-pro/reference-to-video",
+    "examples": [
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/cbbea8193f76d5232e8cee0114f50612.png"
+                ],
+                "model": "kwaivgi/kling-video-o3-pro/reference-to-video",
+                "aspect_ratio": "16:9",
+                "duration": 5,
+                "keep_original_sound": true,
+                "sound": false,
+                "video": "https://static.atlascloud.ai/media/videos/5d197a5f3634ee57028288e252ef6fd6.mp4",
+                "prompt": "Referring to the image, describe how the people in the video are dressed."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/367d266be25f20861fe3da3d5ff8b7d3.mp4",
+                    "https://static.atlascloud.ai/media/videos/3b0fecadc36da4c35812b584d9f84250.mp4"
+                ]
+            }
+        }
+    ]
+}

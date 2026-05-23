@@ -1,0 +1,23 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "alibaba/wan-2.7/text-to-image",
+                "size": "2K",
+                "n": 1,
+                "watermark": false,
+                "thinking_mode": true,
+                "enable_sequential": false,
+                "seed": -1,
+                "enable_sync_mode": false,
+                "enable_base64_output": false,
+                "prompt": "A magical underwater world with glowing coral reefs, colorful tropical fish swimming through the deep blue ocean, beams of light filtering through the water, floating particles and bubbles, dreamy atmosphere, cinematic lighting, ultra-detailed"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/7378b92a0380bf75a8c9da27bc5ac481.png"
+                ]
+            }
+        }
+    ]
+}

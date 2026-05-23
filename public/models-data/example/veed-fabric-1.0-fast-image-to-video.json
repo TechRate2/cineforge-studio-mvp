@@ -1,0 +1,17 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "veed/fabric-1.0/fast/image-to-video",
+                "resolution": "720p",
+                "image_url": "https://static.atlascloud.ai/media/images/27964b5f9f8b42c8b88e13500603941a.jpg",
+                "audio_url": "https://static.atlascloud.ai/media/audios/3d45a6fad82fa481b108d121b5a28f3c.wav"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/d06a799b7f2dfec5ce4cbd9e9fe8c848.mp4"
+                ]
+            }
+        }
+    ]
+}

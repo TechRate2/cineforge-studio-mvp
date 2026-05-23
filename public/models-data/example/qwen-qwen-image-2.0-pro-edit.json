@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/dc24225bae35af70180b7bebabbda29e.jpg"
+                ],
+                "seed": -1,
+                "size": "1024*1024",
+                "prompt": "Transform the image into a highly realistic 3D-rendered scene while preserving the original composition and subject. Enhance depth, lighting, and material details to achieve a lifelike three-dimensional appearance. Surfaces should feature realistic textures, accurate reflections, and physically based materials. Apply cinematic lighting with natural shadows, global illumination, and subtle depth of field to emphasize spatial realism. The subject should appear fully modeled in 3D with precise geometry, volumetric light, and detailed shading. Ultra-realistic 3D render, high polygon detail, physically based rendering (PBR), ray tracing, cinematic quality, highly detailed, immersive and lifelike.",
+                "model": "qwen/qwen-image-2.0-pro/edit"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/52fb66359cef9abde52209adee00864c.png"
+                ]
+            }
+        }
+    ]
+}

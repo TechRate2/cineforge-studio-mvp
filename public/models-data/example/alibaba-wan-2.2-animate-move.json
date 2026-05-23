@@ -1,0 +1,17 @@
+{
+	"examples": [
+		{
+			"inputs": {
+				"model": "alibaba/wan-2.2/animate-move",
+				"image": "https://static.atlascloud.ai/media/images/8f9ab8f8-5dbb-4cc4-928b-21bb3fa3d19c.jpg",
+				"video": "https://static.atlascloud.ai/media/videos/0c1a80d2-1843-4ba2-a382-271f575f2e02.mp4",
+				"mode": "wan-pro"
+			},
+			"outputs": {
+				"outputs": [
+					"https://static.atlascloud.ai/media/videos/0f96f5d9-bf95-426a-8b0c-39651709d6a4.mp4"
+				]
+			}
+		}
+	]
+}

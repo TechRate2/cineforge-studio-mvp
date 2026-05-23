@@ -1,0 +1,124 @@
+# SKILL PACK: Tech & Gadget (VN)
+# Audience nam Gen Z + dân tech, ưu tiên SPEC + PRACTICAL DEMO.
+
+id: tech_gadget
+name_vn: "Tech & Gadget (VN)"
+name_en: "Tech Gadget"
+version: "1.0.0"
+target_market: "VN"
+last_updated: "2026-05-20"
+
+activation:
+  shopee_categories:
+    - "Điện Tử"
+    - "Điện Thoại"
+    - "Phụ Kiện Công Nghệ"
+    - "Đồng Hồ"
+    - "Tai Nghe"
+    - "Laptop"
+    - "Camera"
+    - "Gaming"
+  product_keywords:
+    - tai nghe
+    - airpods
+    - smartwatch
+    - dock
+    - sạc
+    - power bank
+    - laptop
+    - bàn phím
+    - chuột gaming
+    - camera
+    - microphone
+    - drone
+    - smartphone
+    - charger
+    - earbuds
+  min_confidence: 0.75
+
+preferred_models:
+  llm_strategist: "deepseek-ai/deepseek-v4-pro"
+  llm_copywriter: "deepseek-ai/deepseek-v4-flash"
+  llm_critic: "deepseek-ai/deepseek-v4-pro"
+  vision: "qwen/qwen3-vl-30b-a3b-instruct"
+
+  video_default: "seedance_2_0_fast"   # camera move tốt cho gadget showcase
+  video_premium: "seedance_2_0"
+  video_budget: "vidu_q3"
+
+  voice_gender: "male"                 # tech audience prefer male voice
+  voice_vibe: "tech_nerd"
+
+  persona_filter:
+    gender: "M"
+    age_range: [22, 35]
+    vibes: ["tech_nerd", "gen_z_casual", "professional"]
+
+recommended_frameworks:
+  - id: "SPEC_TEST_DEMO"
+    when: "Product có feature đo lường được (battery hours, decibel, MP)"
+    description: "Show test thực tế + numbers cụ thể"
+
+  - id: "DAILY_USE_NARRATIVE"
+    when: "Product cải thiện work-from-home, productivity"
+    description: "Story 'một ngày của tôi với product này'"
+
+  - id: "COMPARISON_DUPE"
+    when: "Có competitor cao cấp (Apple/Sony)"
+    description: "So sánh dupe budget vs premium real"
+
+  - id: "FIRST_IMPRESSION_UNBOXING"
+    when: "Product mới ra mắt"
+    description: "Unbox + quick verdict 30s"
+
+tone_guide:
+  primary: "Geeky, factual, không lộ ad"
+  avoid: "marketing fluff, 'thông minh', 'sang trọng', 'đẳng cấp'"
+  language_register: "informal + technical jargon OK (RAM/Hz/dB)"
+  pronouns_preferred: ["mình", "tôi"]
+
+  example_natural_phrases:
+    - "Mình test trong 7 ngày"
+    - "Spec trên paper vs reality"
+    - "Hơn cả expectation"
+    - "Đáng đồng tiền hay không?"
+
+must_include:
+  - "Numbers cụ thể nếu spec (battery h, Hz, dB, MP)"
+  - "Real-life test scenario (vd: 'chạy 8h văn phòng')"
+  - "Honest weakness mention (không 100% positive)"
+  - "Comparison vs alternative ít nhất 1 cái"
+
+forbidden_claims:
+  vi_law_compliance:
+    - "Hàng chính hãng" # trừ khi confirmed shop authorized
+    - "Bảo hành chính hãng" # nếu chỉ là shop warranty
+    - "Cấp chứng nhận FDA/CE" # nếu chưa có
+
+  marketing_red_flags:
+    - "Tốt hơn iPhone" # over-claim
+    - "Đỉnh cao công nghệ"
+    - "Apple killer"  # cliché
+
+pacing_defaults:
+  duration_15s:
+    shots: 4
+  duration_30s:
+    shots: 6
+  duration_60s:
+    shots: 10
+
+best_post_times_vn:
+  weekday: ["12:00 - 13:00", "18:00 - 20:00"]  # lunch + after-work
+  weekend: ["14:00 - 17:00", "20:00 - 22:30"]
+
+viral_signals:
+  high_engagement_triggers:
+    - "Spec test real (battery drain test, audio quality A/B)"
+    - "Day-in-the-life with gadget"
+    - "Honest cons mention"
+    - "Side-by-side competitor real"
+
+  saturated_avoid:
+    - "Slow-mo unbox đơn thuần — saturated"
+    - "Aesthetic shot không có spec — gadget audience không thích"

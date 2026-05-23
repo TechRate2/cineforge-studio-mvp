@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-v1-pro-i2v-720p",
+                "seed": 1048039959,
+                "prompt": "The astronaut floated in space, with the spacecraft slowly moving away in the distance behind him.",
+                "duration": 10,
+                "camera_fixed": false,
+                "image": "https://static.atlascloud.ai/media/images/dd1e3bb0a96de9f565f53a8f76f52970.png",
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/ca04620d0d7b4d3e9243776ef055fa25_1.mp4"
+                ]
+            }
+        }
+    ]
+}

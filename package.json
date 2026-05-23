@@ -1,0 +1,34 @@
+{
+  "name": "ugc-vietnam-monorepo",
+  "version": "0.2.0",
+  "private": true,
+  "description": "UGC AI video VN — Next.js frontend + FastAPI backend monorepo",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "dev:frontend": "next dev -p 3000",
+    "dev:backend": "cd backend && uvicorn api.main:app --reload --port 8001",
+    "dev:all": "concurrently -n frontend,backend -c blue,magenta \"npm:dev:frontend\" \"npm:dev:backend\"",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "backend:install": "cd backend && pip install -r requirements.txt",
+    "backend:test": "cd backend && python scripts/test_agent.py",
+    "typecheck": "tsc --noEmit",
+    "lint:py": "cd backend && python -m compileall -q . || true"
+  },
+  "dependencies": {
+    "lucide-react": "^0.460.0",
+    "next": "^14.2.33",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.12.7",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "autoprefixer": "10.4.19",
+    "concurrently": "^9.2.1",
+    "postcss": "8.4.38",
+    "tailwindcss": "3.4.4",
+    "typescript": "5.5.3"
+  }
+}

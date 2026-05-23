@@ -1,0 +1,18 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "minimax/hailuo-02/pro",
+                "prompt": "A lone character slowly walking toward a massive monumental building in the distance.\nThe scale of the structure towers above the surroundings.\nWide cinematic shot, slow forward camera movement, soft atmospheric haze.\nDramatic lighting, subtle wind movement, immersive and emotional tone, ultra detailed, 4K.",
+                "duration": 6,
+                "enable_prompt_expansion": false,
+                "image": "https://static.atlascloud.ai/media/images/540526fc33d1e2af780e858ab0f105bd.jpg"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/4903e666d0791f1c58b9eea542725c76.mp4"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "atlascloud/van-2.5/image-to-video",
+                "duration": 5,
+                "enable_prompt_expansion": false,
+                "resolution": "720p",
+                "seed": 427713494,
+                "prompt": "A sliced apple falls into clear water in slow motion, the two halves slightly separated.\nThe impact creates a sharp, elegant splash as water arcs upward and droplets scatter.\nTiny bubbles stream from the cut surfaces while ripples expand across the surface.\nHigh-speed macro style, clean white background, realistic water physics, smooth slow-motion.",
+                "image": "https://static.atlascloud.ai/media/images/0f67c624d343e136528c876b281a3e6d.png"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/e4fc0ee87e524624b8e2e4cb5f442ecc_8fac6f12-d600-4509-bcad-675f174d1acf-u1_40ae306e-798f-4c7b-bc5d-326976faa197.mp4",
+                    "https://static.atlascloud.ai/media/videos/2854451f0d3911a5250734fa2314fa94.mp4",
+                    "https://static.atlascloud.ai/media/videos/18e370599cca1c187347ecd7ed320393.mp4"
+                ]
+            }
+        }
+    ]
+}

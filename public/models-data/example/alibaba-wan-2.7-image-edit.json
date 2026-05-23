@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "alibaba/wan-2.7/image-edit",
+                "prompt": "Adjust the characters to look like real people with realistic facial features, natural skin texture, and human proportions.",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/ae275a8c32878afd1960423c242fb9a7.jpg"
+                ],
+                "size": "2K",
+                "n": 1
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/ceed2a55ac7d0616a2741f294eef3a48.png"
+                ]
+            }
+        }
+    ]
+}

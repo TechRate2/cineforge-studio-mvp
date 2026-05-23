@@ -1,0 +1,250 @@
+{
+  "info": {
+    "title": "AtlasCloud API",
+    "version": "1.0.0",
+    "description": "The AtlasCloud API."
+  },
+  "paths": {
+    "/api/v1/model/prediction/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "description": "Request ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "Result of the request."
+          }
+        }
+      },
+      "x-api-name": "model_result"
+    },
+    "/api/v1/model/generateVideo": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "The request status."
+          }
+        }
+      },
+      "x-api-name": "model_run"
+    }
+  },
+  "openapi": "3.0.0",
+  "servers": [
+    {
+      "url": "https://api.atlascloud.ai"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Input": {
+        "type": "object",
+        "required": [
+          "model",
+          "prompt",
+          "image"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "Model name.",
+            "default": "atlascloud/wan-2.2-turbo-spicy/infinite-image-to-video-lora"
+          },
+          "duration": {
+            "type": "integer",
+            "title": "Duration",
+            "default": 5,
+            "minimum": 5,
+            "maximum": 5,
+            "x-order": 2,
+            "description": "Seconds generated for each prompt segment."
+          },
+          "high_noise_loras": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "path"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "scale": {
+                  "type": "number",
+                  "default": 1
+                }
+              }
+            },
+            "title": "High Noise LoRAs",
+            "default": [],
+            "x-order": 5,
+            "description": "High-noise LoRA weights applied during generation."
+          },
+          "image": {
+            "type": "string",
+            "title": "Image",
+            "x-order": 1,
+            "x-format": "image",
+            "description": "First-frame image URL or Base64 image."
+          },
+          "loras": {
+            "type": "array",
+            "title": "LoRAs",
+            "default": [],
+            "x-order": 7,
+            "description": "Optional generic LoRA list."
+          },
+          "low_noise_loras": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "path"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "scale": {
+                  "type": "number",
+                  "default": 1
+                }
+              }
+            },
+            "title": "Low Noise LoRAs",
+            "default": [],
+            "x-order": 6,
+            "description": "Low-noise LoRA weights applied during generation."
+          },
+          "prompt": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "title": "Prompt Segments",
+            "default": [
+              "The kitten is wandering on the road."
+            ],
+            "x-order": 0,
+            "minItems": 1,
+            "maxItems": 6,
+            "description": "Ordered prompt list. Each segment generates duration seconds."
+          },
+          "resolution": {
+            "enum": [
+              "480p",
+              "720p",
+              "1080p"
+            ],
+            "type": "string",
+            "title": "Output Resolution",
+            "default": "720p",
+            "x-order": 3,
+            "description": "Target output resolution after 30fps post-processing."
+          },
+          "seed": {
+            "type": "integer",
+            "title": "Seed",
+            "default": -1,
+            "x-order": 4
+          }
+        },
+        "x-order-properties": [
+          "model",
+          "prompt",
+          "image",
+          "duration",
+          "resolution",
+          "seed",
+          "high_noise_loras",
+          "low_noise_loras",
+          "loras"
+        ]
+      },
+      "PredictionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the prediction."
+          },
+          "urls": {
+            "type": "object",
+            "description": "Object containing related API endpoints."
+          },
+          "model": {
+            "type": "string",
+            "description": "Model ID used for the prediction."
+          },
+          "status": {
+            "type": "string",
+            "description": "Status: processing, completed, failed, or timeout."
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "URLs to generated video outputs."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO timestamp of creation."
+          },
+          "has_nsfw_contents": {
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            },
+            "description": "NSFW detection per output."
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message when generation fails."
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "in": "header",
+        "name": "Authorization",
+        "type": "apiKey"
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-2.0/reference-to-video",
+                "duration": 10,
+                "resolution": "1080p",
+                "ratio": "16:9",
+                "generate_audio": true,
+                "watermark": false,
+                "return_last_frame": false,
+                "reference_images": [
+                    "https://static.atlascloud.ai/media/images/1ec9572ca61b8f5c224444c3b6b86a9e.jpg",
+                    "https://static.atlascloud.ai/media/images/54d5352dc17bc987a7e7c222f0d1d22b.jpg",
+                    "https://static.atlascloud.ai/media/images/4826275fd3d0f096870954612978a567.jpg"
+                ],
+                "prompt": "In the city@image2 , the camera pulls back to reveal a robot@image3  sitting on a rooftop; a flying car@image1  approaches, and the robot@image3  stands up, boards the vehicle@image1 , and drives away."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/dbe71b81074c24609c8607a7d72c626b.mp4"
+                ]
+            }
+        }
+    ]
+}

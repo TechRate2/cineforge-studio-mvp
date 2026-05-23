@@ -1,0 +1,124 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "prompt": "On-set documentary photo of filming a flying sequence. The actor playing Levi Ackerman is hanging upside down mid-air, suspended by a complex wire rigging harness against a gigantic green screen wall. He looks bored and is talking to the director down below. His ODM gear looks heavy, metallic, and weathered, with gas tanks and spare blades. Thick cables are visible attached to his waist. Industrial film lighting.",
+                "resolution": "4k",
+                "aspect_ratio": "16:9",
+                "output_format": "png",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/9790d25998b647e99131e770fd31dddf_21438a41-fa8e-4353-b2ca-4e4b655a6088-u2_7375ef1b-1c9b-472c-ac9d-01d2aaa1a5d7.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Artistic double exposure photography. Profile silhouette of a woman combined with a raging thunderstorm over a turbulent ocean. The waves form her hair, and the lightning bolts form the cracks in her skin. Dark moody blue and grey color palette. The transition between the woman's face and the storm is seamless and dreamy. Surrealism, fine art style, emotional, isolated, 8k.",
+                "resolution": "4k",
+                "aspect_ratio": "2:3",
+                "output_format": "png",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/9ea822cd5d684603b175721c342ef43e_75ac5736-0bc6-41e8-b434-39a6c64c1062-u1_f968bdd9-3b55-4f3f-aa3e-e353c13b2ba9.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Aerial cinematic shot, Solarpunk aesthetic. The ruins of a futuristic cyber-city are being reclaimed by nature. Massive ancient banyan trees are growing out of shattered glass skyscrapers, their roots wrapping around the steel beams. Waterfalls are cascading from broken penthouse windows into flooded streets below. Bioluminescent moss covers the concrete. Soft morning mist, volumetric sunbeams piercing through the canopy, vibrant greens and steel greys, masterpiece, 8k.",
+                "resolution": "4k",
+                "aspect_ratio": "21:9",
+                "output_format": "png",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/7aae49b246e742b68beb62140b67f7ef_7fff5200-d2b1-4f53-8650-647fa544797a-u2_7efa7a19-b78b-4e16-88cf-c0f3b2299e17.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Make a realistic infographic of the human skeletal system with label",
+                "resolution": "4k",
+                "aspect_ratio": "9:16",
+                "output_format": "png",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/281786c6e89d45a5a47dd1ca2ab4ea3f_7366db02-512e-4b4f-99c2-4856f393a7d4-u2_662f54d7-1dd7-4b4d-a8c2-33ba0a6c8b57.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Cinematic film portrait, Kodak Portra 400. A weathered old fisherman with a long, salt-and-pepper beard and a yellow waterproof jacket. He is looking directly into the camera with tired but smiling eyes. Raindrops on his face. He is on a fishing boat deck, holding a tangled net. Stormy grey sky and rough ocean waves in the background. Natural, diffused light. Grainy texture, emotional narrative.",
+                "resolution": "4k",
+                "aspect_ratio": "1:1",
+                "output_format": "png",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/fddc78e664924179907f27f90b50c80d_409c2b77-0977-451f-b074-3ff5fdddbe19-u2_6e45a803-43f3-4e3b-aa69-ca33cb4ca982.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "High-end commercial product photography of sleek, matte black wireless headphones. The headphones are suspended mid-air above a cracked black obsidian surface. Cool blue and purple neon rim lighting accents the edges and curves of the device. Deep shadows. The background is a futuristic blurred data grid. Focus on the metallic texture and leather earcups. Premium tech vibe.",
+                "resolution": "4k",
+                "aspect_ratio": "3:4",
+                "output_format": "png",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/2b3e2a740f9249d8b3b2e4a0e760922e_9bcc2a63-d0e1-4e20-b55d-8b76c91d394d-u1_772d3478-ac15-4bc3-ab63-273951d28a63.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "High fashion editorial portrait. A female model with a shaved head wearing an oversized, structured black architectural jacket. Her face is partially obscured by futuristic, transparent geometric acrylic pieces catching the light. Minimalist concrete bunker background. Dramatic side lighting creating harsh shadows across her face and the wall. High contrast, artistic, experimental vogue aesthetic.",
+                "resolution": "4k",
+                "aspect_ratio": "4:5",
+                "output_format": "png",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/39a8db791b7f4ca9bf3700d25bfd9486_728d9019-0e1c-4ac1-a844-b9d41a93553b-u2_c8be1e13-77a6-49b1-b9bd-e5855d9ce3d5.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Candid behind-the-scenes photo from a high-budget live-action Naruto movie set. The actor playing Naruto (spiky blonde hair, dirty orange tactical jumpsuit) and the actor playing Sasuke (dark blue vest, Uchiha crest) are sitting on wooden apple boxes, laughing and eating takeout lunch boxes together. Naruto is holding a pair of chopsticks. Behind them is a massive green screen wall and a film crew member adjusting a light stand. Realistic lighting, unposed, 35mm film grain, high resolution.",
+                "resolution": "4k",
+                "aspect_ratio": "4:3",
+                "output_format": "png",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/48a45e439b294e3388d99b0142b577a9_6b12162f-1870-4cd9-8cc5-1e54dd92c43e-u1_032d1c6d-d164-43d5-ba82-57567d45beb0.png"
+                ]
+            }
+        }
+    ]
+}

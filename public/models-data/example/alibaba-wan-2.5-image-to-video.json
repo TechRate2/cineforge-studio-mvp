@@ -1,0 +1,113 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "seed": 579955138,
+                "image": "https://static.atlascloud.ai/media/images/1758601850605840214_HR41XUQN.jpeg",
+                "prompt": "A cute magical girl with pink twin-tails is undergoing a brilliant transformation sequence. She is surrounded by shimmering starlight and floating ribbons as her clothes magically dissolve into a detailed battle dress. A close-up shot focuses on her determined, large blue eyes. The background is a fantastical starry sky. Japanese anime style, vibrant colors, magical particle effects, dynamic motion, a mix of Studio Ghibli and Makoto Shinkai art styles.\n",
+                "duration": 5,
+                "resolution": "720p",
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/640f481736254533be5d14d96c0ffffd_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 348513004,
+                "image": "https://static.atlascloud.ai/media/images/1758611307920482144_zBOKGDzv.png",
+                "prompt": "A young man sits still on a subway train, surrounded by blurred figures moving rapidly. [Close-up] His eyes, barely blinking, intensify the sense of loneliness.",
+                "duration": 5,
+                "resolution": "720p",
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/bb31e815c126489786709f1815a37abd_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 808284354,
+                "image": "https://static.atlascloud.ai/media/images/1758607611762553246_ojqiea7x.jpeg",
+                "prompt": "A man in his 30s jogging along a riverside path at dawn. His breathing is heavy, footsteps rhythmic, and the distant sound of water flowing adds to the calm. Between breaths, he says: 'One more mile… I can do this.' Birds begin to sing as the sun rises in the background.",
+                "duration": 5,
+                "resolution": "720p",
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/7682d331655b44e98164ecdadcf57b24_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 579955138,
+                "image": "https://static.atlascloud.ai/media/images/1758606853265623445_OmYVROLH.jpeg",
+                "prompt": "A girl with little freckles and messy red hair sitting on a rooftop during sunset, denim jacket slightly worn, holding a Polaroid camera, city skyline glowing in soft hues behind her.",
+                "duration": 5,
+                "resolution": "720p",
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/5236556cfc454d3c915edfd8fd83ead0_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 262548391,
+                "image": "https://static.atlascloud.ai/media/images/1758604393885729255_UzHEAytQ.jpeg",
+                "prompt": "Anime style, reminiscent of Makoto Shinkai. A high school boy and girl meet for the first time on a train platform during a gentle spring rain shower. Cherry blossom petals are falling and sticking to the wet ground. The world is reflected in the puddles. Sunlight breaks through the clouds, creating breathtaking light rays (crepuscular rays). Emotional, detailed background art, vibrant colors, cinematic lighting.",
+                "duration": 5,
+                "resolution": "720p",
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/4bd0fab2bde942d4b6f79fb3d277b072_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 1227852779,
+                "image": "https://static.atlascloud.ai/media/images/1758533924975894632_vqpmifb7.jpeg",
+                "prompt": " A keyboard whose keys are made of different types of candy. Typing makes sweet, crunchy sounds. Audio: Crunchy, sugary typing sounds, delighted giggles.",
+                "duration": 5,
+                "resolution": "720p",
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/74ab90f905564cce94eab179d9296662_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 579955138,
+                "duration": 5,
+                "resolution": "1080p",
+                "enable_prompt_expansion": false,
+                "prompt": "The girl stood up gracefully, running her fingers through her hair and gently sweeping it back. Her movements were soft and rhythmic, her expression calm and confident, and her overall demeanor was refined and sophisticated.",
+                "model": "alibaba/wan-2.5/image-to-video",
+                "generate_audio": true,
+                "image": "https://static.atlascloud.ai/media/images/6c6c5046088bb4cc7f0a730b8f4b2ee0.jpg",
+                "negative_prompt": ""
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/640f481736254533be5d14d96c0ffffd_1.mp4",
+                    "https://static.atlascloud.ai/media/videos/d338b64d149f67a5e89f50f3e09e7db9.mp4"
+                ]
+            }
+        }
+    ]
+}

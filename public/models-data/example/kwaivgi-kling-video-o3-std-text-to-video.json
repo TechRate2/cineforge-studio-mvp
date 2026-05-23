@@ -1,0 +1,19 @@
+{
+    "model": "kwaivgi/kling-video-o3-std/text-to-video",
+    "examples": [
+        {
+            "inputs": {
+                "model": "kwaivgi/kling-video-o3-std/text-to-video",
+                "aspect_ratio": "16:9",
+                "duration": 5,
+                "sound": false,
+                "prompt": "A rain-soaked cyberpunk metropolis at night, massive holographic advertisements glowing above crowded streets.\nFlying vehicles move between towering buildings under dark clouds.\nHigh contrast lighting, deep shadows, reflective surfaces, atmospheric haze, cinematic composition, anamorphic lens flare, ultra detailed."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/64faaba524c2e5eb9471b24322e65c2e.mp4"
+                ]
+            }
+        }
+    ]
+}

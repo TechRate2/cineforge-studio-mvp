@@ -1,0 +1,23 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "output_format": "jpeg",
+                "quality": "medium",
+                "size": "1024x1024",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/f7a163e372b62963833eec1dbe21f03c.jpg"
+                ],
+                "model": "openai/gpt-image-2/edit",
+                "prompt": "Generate an e-commerce poster and product details."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/781ac4a6a9ecd919d7e40ee11acd7191.jpg"
+                ]
+            }
+        }
+    ]
+}

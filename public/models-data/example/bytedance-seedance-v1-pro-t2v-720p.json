@@ -1,0 +1,18 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-v1-pro-t2v-720p",
+                "seed": -1,
+                "prompt": "A magical fairy-tale castle standing on a gentle hill, illuminated softly at night under a starry sky.\n\nColorful fireworks launch from behind the castle towers, bursting high above and lighting up the sky with sparkling trails.\n\nThe castle windows glow warmly, reflecting the fireworks, creating a joyful and enchanting celebration atmosphere.\n\nSmooth cinematic camera movement with a slow upward tilt, revealing the castle and fireworks together.\n\nRich yet elegant color palette with deep blues, warm golds, and vibrant firework colors, dreamy and festive mood.\n\nSoft magical lighting, gentle particle effects, and subtle sparkles floating in the air.\n\nCinematic fantasy animation style, highly detailed architecture, smooth lighting and textures.\n\nHigh resolution, professional color grading, smooth motion.\n\nNo text, no logos, no watermarks.",
+                "duration": 5,
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/924a6d171126003c44e995795cb2d516.mp4"
+                ]
+            }
+        }
+    ]
+}

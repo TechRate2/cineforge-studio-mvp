@@ -1,0 +1,19 @@
+## Google’s Imagen 4
+
+[Imagen 4](https://wavespeed.ai/models/google/imagen4)
+
+[Imagen 4 Ultra](https://wavespeed.ai/models/google/imagen4-ultra)
+
+[Imagen 4 Fast](https://wavespeed.ai/models/google/imagen4-fast)
+
+## High-quality image generation model featuring:
+
+- Fine detail rendering: Superior clarity for intricate elements like fabrics, water droplets, and animal fur
+
+- Style versatility: Excels in both photorealistic and abstract styles
+
+- Resolution flexibility: Creates images in various aspect ratios up to 2K resolution
+
+- Typography improvements: Significantly enhanced text rendering capabilities for greeting cards, posters, and comics
+
+- Fast variant: Upcoming version promises up to 10x faster generation compared to Imagen 3

@@ -1,0 +1,177 @@
+{
+  "info": {
+    "title": "AtlasCloud API",
+    "version": "1.0.0",
+    "description": "The AtlasCloud API."
+  },
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/model/generateVideo": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "The request status."
+          }
+        }
+      },
+      "x-api-name": "model_run"
+    },
+    "/api/v1/model/prediction/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "description": "Request ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "Result of the request."
+          }
+        }
+      },
+      "x-api-name": "model_result"
+    }
+  },
+  "components": {
+    "schemas": {
+      "Input": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "Model name.",
+            "default": "atlascloud/wan-2.2-turbo/image-to-video"
+          },
+          "image": {
+            "description": "First-frame image URL or Base64 image.",
+            "type": "string",
+            "x-format": "image"
+          },
+          "prompt": {
+            "description": "Text prompt describing the desired motion.",
+            "type": "string",
+            "default": "A classic golden Cadillac speeds through a desert road, kicking up dust as the camera tracks alongside it."
+          },
+          "negative_prompt": {
+            "description": "Optional negative prompt.",
+            "type": "string"
+          },
+          "resolution": {
+            "default": "720p",
+            "description": "Target output resolution after post-processing.",
+            "enum": [
+              "480p",
+              "720p",
+              "1080p"
+            ],
+            "type": "string",
+            "x-ui-component": "select"
+          },
+          "duration": {
+            "default": 5,
+            "description": "Video duration in seconds. This model currently supports 5 second clips.",
+            "enum": [
+              5
+            ],
+            "type": "integer",
+            "x-ui-component": "select"
+          },
+          "seed": {
+            "default": -1,
+            "description": "Random seed for reproducibility. -1 means a random seed will be used.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "model",
+          "image",
+          "prompt"
+        ],
+        "type": "object",
+        "x-order-properties": [
+          "model",
+          "image",
+          "prompt",
+          "negative_prompt",
+          "resolution",
+          "duration",
+          "seed"
+        ]
+      },
+      "PredictionResponse": {
+        "properties": {
+          "created_at": {
+            "description": "ISO timestamp of when the request was created.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "has_nsfw_contents": {
+            "description": "Array of boolean values indicating NSFW detection for each output.",
+            "items": {
+              "type": "boolean"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "Unique identifier for the prediction.",
+            "type": "string"
+          },
+          "model": {
+            "description": "Model ID used for the prediction.",
+            "type": "string"
+          },
+          "outputs": {
+            "description": "Array of URLs to the generated content. Empty when status is not completed.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "description": "Status of the task: created, processing, completed, or failed.",
+            "type": "string"
+          },
+          "urls": {
+            "description": "Object containing related API endpoints.",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.atlascloud.ai"
+    }
+  ]
+}

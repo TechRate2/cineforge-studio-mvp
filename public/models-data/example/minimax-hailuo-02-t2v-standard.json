@@ -1,0 +1,17 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "minimax/hailuo-02/t2v-standard",
+                "prompt": "A hand-drawn anime-style Formula 1 race car driving smoothly along a wide open road, inspired by Hayao Miyazaki and Studio Ghibli aesthetics.\n\nThe F1 car feels lightweight and elegant rather than aggressive, gliding forward as if carried by the wind.\n\nVast green fields, rolling hills, and distant mountains stretch across the landscape, with tall grass gently swaying as the car passes.\n\nBright blue sky filled with large fluffy clouds, sunlight breaking through softly, creating a warm and hopeful atmosphere.\n\nThe car moves fast but calmly, leaving subtle wind trails and dust strokes drawn in a painterly, hand-animated style.\n\nSmooth side-tracking and wide cinematic shots, slow and poetic pacing despite the sense of speed.\n\nSoft watercolor color palette, clean linework, gentle shading, classic Japanese animation style.\n\nWhimsical, nostalgic, and uplifting mood, evoking freedom, adventure, and childhood wonder.\n\nHigh-quality anime animation, smooth motion, film-like softness.\n\nNo text, no logos, no watermarks.",
+                "duration": 10,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/25a28d4cdf375bb34965bd2d86898ca9.mp4"
+                ]
+            }
+        }
+    ]
+}

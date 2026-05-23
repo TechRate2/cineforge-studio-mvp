@@ -1,0 +1,296 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757418174503178510_Ybqmkfd8.png"
+                ],
+                "prompt": "Based on this character, generate 3 images depicting this girl's life in a cyberpunk-style city.",
+                "max_images": 3,
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/9893f574ef47486fba9e481f27333baa_1.jpeg",
+                    "https://static.atlascloud.ai/media/images/9893f574ef47486fba9e481f27333baa_2.jpeg",
+                    "https://static.atlascloud.ai/media/images/9893f574ef47486fba9e481f27333baa_3.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757419441371777804_4kEBxtql.png"
+                ],
+                "prompt": "Generate a series of 4 different hairstyle images for this girl.",
+                "max_images": 4,
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/d08df9a8e37e42939b005df5eb20bd59_1.jpeg",
+                    "https://static.atlascloud.ai/media/images/d08df9a8e37e42939b005df5eb20bd59_2.jpeg",
+                    "https://static.atlascloud.ai/media/images/d08df9a8e37e42939b005df5eb20bd59_3.jpeg",
+                    "https://static.atlascloud.ai/media/images/d08df9a8e37e42939b005df5eb20bd59_4.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757419294931784722_21XUQOKG.png",
+                    "https://static.atlascloud.ai/media/images/1757419302680607770_UU2YVRMJ.jpg"
+                ],
+                "prompt": "Generate a series of 3 images depicting this mother and daughter enjoying themselves at an amusement park.",
+                "max_images": 3,
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/12d85098f68c48ada118d3eb57378a86_1.jpeg",
+                    "https://static.atlascloud.ai/media/images/12d85098f68c48ada118d3eb57378a86_2.jpeg",
+                    "https://static.atlascloud.ai/media/images/12d85098f68c48ada118d3eb57378a86_3.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757419103410371756_BJSPMIFD.png",
+                    "https://static.atlascloud.ai/media/images/1757419143955432972_FW841XTR.png"
+                ],
+                "prompt": "Generate a series of 3 images depicting the love story of these two individuals.",
+                "max_images": 3,
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/2ac9723801bb4e67875fabfebd2f61c3_1.jpeg",
+                    "https://static.atlascloud.ai/media/images/2ac9723801bb4e67875fabfebd2f61c3_2.jpeg",
+                    "https://static.atlascloud.ai/media/images/2ac9723801bb4e67875fabfebd2f61c3_3.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757420123857910436_aomkfb8o.jpg"
+                ],
+                "prompt": "Generate a series of 3 images depicting this little girl at ages 25, 45, and 65.",
+                "max_images": 3,
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/8ba8f933d4ef4b198d4ea9582a577912_1.jpeg",
+                    "https://static.atlascloud.ai/media/images/8ba8f933d4ef4b198d4ea9582a577912_2.jpeg",
+                    "https://static.atlascloud.ai/media/images/8ba8f933d4ef4b198d4ea9582a577912_3.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757420297300736441_myUQLIEA.png"
+                ],
+                "prompt": "Generate a series of 3 images for this character: left view, once view, and right view.",
+                "max_images": 3,
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/f5c5ffc8a12e4d3b95b79435fc685c55_1.jpeg",
+                    "https://static.atlascloud.ai/media/images/f5c5ffc8a12e4d3b95b79435fc685c55_2.jpeg",
+                    "https://static.atlascloud.ai/media/images/f5c5ffc8a12e4d3b95b79435fc685c55_3.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757419901357766123_w4evrnli.jpeg"
+                ],
+                "prompt": "Based on this character, generate a series of 4 story images.",
+                "max_images": 4,
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/8e44907fd8644a7b827d2bd965c29013_1.jpeg",
+                    "https://static.atlascloud.ai/media/images/8e44907fd8644a7b827d2bd965c29013_2.jpeg",
+                    "https://static.atlascloud.ai/media/images/8e44907fd8644a7b827d2bd965c29013_3.jpeg",
+                    "https://static.atlascloud.ai/media/images/8e44907fd8644a7b827d2bd965c29013_4.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1757480724314866246_5cNKGCzu.png"
+                ],
+                "prompt": "Refer to this image, generate three images from different views:360-degree overhead view, an elevated view, and a back view. Don't change the girl's appearance and outfit.",
+                "max_images": 3,
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/a775e128b6284210aadf8416fe69cdf8_1.jpeg",
+                    "https://static.atlascloud.ai/media/images/a775e128b6284210aadf8416fe69cdf8_2.jpeg",
+                    "https://static.atlascloud.ai/media/images/a775e128b6284210aadf8416fe69cdf8_3.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "model": "bytedance/seedream-v4/edit-sequential",
+                "enable_base64_output": false,
+                "max_images": 4,
+                "size": "2048*2048",
+                "enable_sync_mode": false,
+                "prompt": "Generate a set of 4 consecutive illustrations, showcasing the journey of a brave knight, from standing at the edge of a lush forest holding a sword, to riding a horse across a vast meadow, then facing a fierce dragon in a fiery battle, and finally standing victorious on a mountain peak with the dragon defeated."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/049e9fb3637b6d2ca3b68ceb852812e9.jpeg",
+                    "https://static.atlascloud.ai/media/images/d68fc6328996c0a94ae8e416cc79111f.jpeg",
+                    "https://static.atlascloud.ai/media/images/bcd6cbfd7976a24d46bffe72d2a88256.jpeg",
+                    "https://static.atlascloud.ai/media/images/313f58687c7e26379c1343c7aa29347e.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/d5470cbafff28ccc04b522b490ab44dd.jpeg"
+                ],
+                "model": "bytedance/seedream-v4/edit-sequential",
+                "enable_base64_output": false,
+                "max_images": 3,
+                "size": "2048*2048",
+                "enable_sync_mode": false,
+                "prompt": "Generate 3 images depicting a small kitten's life in a cozy town, showing the kitten walking along a quiet street at sunrise, playing near a café or flower shop in soft daylight, and resting on a windowsill at sunset, with warm light, peaceful small-town atmosphere, wholesome mood, and highly detailed illustration style."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/726602d4754f37824aaee412125e6a1d.jpeg",
+                    "https://static.atlascloud.ai/media/images/64dabe9b5afade8f7766756ac1a52dcd.jpeg",
+                    "https://static.atlascloud.ai/media/images/a50228b9042a953e10e927edb148a9ed.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/52c0469c95b5f4d0c65f7c34ed0cb4f6.jpeg"
+                ],
+                "model": "bytedance/seedream-v4/edit-sequential",
+                "seed": -1,
+                "size": "1280*1280",
+                "enable_prompt_expansion": true,
+                "prompt": "Change this image to a realistic photography style."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/ab35917e43e46b51a4020b8e6ef0e654.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "model": "bytedance/seedream-v4/edit-sequential",
+                "seed": -1,
+                "prompt": "Change the clothing color to red.",
+                "num_images": 1,
+                "guidance_scale": 2.5,
+                "num_inference_steps": 28,
+                "enable_base64_output": false,
+                "enable_safety_checker": true,
+                "image": "https://static.atlascloud.ai/media/images/58ba996b232cc6608c1aea0b8f7fbf6a.jpg"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/cf452bc8ca0ce27b24e4707df67b78ac.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "model": "bytedance/seedream-v4/edit-sequential",
+                "seed": -1,
+                "size": "1024*1024",
+                "prompt": "A solitary person standing by a large window in a minimalist interior, soft daylight illuminating the space, gentle shadows, natural tones, realistic photography, calm and cinematic composition.\n",
+                "strength": 0.8,
+                "num_images": 1,
+                "guidance_scale": 3.5,
+                "num_inference_steps": 28,
+                "enable_base64_output": false,
+                "enable_safety_checker": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/f653fab1602d49527c97882902890713.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "model": "bytedance/seedream-v4/edit-sequential",
+                "seed": -1,
+                "size": "1024*1024",
+                "prompt": "A solitary person standing by a large window in a minimalist interior, soft daylight illuminating the space, gentle shadows, natural tones, realistic photography, calm and cinematic composition.\n",
+                "strength": 0.8,
+                "num_images": 1,
+                "guidance_scale": 3.5,
+                "num_inference_steps": 28,
+                "enable_base64_output": false,
+                "enable_safety_checker": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/f653fab1602d49527c97882902890713.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "id": "90f006b4c5bf4aec8c86ef570b53438e",
+                "model": "bytedance/seedream-v4/edit-sequential",
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/f653fab1602d49527c97882902890713.jpeg"
+                ],
+                "urls": {
+                    "get": "https://api.atlascloud.ai/api/v1/model/prediction/90f006b4c5bf4aec8c86ef570b53438e"
+                },
+                "has_nsfw_contents": null,
+                "status": "completed",
+                "created_at": "2026-01-07T07:43:46Z",
+                "error": "",
+                "executionTime": 7000,
+                "timings": {
+                    "inference": 6104
+                }
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/f653fab1602d49527c97882902890713.jpeg"
+                ]
+            }
+        }
+    ]
+}

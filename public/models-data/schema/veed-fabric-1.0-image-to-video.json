@@ -1,0 +1,165 @@
+{
+  "info": {
+    "description": "The AtlasCloud API.",
+    "title": "AtlasCloud API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/model/generateVideo": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "The request status."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Input"
+              }
+            }
+          }
+        }
+      },
+      "x-api-name": "model_run"
+    },
+    "/api/v1/model/result/{request_id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "Result of the request."
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            },
+            "required": true
+          }
+        ]
+      },
+      "x-api-name": "model_result"
+    }
+  },
+  "openapi": "3.0.0",
+  "servers": [
+    {
+      "url": "https://api.atlascloud.ai"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Input": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "model name",
+            "default": "veed/fabric-1.0/image-to-video"
+          },
+          "image_url": {
+            "description": "First frame of the video; Notes: 1.Public URL or Base64. 2.Aspect ratios must be close: ratio between start/end frame must be in 0.8~1.25. 3.Format: png, jpeg, jpg, webp. 4.The post body of the HTTP request should not exceed 20MB",
+            "type": "string",
+            "x-ui-component": "uploaders"
+          },
+          "audio_url": {
+            "description": "The audio URL for the generation.",
+            "x-ui-component": "uploaders",
+            "type": "string"
+          },
+          "resolution": {
+            "default": "720p",
+            "description": "The resolution of the generated media.",
+            "enum": [
+              "480p",
+              "720p"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "model",
+          "image_url",
+          "audio_url",
+          "resolution"
+        ],
+        "type": "object",
+        "x-order-properties": [
+          "model",
+          "image_url",
+          "audio_url",
+          "resolution"
+        ]
+      },
+      "PredictionResponse": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "model name",
+            "default": "veed/fabric-1.0/image-to-video"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the request was created (e.g., “2023-04-01T12:34:56.789Z”).",
+            "format": "date-time",
+            "type": "string"
+          },
+          "has_nsfw_contents": {
+            "description": "Array of boolean values indicating NSFW detection for each output.",
+            "items": {
+              "type": "boolean"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "Unique identifier for the prediction, the ID of the prediction to get.",
+            "type": "string"
+          },
+          "outputs": {
+            "description": "Array of URLs to the generated content (empty when status is not completed).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "description": "Status of the task: created, processing, completed, or failed.",
+            "type": "string"
+          },
+          "urls": {
+            "description": "Object containing related API endpoints.",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "in": "header",
+        "name": "Authorization",
+        "type": "apiKey"
+      }
+    }
+  }
+}
+
+

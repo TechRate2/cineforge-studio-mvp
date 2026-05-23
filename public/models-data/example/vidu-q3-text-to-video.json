@@ -1,0 +1,76 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "bgm": true,
+                "seed": 1538184586,
+                "style": "general",
+                "prompt": "The two were arguing fiercely in English when the woman angrily slapped the man hard across the face.",
+                "duration": 5,
+                "resolution": "720p",
+                "aspect_ratio": "4:3",
+                "generate_audio": true,
+                "movement_amplitude": "auto"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/3de32455a53a433caa9520d2e1f99888_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "bgm": true,
+                "seed": 1710946767,
+                "style": "general",
+                "prompt": "A retro taxi driving slowly on a rainy New York street at night, neon lights reflecting on the wet pavement, pedestrians with umbrellas walking hurriedly, camera tracking the taxi, cinematic film grain, photorealistic, 8k, moody atmosphere.",
+                "duration": 5,
+                "resolution": "720p",
+                "aspect_ratio": "4:3",
+                "generate_audio": true,
+                "movement_amplitude": "auto"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/dd8383eb4e194c1db1a7cd58bd4c23e7_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "bgm": true,
+                "seed": 111142371,
+                "style": "general",
+                "prompt": "Gentle 2D slice of life anime. Students laughing and walking down a school hallway filled with sunlight during sunset. Warm color palette, soft watercolor background textures, relaxed atmosphere, expressive character designs.",
+                "duration": 5,
+                "resolution": "720p",
+                "aspect_ratio": "4:3",
+                "generate_audio": true,
+                "movement_amplitude": "auto"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/fc4d375ffa9941b2bd3eb9cb3e5a2c1c_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "bgm": true,
+                "seed": 806769256,
+                "style": "general",
+                "prompt": "Vibrant 3D anime idol concert. A group of female idols dancing and singing on a glittering stage with large LED screens playing graphics. cheering crowd with lightsticks. Flashy visual effects, smooth motion capture animation, bright and colorful stage lighting.",
+                "duration": 5,
+                "resolution": "720p",
+                "aspect_ratio": "4:3",
+                "generate_audio": true,
+                "movement_amplitude": "auto"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/1dd018bc121546b285605486b074efe5_1.mp4"
+                ]
+            }
+        }
+    ]
+}

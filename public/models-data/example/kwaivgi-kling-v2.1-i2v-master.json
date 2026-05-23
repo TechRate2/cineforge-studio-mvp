@@ -1,0 +1,172 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753672584112279495_dlxtronl.jpeg",
+                "prompt": "A mysterious woman reading a spellbook in a dark forest, camera circles her, magical lights floating, trees slowly twisting, glowing runes appear",
+                "duration": "5",
+                "guidance_scale": 0.5,
+                "negative_prompt": "blur, distort, and low quality"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/5457c8f8d2c6437a8f69d3696fc86725_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753671742998976791_YCIFByur.jpeg",
+                "prompt": "A ballerina dancing in an abandoned theater, spotlight follows her movements, dramatic angles, particles of dust in the air, emotional climax",
+                "duration": "5",
+                "guidance_scale": 0.5,
+                "negative_prompt": "blur, distort, and low quality"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/f04ae8320776411b93e4482a1614dfa8_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753672658673334010_HO4njgc9.jpeg",
+                "prompt": "Time-lapse of a bustling Tokyo street, fast-moving crowds, night turning into day, camera transitions to aerial view, dynamic rhythm",
+                "duration": "5",
+                "guidance_scale": 0.5,
+                "negative_prompt": "blur, distort, and low quality"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/f17482bfd1024dffac3533c3b547a247_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753672965550515905_EVqJ6GVb.jpeg",
+                "prompt": "A steampunk train departing the station, close-up of gears turning, steam rising, transition to wide landscape shot with mechanical city",
+                "duration": "5",
+                "guidance_scale": 0.5,
+                "negative_prompt": "blur, distort, and low quality"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/f9f3a136100443cca3d4afaf5cab273d_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753673220632445357_t9HFBxuq.jpeg",
+                "prompt": "A sorcerer unleashing lightning into the sky, storm clouds swirl, cinematic lighting flashes, camera flies around the scene, slow motion impact",
+                "duration": "5",
+                "guidance_scale": 0.5,
+                "negative_prompt": "blur, distort, and low quality"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/83d4b3f5bbb048618085d1163e84ed3e_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753674193159003007_RgiqKLVa.jpeg",
+                "prompt": "A dragon flying over a burning village, camera switches between ground panic and dragon POV, fire and wind effects, epic soundtrack feel",
+                "duration": "5",
+                "guidance_scale": 0.5,
+                "negative_prompt": "blur, distort, and low quality"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/a28f3c7233914dce9fcdda48e44fbb0f_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753674643030002158_nFPLIEAx.jpeg",
+                "prompt": "Two friends riding bicycles through the countryside, clouds moving overhead, smiling faces, grass swaying",
+                "duration": "5",
+                "guidance_scale": 0.5,
+                "negative_prompt": "blur, distort, and low quality"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/276abd67bdb24b44b54a93bf1f35f73d_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753675150559055199_hAKFCzws.jpeg",
+                "prompt": "A teenage boy sits by the window in the summer rain, headphones on, eyes closed, head bobbing to the music, raindrops streaming down the window glass",
+                "duration": "5",
+                "guidance_scale": 0.5,
+                "negative_prompt": "blur, distort, and low quality"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/e20fe371fd214b668b6373701a84afcb_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753675607306374107_Mahea6so.jpeg",
+                "prompt": "A lonely girl sitting on a swing at dusk, orange and pink sky behind her, gentle breeze moving the swing, camera stays at eye level with soft focus on her expression",
+                "duration": "5",
+                "guidance_scale": 0.5,
+                "negative_prompt": "blur, distort, and low quality"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/6d9ed1fdbc2b4d798d9cdb8e75a83aaa_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753953612369932509_ixQNKIEB.jpeg",
+                "prompt": "A clay animation boy flying across a surreal rainbow sky on a paper airplane. The camera tracks from below as he glides over soft, fluffy clouds. The vibrant colors shift with the lighting, and the boy turns his head joyfully, waving to the viewer as stars twinkle around him.",
+                "duration": "5",
+                "guidance_scale": 0.5,
+                "negative_prompt": "blur, distort, and low quality"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/04b0653c949c4018b6c8c9bea67fb388_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753953544463583775_zxLJFCyv.jpeg",
+                "prompt": "A vibrant animated sequence featuring a stylized toy-like girl character with oversized sunglasses and a neon sports outfit. She confidently walks through a pastel-colored street filled with candy-shaped buildings. The camera follows her from behind, then swings around to reveal her smiling face under the flickering neon lights.",
+                "duration": "5",
+                "guidance_scale": 0.5,
+                "negative_prompt": "blur, distort, and low quality"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/f6a30d3520e94a91b815a09164feb05b_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753953491738568570_FRvL3ouN.jpeg",
+                "prompt": "A cinematic slow zoom-in on a young Asian woman in a white shirt standing on the rooftop edge, her hair fluttering in the soft sunset breeze. The urban skyline stretches behind her, bathed in golden hour light. The camera gently shifts from her back to a side profile, capturing her calm expression as she overlooks the city.",
+                "duration": "5",
+                "guidance_scale": 0.5,
+                "negative_prompt": "blur, distort, and low quality"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/0a0aaa87f20646c0bc0bd54ae434fc9f_1.mp4"
+                ]
+            }
+        }
+    ]
+}

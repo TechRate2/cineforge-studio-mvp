@@ -1,0 +1,23 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-v1-pro-fast/image-to-video",
+                "camera_fixed": false,
+                "duration": 5,
+                "resolution": "720p",
+                "seed": -1,
+                "prompt": "Use the provided image as the first frame: in a vintage train station at winter dusk, two anthropomorphic orange cats are fully visible head to toe, walking slowly side by side, the older cat holding the younger cat’s hand and carrying a small vintage suitcase; they briefly pause and look into each other’s eyes with a calm, gentle expression before continuing forward, movements natural and synchronized, hands stable, light snowflakes drifting softly, warm station lights contrasting with cool ambient tones, stable eye-level medium-wide tracking shot, cinematic depth of field, realistic fairytale style with detailed fur, warm and healing atmosphere.",
+                "image": "https://static.atlascloud.ai/media/images/8c4a5fb761e55abc2a3ffd880508797f.jpeg",
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/775396b86420831d3173933ca960519b.mp4",
+                    "https://static.atlascloud.ai/media/videos/d1a431fdb45fae505f6bf8ddae332fef.mp4",
+                    "https://static.atlascloud.ai/media/videos/dca6c8c7855e9a8d277bf8a585fcd9a9.mp4"
+                ]
+            }
+        }
+    ]
+}

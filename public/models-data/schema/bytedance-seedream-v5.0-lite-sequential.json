@@ -1,0 +1,195 @@
+{
+  "components": {
+    "schemas": {
+      "Input": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "model name",
+            "default": "bytedance/seedream-v5.0-lite/sequential"
+          },
+          "enable_base64_output": {
+            "default": false,
+            "description": "If enabled, the output will be encoded into a BASE64 string instead of a URL. This property is only available through the API.",
+            "disabled": true,
+            "type": "boolean"
+          },
+          "max_images": {
+            "default": 1,
+            "description": "The maximum number of images to generate (1-15). The total of input reference images plus generated images must not exceed 15.",
+            "maximum": 15,
+            "minimum": 1,
+            "type": "integer",
+            "x-ui-component": "slider"
+          },
+          "prompt": {
+            "description": "The positive prompt for the generation. Recommended length: under 600 English words.",
+            "type": "string",
+            "x-rows": 10,
+            "x-ui-component": "textarea"
+          },
+          "size": {
+            "default": "2048*2048",
+            "description": "Output image size in 'WIDTH*HEIGHT' pixels. 16 preset resolutions at 2K and 3K tiers. Total pixel range: [3,686,400, 10,404,496]. Aspect ratio range: [1/16, 16].",
+            "enum": [
+              "2048*2048",
+              "2304*1728",
+              "1728*2304",
+              "2848*1600",
+              "1600*2848",
+              "2496*1664",
+              "1664*2496",
+              "3136*1344",
+              "3072*3072",
+              "3456*2592",
+              "2592*3456",
+              "4096*2304",
+              "2304*4096",
+              "2496*3744",
+              "3744*2496",
+              "4704*2016"
+            ],
+            "type": "string"
+          },
+          "output_format": {
+            "default": "jpeg",
+            "description": "Output image file format. Seedream v5.0 Lite supports both JPEG and PNG output.",
+            "enum": [
+              "jpeg",
+              "png"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "model",
+          "prompt"
+        ],
+        "type": "object",
+        "x-order-properties": [
+          "model",
+          "prompt",
+          "size",
+          "max_images",
+          "output_format",
+          "enable_base64_output"
+        ]
+      },
+      "PredictionResponse": {
+        "properties": {
+          "created_at": {
+            "description": "ISO timestamp of when the request was created (e.g., \"2023-04-01T12:34:56.789Z\").",
+            "format": "date-time",
+            "type": "string"
+          },
+          "has_nsfw_contents": {
+            "description": "Array of boolean values indicating NSFW detection for each output.",
+            "items": {
+              "type": "boolean"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "Unique identifier for the prediction, the ID of the prediction to get.",
+            "type": "string"
+          },
+          "model": {
+            "description": "Model ID used for the prediction.",
+            "type": "string"
+          },
+          "outputs": {
+            "description": "Array of URLs to the generated content (empty when status is not completed).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "description": "Status of the task: created, processing, completed, or failed.",
+            "type": "string"
+          },
+          "urls": {
+            "description": "Object containing related API endpoints.",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "in": "header",
+        "name": "Authorization",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "The AtlasCloud API.",
+    "title": "AtlasCloud API - bytedance/seedream-v5.0-lite/sequential",
+    "version": "1.0.0"
+  },
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/model/generateVideo": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "The request status."
+          }
+        }
+      },
+      "x-api-name": "model_run"
+    },
+    "/api/v1/model/result/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "description": "Request ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "Result of the request."
+          }
+        }
+      },
+      "x-api-name": "model_result"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.atlascloud.ai"
+    }
+  ]
+}

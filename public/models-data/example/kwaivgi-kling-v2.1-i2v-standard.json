@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "kwaivgi/kling-v2.1-i2v-standard",
+                "duration": 5,
+                "guidance_scale": 0.5,
+                "prompt": "Use the provided image as the first frame.\nIn a dark, magical night atmosphere, a mysterious and elegant young woman stands still, her skin glowing softly in shades of blue. She wears an intricate butterfly mask made of delicate patterns and subtle glowing lights.\nShe slowly blinks, breathing gently, her expression calm, dreamy, and enchanting.\nColorful glowing butterflies rest on and float around her skin, gently flapping their wings. Some butterflies slowly drift from the foreground into the background.\nTiny glowing particles rise like fireflies or stardust, enhancing the magical and ethereal mood.\nLighting is soft and cinematic, dominated by cool blue and purple tones, while butterflies emit warm orange, pink, and turquoise glows.\nThe camera stays in a medium close-up shot with a slow cinematic push-in, stable and smooth, with shallow depth of field and softly blurred background.\nHigh-quality fantasy realism style, rich details, smooth motion, calm and mysterious atmosphere, like a magical film sequence.",
+                "negative_prompt": "facial distortion, deformed features, jittery butterflies, fast motion, flickering, overexposed glow, noise, low quality, style inconsistency, camera shake, incorrect proportions.",
+                "image": "https://static.atlascloud.ai/media/images/22e0ec3808e6dcc72037972b6ec80b75.png"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/08c2c05d633c454ba855ec0d4bdd3674_1.mp4",
+                    "https://static.atlascloud.ai/media/videos/fd2892f283861e67800893c679ec8917.mp4"
+                ]
+            }
+        }
+    ]
+}

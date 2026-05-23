@@ -1,0 +1,18 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-v1-lite-t2v-480p",
+                "seed": -1,
+                "prompt": "An anime-style sailing ship gracefully traveling across a vast blue ocean, its white sails fully open and gently catching the wind.\n\nStylized ocean waves move rhythmically, sparkling under sunlight, with soft foam and simplified wave patterns.\n\nClear sky with fluffy clouds drifting slowly, warm daylight creating a bright and optimistic atmosphere.\n\nSmooth cinematic camera movement following the ship from a slightly elevated angle, calm and steady pacing.\n\nClean anime linework, soft shading, vibrant yet gentle color palette inspired by Japanese animation.\n\nPeaceful and adventurous mood, evoking a sense of freedom and journey.\n\nHigh-quality anime animation style, smooth motion, consistent character and environment design.\n\nHigh resolution, professional color grading.\n\nNo text, no logos, no watermarks.",
+                "duration": 5,
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/0f76d5b1f3187cd3060f12bd7a048669.mp4"
+                ]
+            }
+        }
+    ]
+}

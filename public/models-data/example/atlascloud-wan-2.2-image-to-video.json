@@ -1,0 +1,21 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "atlascloud/wan-2.2/image-to-video",
+                "duration": 5,
+                "resolution": "720p",
+                "seed": -1,
+                "prompt": "A classic golden Cadillac speeds through a desert, kicking up a massive cloud of dust behind it. The driver and passenger, both determined, are engaged in a high-stakes chase, while the passenger fires an assault rifle at a pack of rampaging, monstrous dinosaurs hot on their tail. The roaring creatures are closing in quickly, adding to the intensity of the scene.",
+                "image": "https://static.atlascloud.ai/media/images/db548fe3bd5cafa4ef7e0141d69c8566.jpeg"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/af3ce4416487e61f8b299c5dc42642e3.mp4",
+                    "https://static.atlascloud.ai/media/videos/1b2992a4536de4f54b53b665d18b5657.mp4",
+                    "https://static.atlascloud.ai/media/videos/edab9fb2b7b06f516d4e747bb89e3049.mp4"
+                ]
+            }
+        }
+    ]
+}

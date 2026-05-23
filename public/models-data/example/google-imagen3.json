@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "google/imagen3",
+                "prompt": "A lone modern building at dawn, soft natural light, long shadows, calm atmosphere, realistic photography, clean composition, shallow depth of field, subtle color tones.",
+                "num_images": 1,
+                "aspect_ratio": "16:9",
+                "negative_prompt": "",
+                "enable_base64_output": false,
+                "enable_prompt_expansion": false,
+                "resolution": "1k",
+                "enable_sync_mode": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/1044735a74e031d440f6f209f0d03857.png"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,61 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/021499029bd56e396dc7819f10e672e4.jpg"
+                ],
+                "model": "google/nano-banana-pro/edit",
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "output_format": "default",
+                "resolution": "2k",
+                "aspect_ratio": "16:9",
+                "prompt": "Seamlessly integrate the character from the original image into a vast desert environment with sweeping sand dunes. The scene features a cinematic dune landscape inspired by arid desert aesthetics, with soft golden الرمال, layered dunes stretching into the distance, and subtle wind-sculpted textures. The character stands naturally within the environment, with lighting and shadows accurately matched to the warm sunset or sunrise tones. Fine sand particles drift in the air, creating depth and atmosphere. The composition is wide-angle, epic in scale, with a strong sense of isolation and grandeur, highly detailed, photorealistic, and cohesive."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/c74841cca4537832eed18afd02bef8af.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/0fa85a1852b4008bc946939ebf0c2382.jpg"
+                ],
+                "model": "google/nano-banana-pro/edit",
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "output_format": "default",
+                "resolution": "2k",
+                "aspect_ratio": "16:9",
+                "prompt": "Transform the character from the original image into a dynamic scene where they are riding a powerful motorcycle across vast desert dunes. The composition is highly cinematic and full of impact, with the motorcycle speeding through rolling الرمال, kicking up dramatic trails of sand and dust. The character leans forward in an aggressive riding posture, conveying speed, intensity, and control. Motion blur enhances the sense of velocity, while strong directional lighting from a low सूर्य (sunset or sunrise) creates long shadows and high contrast. The environment features expansive dune landscapes with layered depth, wind-sculpted textures, and particles suspended in the air. Shot from a low-angle wide lens for maximum drama, epic scale, photorealistic, ultra-detailed, high energy, blockbuster movie style."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/8c15f0c264e61b39160262de1bd6ad73.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/3bb0bd35aae8a6b10768a5941a0c9edc.jpg"
+                ],
+                "model": "google/nano-banana-pro/edit",
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "output_format": "default",
+                "resolution": "2k",
+                "aspect_ratio": "16:9",
+                "prompt": "Extend and complete the original image while strictly preserving its visual style, lighting, color palette, and overall aesthetic. Introduce a full-body football player seamlessly integrated into the scene, wearing the same shoes shown in the image as the key focus. The player should appear natural and cohesive with the environment, with accurate perspective, shadows, and lighting that match the original composition. Emphasize the shoes as the hero element through subtle framing and detail, while the player is captured in a dynamic, mid-action pose (such as dribbling or sprinting) to add energy and realism. Maintain consistency in texture, tone, and artistic direction, ensuring the final image feels like a natural extension of the original, highly detailed, polished, and visually unified."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/29145816c36f6a45aa2caf5298e9acb4.png"
+                ]
+            }
+        }
+    ]
+}

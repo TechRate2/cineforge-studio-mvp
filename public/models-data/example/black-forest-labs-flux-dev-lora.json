@@ -1,0 +1,29 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "black-forest-labs/flux-dev-lora",
+                "seed": -1,
+                "size": "1024*1024",
+                "loras": [
+                    {
+                        "path": "strangerzonehf/Flux-Super-Realism-LoRA",
+                        "scale": 1
+                    }
+                ],
+                "prompt": "A quiet residential street covered in fresh snow at dusk, Japanese suburban neighborhood with small houses, warm light glowing from windows, snow piled along the road, wet asphalt reflecting soft sky colors. A black cat sitting in the foreground, looking down the street. Overhead power lines and street lamps framing the scene, birds flying across a pale blue winter sky. Calm, peaceful atmosphere, cinematic composition, soft natural lighting, ultra-detailed environment, painterly realism, high-quality illustration, depth and perspective",
+                "strength": 0.8,
+                "num_images": 1,
+                "guidance_scale": 3.5,
+                "num_inference_steps": 28,
+                "enable_base64_output": false,
+                "enable_safety_checker": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/3da4a38689262cf6b422e4304554080c.jpeg"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/03aa4ac2d93a82c648e94ede4020ddcd.png"
+                ],
+                "model": "bytedance/seedream-v5.0-lite/edit-sequential",
+                "enable_base64_output": false,
+                "max_images": 1,
+                "size": "2048*2048",
+                "output_format": "jpeg",
+                "prompt": "Transform the image into a cinematic anime style.\nClean hand-drawn line art, smooth cel shading, expressive detailed eyes.\nStrong atmospheric fog filling the scene, volumetric light rays cutting through the mist.\nDramatic lighting, high contrast shadows, deep depth of field.\nMoody color grading, immersive atmosphere, ultra detailed, high resolution."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/89911b1fb91dc6e2f9680a16c5c4e90c.jpeg"
+                ]
+            }
+        }
+    ]
+}

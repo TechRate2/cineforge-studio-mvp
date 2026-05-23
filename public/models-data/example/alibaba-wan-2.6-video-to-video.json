@@ -1,0 +1,23 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "seed": -1,
+                "videos": [
+                    "https://static.atlascloud.ai/media/videos/1764561674736724426_1fa7feba.mp4"
+                ],
+                "size": "1280*720",
+                "enable_prompt_expansion": true,
+                "shot_type": "multi",
+                "prompt": "Change the girl's clothes into red dresses, and Photograph this girl from different angles.",
+                "duration": 10,
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/b1a5e232e7ea4603b7851606ac3534dd_2.mp4"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,23 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/20260108-33334061-66d9-4a6a-84d9-0eb6b0f8700b.webp",
+                    "https://static.atlascloud.ai/media/images/20260108-33334061-66d9-4a6a-84d9-0eb6b0f8700c.webp",
+                    "https://static.atlascloud.ai/media/images/20260108-33334061-66d9-4a6a-84d9-0eb6b0f8700d.webp"
+                ],
+                "prompt": "The girl in Figure 1 is wearing the necklace shown in Figure 2 and has the bag shown in Figure 3 slung over her left shoulder.",
+                "negative_prompt": "blur, low quality",
+                "num_images": 2,
+                "seed": -1
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/20260108-2adf0fb8-6b9e-48af-8470-4400927eb934.webp",
+                    "https://static.atlascloud.ai/media/images/20260108-2adf0fb8-6b9e-48af-8470-4400927eb935.webp"
+                ]
+            }
+        }
+    ]
+}

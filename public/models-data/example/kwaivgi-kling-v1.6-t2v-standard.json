@@ -1,0 +1,244 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "prompt": "An ancient mage in flowing robes walking alone through a vast desert, holding a glowing staff. The sun sets behind him, long shadows, sand swirling around. Magical realism, solemn and mystical tone"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/dec3541f20644104a67e82175cb38264_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A man running across a dystopian city rooftop, low-angle shots, drones flying overhead, wind blowing, cinematic tension rising"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/a848280f260e4b1485b8f8e1ac24cfbb_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A serene yoga instructor, gracefully holding a challenging pose on a cliff overlooking a calm, misty ocean at sunrise, seagulls circling above."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/0c5577fa35cb4644bec800e6a7b4ec43_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A wise old storyteller, with a twinkle in their eye, gesturing animatedly as they recount a captivating tale to a group of children around a campfire. "
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/69e58737b7f94989a69e35f0958b88da_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A spirit fox resting in a glowing mossy glade, bioluminescent plants pulsing gently, fog drifting between twisted roots, the fox’s fur shimmering with starlight"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/5bcf4a65ca6e45d98e8c16f85b8d5b28_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A stoic medieval knight, standing guard on a windswept castle battlement, their armor glinting under a dramatic, cloudy sky. "
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/b62f46d87a424fdeaedcc5135a229d29_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A vampire lady reading by candlelight in a gothic library, flickering shadows dancing across her pale face, long black lace dress gently swaying with her breath"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/29476b5fea174a17ae146c0512120c47_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A determined astronaut, gazing out the window of a spacecraft at the swirling blue and white marble of Earth, a sense of awe on their face. "
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/04efdcb012fd46c5955fc2c655be82e6_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A realistic medium shot of the same young woman, now standing confidently, looking directly at the viewer with a knowing expression, city lights blurring in the background, a slight evening breeze tousling her hair, strong backlight, professional portrait photography, 8K, cinematic."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/cc8499967745471b8c099a99da5926cb_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A talented street musician, playing a soulful melody on a saxophone in a busy urban square, passersby pausing to listen. "
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/fe188ddd623140fbbacbf63010c736b5_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A young witch standing in a forest clearing, her hair gently blowing in the wind, soft golden sunlight filtering through the trees, small glowing orbs floating around her"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/aa237cd5c3004360b0ce82258abfeb3e_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A shy scientist in a lab coat, making a groundbreaking discovery in a bustling, high-tech laboratory, surrounded by blinking machines. "
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/d89eafd0ef8f4fb4b3baf14f3a1efc0a_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Time-lapse of a bustling Tokyo street, fast-moving crowds, night turning into day, camera transitions to aerial view, dynamic rhythm"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/8078f8044a3f43b9aa26c8141e317424_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "a portrait photo of a woman underwater with flowing hair"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/66b8b1779b904f07ac8186633187e7c8_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A grizzled cowboy riding a horse across a vast, sun-baked desert at sunset, dust kicking up behind them. "
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/3a605a36d2584bc191f52f79d9a7056f_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A majestic fantasy hero in full, ornate armor, standing on a cliff overlooking a vast, fantastical kingdom, with a dragon circling in the distant sky."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/d7a1fc6d039c40b7819ad49fa2608e8b_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A cyberpunk girl walking through neon-lit alleyways, rain falling, close-up of her eyes, camera pans to her silhouette, smoke in the background, futuristic music vibe"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/323ad8523ef047c3bf517fb8079aef4e_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A lone figure in a neon-lit, futuristic city, walking through bustling streets filled with holographic advertisements and flying vehicles. Rain reflects the vibrant lights."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/1fab0459b5e94f76b7824d4fe4c8b926_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A young adventurer in pixel art style, equipped with a sword and shield, standing on a grassy hill overlooking a pixelated castle. The wind gently rustles their pixelated cape."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/066e5124f9de44b5a502294f77c16b3f_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A stoic Roman centurion, clad in detailed legionary armor, stands guard overlooking a bustling ancient marketplace, observing the crowd intently."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/e931471ec6624bbaaee33900c12f713b_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A mysterious figure in a trench coat and fedora walks silhouetted against a neon-lit alleyway, the rain reflecting off the wet pavement. "
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/3d87eb0ad1374f7b821dfdb729397a87_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A mischievous fox character with exaggerated features and a sly grin tip-toes through a moonlit, enchanted forest, its tail swishing playfully. "
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/38c65ea1e244460ba7f1844872e420f5_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A young woman with a thoughtful expression, her eyes gazing slightly off-camera, wearing a soft cashmere sweater. The light gently illuminates her face from the side, creating subtle shadows and highlighting the texture of her skin. Set against a blurred, warm-toned interior, perhaps a sunlit window in the background. Cinematic, shallow depth of field, natural light, 4K, realistic, emotional, quiet atmosphere."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/966720b96fd144b2875da0229a399806_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A stylish man in a trench coat walks briskly down a bustling city street at dusk, reflections of neon lights shimmering on the wet pavement. He looks determined, with a slight smile playing on his lips. Dynamic camera following him from behind, then panning to a side profile. The scene is full of movement and energy, with blurred background elements suggesting speed. Cinematic, low light, urban, film grain, rain-slicked, energetic, vibrant, 8K."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/66970de4379c40e59b8453263a58b30a_1.mp4"
+                ]
+            }
+        }
+    ]
+}

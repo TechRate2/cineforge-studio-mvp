@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "alibaba/happyhorse-1.0/reference-to-video",
+                "resolution": "1080P",
+                "ratio": "16:9",
+                "duration": 5,
+                "seed": -1,
+                "images": [
+                    "https://static.atlascloud.ai/media/images/57e6e1e3d170c15b39b4a0a8b7ceb074.jpg"
+                ],
+                "prompt": "A race car hurtles past, its vibrant interplay of light and shadow dancing across the night sky, casting a shimmering, fluid glow upon the vehicle's surface. The imagery features a high-velocity motion blur effect—enhanced by cinematic lighting and composition—to forge an atmosphere of intense, dramatic tension. The level of detail is exquisitely rich, delivering a visual quality of 4K resolution."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/0a9ef08951849b871043240fbe8dd6d2.mp4"
+                ]
+            }
+        }
+    ]
+}

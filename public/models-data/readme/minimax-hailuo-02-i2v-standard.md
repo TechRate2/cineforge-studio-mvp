@@ -1,0 +1,1 @@
+Hailuo 02 is a new AI video generation model, from Hailuo AI, created on MiniMax's evolving framework. It has been fine-tuned to deliver ultra-clear 1080P resolution and unprecedented responsiveness while even handling, the craziest of physics driven scenes.

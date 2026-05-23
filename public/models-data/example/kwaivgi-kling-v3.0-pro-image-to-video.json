@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "kwaivgi/kling-v3.0-pro/image-to-video",
+                "cfg_scale": 0.5,
+                "duration": 5,
+                "sound": false,
+                "prompt": "A futuristic sphere floating in a dark digital space, surrounded by subtle radiant light rings.\nIts surface features glowing circuit patterns and soft energy pulses from within.\nVolumetric lighting, high contrast, ultra clean composition, smooth camera motion, 4K, cinematic sci-fi style.",
+                "image": "https://static.atlascloud.ai/media/images/a7547c513ba33167341b061a1dbed3bd.jpg"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/70965e5f7e40376303e951b0d846b1c9.mp4",
+                    "https://static.atlascloud.ai/media/videos/b8ebc743e10ce03407305a6a585afedf.mp4"
+                ]
+            }
+        }
+    ]
+}

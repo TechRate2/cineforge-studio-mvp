@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-v1-pro-fast/text-to-video",
+                "aspect_ratio": "16:9",
+                "camera_fixed": false,
+                "duration": 10,
+                "resolution": "1080p",
+                "seed": -1,
+                "prompt": "A cinematic, ultra-realistic Formula 1 racing sequence with dynamic speed-ramping edits. The scene begins in dramatic slow motion as an F1 car exits a corner, suspension compressing, tire deformation visible, sparks briefly flying from the floor. Suddenly the motion snaps into extreme high speed as the car blasts down the straight, motion blur streaking the background. Rapid cinematic cuts switch between low ground-level tracking shots, side panning shots, and a close-up of spinning wheels. Heat haze ripples above the asphalt, rubber debris flies, and the engine roar is implied through visual vibration. High contrast lighting, realistic reflections, intense sense of acceleration, professional motorsport cinematography, IMAX-quality, photorealistic, no text, no watermark."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/1084c272acbd4d65bae379cd551715e2_1.mp4"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,152 @@
+# SKILL PACK: Beauty & Skincare UGC (VN)
+# Đây là HINT cho Director Brain — KHÔNG khoá. User override mọi setting.
+
+id: beauty_skincare
+name_vn: "Mỹ phẩm & Chăm sóc da (VN)"
+name_en: "Beauty & Skincare UGC"
+version: "1.0.0"
+target_market: "VN"
+last_updated: "2026-05-20"
+
+# Activation — khi nào skill pack này được auto-suggest
+activation:
+  shopee_categories:
+    - "Sắc Đẹp"
+    - "Chăm Sóc Da"
+    - "Trang Điểm"
+    - "Chăm Sóc Tóc"
+    - "Nước Hoa & Sữa Tắm"
+
+  product_keywords:
+    - mỹ phẩm
+    - skincare
+    - serum
+    - kem dưỡng
+    - son
+    - mascara
+    - kem chống nắng
+    - sữa rửa mặt
+    - toner
+    - retinol
+    - vitamin C
+    - niacinamide
+    - hyaluronic
+    - cleanser
+    - moisturizer
+
+  min_confidence: 0.7  # nếu < 0.7 → fallback custom skill pack
+
+# Recommended models (preferences, user override được)
+preferred_models:
+  llm_strategist: "deepseek-ai/deepseek-v4-pro"
+  llm_copywriter: "deepseek-ai/deepseek-v4-flash"
+  llm_critic: "deepseek-ai/deepseek-v4-pro"
+  vision: "qwen/qwen3-vl-30b-a3b-instruct"
+
+  video_default: "vidu_q3"          # reference-to-video tốt cho beauty close-up
+  video_premium: "seedance_2_0"     # premium tier
+  video_budget: "seedance_2_0_fast"     # batch
+
+  voice_gender: "female"
+  voice_vibe: "gen_z_casual"        # match: Mai, Ngân, Trân
+
+  # Avatar filter — link vào _shared/personas_db.yaml
+  persona_filter:
+    gender: "F"
+    age_range: [22, 35]
+    vibes: ["gen_z_casual", "millennial_warm", "beauty_blogger"]
+
+# Recommended frameworks (Strategist sẽ pick từ list này)
+recommended_frameworks:
+  - id: "POV_VISUAL_PROOF"
+    when: "Có before/after demo rõ"
+    description: "POV first-person + show transformation visual"
+
+  - id: "CURIOSITY_GAP"
+    when: "Sản phẩm có 'mystery' factor (chất lạ, brand mới)"
+    description: "Hook tease → reveal sản phẩm ở giây 5-7"
+
+  - id: "AUTHORITY_TESTIMONIAL"
+    when: "Sản phẩm có expert endorsement (dermatologist, MUA)"
+    description: "Persona authority → testimonial → product"
+
+  - id: "PROBLEM_AGITATE_SOLUTION"
+    when: "Pain point rõ ràng (mụn, thâm, khô)"
+    description: "Show problem → amplify → introduce solution"
+
+# Recommended tone
+tone_guide:
+  primary: "girl-next-door, honest review, không quảng cáo lộ liễu"
+  avoid: "corporate jargon, 'đỉnh', 'siêu phẩm', 'must-have', 'breakthrough'"
+
+  language_register: "informal Gen Z VN"
+  pronouns_preferred: ["mình", "em", "tôi"]  # tránh "chúng tôi" formal
+
+  example_natural_phrases:
+    - "Trộm vía da mình đỡ hẳn"
+    - "Mấy chị em thử chưa?"
+    - "Da mình hợp với cái này"
+    - "Có ai cùng vibe không"
+
+# Must include trong script
+must_include:
+  - "Close-up face/skin shot ít nhất 1 lần"
+  - "Texture demo (cream/serum thoa lên tay/má)"
+  - "Timestamp result nếu claim hiệu quả (vd: 'ngày 7', 'sau 4 tuần')"
+  - "Honest disclaimer nếu là PR (vd: 'mình được tặng để trải nghiệm')"
+
+# Forbidden claims — Critic sẽ check và TRỪ ĐIỂM nếu phát hiện
+forbidden_claims:
+  vi_law_compliance:  # Nghị định 38/2021/NĐ-CP + Luật Quảng cáo VN
+    - "trắng da vĩnh viễn"
+    - "trắng da trong 7 ngày"
+    - "trị mụn 100%"
+    - "hết thâm trong N ngày"  # bất kỳ N
+    - "đặc trị"
+    - "khử trùng da"
+    - "ngăn ngừa ung thư da"
+
+  marketing_red_flags:
+    - "FDA approved" # nếu chưa có chứng nhận thật
+    - "không hoá chất"  # gây hiểu lầm, mọi mỹ phẩm đều có hoá chất
+    - "100% thiên nhiên"  # khó verify
+    - "best in Vietnam"  # cần ranking thật
+    - so_sánh_trực_tiếp_competitor:
+      - "tốt hơn Lancome"
+      - "thay thế La Roche"
+      - "so với SK-II"
+
+# Trending hooks library — Copywriter sẽ pick từ hooks.yaml
+
+# Storyboard pacing defaults (Editor sẽ apply)
+pacing_defaults:
+  duration_15s:
+    shots: 4
+    cuts_per_sec: 0.27
+
+  duration_30s:
+    shots: 6
+    cuts_per_sec: 0.20
+
+  duration_60s:
+    shots: 10
+    cuts_per_sec: 0.17
+
+# Best post time VN (Critic sẽ recommend)
+best_post_times_vn:
+  weekday: ["20:30 - 22:00", "12:00 - 13:00"]
+  weekend: ["10:00 - 11:30", "21:00 - 22:30"]
+
+# Niche-specific viral signals (Critic check)
+viral_signals:
+  high_engagement_triggers:
+    - "before/after concrete (date + lighting consistent)"
+    - "POV format ('POV: bạn của crush')"
+    - "skincare routine reveal"
+    - "drugstore vs high-end comparison"
+    - "K-beauty trend element"
+
+  saturated_avoid:
+    - "10-step Korean routine" # đã quá phổ biến
+    - "miracle product review"  # cliché
+    - "boyfriend reaction — đã saturated từ 2024"

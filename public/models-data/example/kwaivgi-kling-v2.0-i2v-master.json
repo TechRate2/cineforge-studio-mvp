@@ -1,0 +1,104 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "prompt": "On a sunny afternoon, an elderly couple in their sixties, dressed in simple and comfortable clothes, is sitting on a park bench. The wife gently pats her husband's back with her wrinkled hand. Both of them are smiling happily, their eyes full of warmth. The sunlight filters through the dense leaves, casting dappled shadows on them, creating a serene and cozy atmosphere."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/7090f0d3993141b48240a0b909944807_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Capture a dynamic, high-speed chase scene featuring two motorcycles navigating through a bustling cityscape at night. The camera alternates between close-up shots of the riders' intense expressions, the glowing neon signs of the city, and the sleek lines of the motorcycles as they weave through traffic. The sound of revving engines and the hum of the city create an exhilarating atmosphere."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/35beef7ce65640caad881f8cd6adbf03_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A man in his 30s, wearing a white T-shirt, loose blue jeans, and vintage skate shoes, is expertly skateboarding on a sun-drenched city street. He leans forward, using his right foot to lightly push off and maintain speed. The background is a bustling street with tall glass buildings reflecting the sunlight. The camera smoothly tracks him, capturing his confident smile and hair blowing in the wind."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/82ecd7dc1514495285c4a27ef564ed7b_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "On a breezy beach, a father is patiently teaching his six or seven-year-old son how to play baseball. The father bends down, holding his son's hands to guide him on the correct swing posture. The son, wearing a striped T-shirt, has eyes full of curiosity and excitement as he earnestly imitates his father's movements. The background is a vast blue ocean and soft sandy beach, with gentle waves lapping the shore."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/6c8090813f5347d4b7ff110d6616bf55_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A dancer is practicing an expressive modern dance in a softly lit professional studio. Dressed in a black leotard, she stretches her body, performing graceful yet powerful turns and leaps in rhythm with the background music. Sweat glistens on her forehead and neck, and every one of her movements is full of emotion, conveying a sense of resilience and beauty."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/3ebea7052cba4590b9e952e7dfe28e89_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "In a modern, open-concept kitchen, a senior chef in a white uniform and tall hat is demonstrating his exquisite knife skills. With a shiny kitchen knife, he slices an onion on a cutting board with astonishing speed and precision. The blade glints under the lights. His technique is clean and sharp, with no wasted motion. In the background, the kitchen is busy but well-organized, with other chefs attending to their tasks."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/39c837a48b57441ea6d151c31cba57e0_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A young rock climber, in professional climbing gear, is tackling a challenging route on a massive indoor climbing wall. He uses his fingertips and toes to precisely find footholds and handholds. His body is pressed against the wall, muscles tensed with effort. The camera shoots from a low angle, capturing his every powerful and skillful move as he ascends. The bright indoor gym and busy belayers on the ground are in the background."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/aa5a44fc3a9847fba2d95db991dc7606_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A barista, a warm smile on her face, is expertly pouring steamed milk into a cup of coffee to create beautiful latte art. The steam gently rises from the cup, catching the soft morning light from the window. The camera slowly pans down from her face to her hands, then maintains a macro shot on the intricate swirling patterns. Cozy cafe interior, soft natural light, warm color grading, ultra detailed."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/42dfbfaedb0a4a93a0736db7ec935e0f_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A young man in a retro jacket walks alone on the city streets at dusk. The street lights gradually turn on, pedestrians rush by, and the background is blurred. The shot primarily uses slow tracking and push-in shots to create a cinematic atmosphere. The image has high color saturation and a nostalgic feel."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/0e34093fe01f4e23af79e3722ec0e265_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "An elderly potter, in her studio, with her hands covered in clay, is intently shaping a ceramic piece. Her face is lined, but her eyes are focused and calm. The studio is filled with bright sunlight, the scent of clay and wood. The shot is primarily a close-up, capturing her dexterous hands and the slow formation of the pottery. The scene has a simple color palette, with soft lighting, creating a serene and creative atmosphere."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/b5932e3f0c2b4b11a7468b2c2f79f001_1.mp4"
+                ]
+            }
+        }
+    ]
+}

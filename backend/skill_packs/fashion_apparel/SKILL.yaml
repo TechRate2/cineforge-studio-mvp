@@ -1,0 +1,125 @@
+# SKILL PACK: Fashion & Apparel (VN)
+# Aesthetic + outfit transformation, ưu tiên VISUAL show > spoken explanation.
+
+id: fashion_apparel
+name_vn: "Thời trang & Phụ kiện (VN)"
+name_en: "Fashion & Apparel"
+version: "1.0.0"
+target_market: "VN"
+last_updated: "2026-05-20"
+
+activation:
+  shopee_categories:
+    - "Thời Trang"
+    - "Túi Ví"
+    - "Giày Dép"
+    - "Phụ Kiện Thời Trang"
+    - "Đồng Hồ Thời Trang"
+    - "Trang Sức"
+  product_keywords:
+    - quần áo
+    - váy
+    - áo
+    - đầm
+    - giày
+    - túi
+    - balo
+    - thắt lưng
+    - phụ kiện
+    - khăn
+    - vòng cổ
+    - nhẫn
+    - hoodie
+    - jeans
+    - dress
+    - lookbook
+  min_confidence: 0.7
+
+preferred_models:
+  llm_strategist: "deepseek-ai/deepseek-v4-pro"
+  llm_copywriter: "deepseek-ai/deepseek-v4-flash"
+  llm_critic: "deepseek-ai/deepseek-v4-pro"
+  vision: "qwen/qwen3-vl-30b-a3b-instruct"
+
+  video_default: "vidu_q3"             # reference-to-video tốt cho outfit consistency
+  video_premium: "seedance_2_0"
+  video_budget: "seedance_2_0_fast"
+
+  voice_gender: "female"
+  voice_vibe: "kbeauty_inspired"       # aspirational aesthetic
+
+  persona_filter:
+    gender: "F"
+    age_range: [20, 32]
+    vibes: ["gen_z_casual", "kbeauty_inspired", "lifestyle_aspirational"]
+
+recommended_frameworks:
+  - id: "LOOKBOOK_TRANSITION"
+    when: "Multiple outfits / styles"
+    description: "Outfit changes với match cut transitions"
+
+  - id: "STYLING_TUTORIAL"
+    when: "1 item — show N ways to wear"
+    description: "Mix N outfit từ 1 item duy nhất"
+
+  - id: "BEFORE_AFTER_STYLING"
+    when: "Demo transformation"
+    description: "Plain → Styled (full look)"
+
+  - id: "SHOPPING_HAUL"
+    when: "Multiple items batch"
+    description: "Quick reveal mỗi item 3-4s"
+
+tone_guide:
+  primary: "Aspirational, aesthetic, KBEAUTY/JBEAUTY inspired"
+  avoid: "loud sales, 'siêu rẻ', 'best deal' (kéo aspirational xuống)"
+  language_register: "informal Gen Z VN + English fashion terms OK"
+  pronouns_preferred: ["mình", "em"]
+
+  example_natural_phrases:
+    - "Outfit mình cho hôm nay"
+    - "OOTD"
+    - "Mix and match"
+    - "Soft girl vibe"
+    - "Áo này dùng 3 cách"
+
+must_include:
+  - "Full outfit reveal shot (head-to-toe)"
+  - "Close-up detail shot (texture, fit, accessory)"
+  - "Movement shot (twirl, walk, gesture)"
+  - "Aesthetic background (cafe, outdoor, room)"
+
+forbidden_claims:
+  vi_law_compliance:
+    - "Hàng chính hãng" # trừ khi authorized
+    - "Made in France/Italy" # nếu chỉ là copy
+
+  marketing_red_flags:
+    - "Brand X copy" # khoe replica
+    - "Designer inspired" # mơ hồ
+    - so_sánh_brand_cao_cấp:
+      - "Như Zara"
+      - "Style Dior"
+
+pacing_defaults:
+  duration_15s:
+    shots: 5      # nhanh, lookbook style
+  duration_30s:
+    shots: 8
+  duration_60s:
+    shots: 12
+
+best_post_times_vn:
+  weekday: ["17:00 - 19:00", "21:00 - 22:30"]
+  weekend: ["10:00 - 12:00", "16:00 - 18:00"]
+
+viral_signals:
+  high_engagement_triggers:
+    - "OOTD reveal với music drop"
+    - "Outfit transitions match cut"
+    - "Item dupe high-end brand"
+    - "Real-life styling (not studio)"
+
+  saturated_avoid:
+    - "Static product flat-lay — boring"
+    - "Hộp mở từng item — slow pacing"

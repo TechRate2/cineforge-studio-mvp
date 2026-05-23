@@ -1,0 +1,20 @@
+{
+  "product_input": {
+    "text_description": "Son YSL Rouge Volupte Shine 850k VND"
+  },
+  "reference_images": [],
+  "reference_videos": [],
+  "user_brief": "Em muon video UGC POV girl-next-door tone tu nhien cho TikTok 9:16",
+  "context_injection": {
+    "pain_points": "Da kho moi nut 8h van phong, mua 5 hang son van tham",
+    "real_reviews": "Em xai 2 tuan thay khac han, me em cung khen mem moi"
+  },
+  "settings": {
+    "audio_mode": "dialogue_vo",
+    "model": "seedance_2_0",
+    "duration_s": 15,
+    "aspect_ratio": "9:16",
+    "resolution": "720p"
+  },
+  "niche_hint": "auto"
+}

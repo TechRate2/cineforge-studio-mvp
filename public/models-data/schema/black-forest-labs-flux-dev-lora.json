@@ -1,0 +1,305 @@
+{
+    "info": {
+        "title": "AtlasCloud API",
+        "version": "1.0.0",
+        "description": "The AtlasCloud API."
+    },
+    "paths": {
+        "/api/v1/model/generateImage": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "The request status."
+                    }
+                },
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Input"
+                            }
+                        }
+                    },
+                    "required": true
+                }
+            },
+            "x-api-name": "model_run"
+        },
+        "/api/v1/model/result/{request_id}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "Result of the request."
+                    }
+                },
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "request_id",
+                        "schema": {
+                            "type": "string",
+                            "description": "Request ID"
+                        },
+                        "required": true
+                    }
+                ]
+            },
+            "x-api-name": "model_result"
+        }
+    },
+    "openapi": "3.0.0",
+    "servers": [
+        {
+            "url": "https://api.atlascloud.ai"
+        }
+    ],
+    "components": {
+        "schemas": {
+            "Input": {
+                "type": "object",
+                "required": [
+                    "model",
+                    "prompt"
+                ],
+                "properties": {
+                    "model": {
+                        "type": "string",
+                        "description": "model name",
+                        "default": "black-forest-labs/flux-dev-lora"
+                    },
+                    "seed": {
+                        "type": "integer",
+                        "default": -1,
+                        "description": "Random seed (-1 for random)"
+                    },
+                    "size": {
+                        "type": "string",
+                        "default": "1024*1024",
+                        "description": "Output image size"
+                    },
+                    "image": {
+                        "type": "string",
+                        "default": ""
+                    },
+                    "loras": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/LoraWeight"
+                        },
+                        "default": [
+                            {
+                                "path": "strangerzonehf/Flux-Super-Realism-LoRA",
+                                "scale": 1
+                            }
+                        ],
+                        "maxItems": 5,
+                        "recommend": [
+                            {
+                                "path": "strangerzonehf/Flux-Super-Realism-LoRA",
+                                "cover": "https://static.atlascloud.ai/media/images/1750689107381882541_JsReqObq.png",
+                                "scale": 1
+                            },
+                            {
+                                "path": "linoyts/yarn_art_Flux_LoRA",
+                                "cover": "https://static.atlascloud.ai/media/images/1743147498644764266_T3kokgd9.png",
+                                "scale": 1
+                            },
+                            {
+                                "path": "lichorosario/flux-lora-total-drama-character",
+                                "cover": "https://static.atlascloud.ai/media/images/1743147537839395261_knBzvtpl.png",
+                                "scale": 1
+                            }
+                        ],
+                        "description": "List of LoRAs to apply (max 5)"
+                    },
+                    "prompt": {
+                        "type": "string",
+                        "default": "Super Realism, Woman in a red jacket, snowy, in the style of hyper-realistic portraiture, caninecore, mountainous vistas, timeless beauty, palewave, iconic, distinctive noses --ar 72:101 --stylize 750 --v 6",
+                        "description": "Input prompt for image generation"
+                    },
+                    "strength": {
+                        "step": 0.01,
+                        "type": "number",
+                        "default": 0.8,
+                        "maximum": 1,
+                        "minimum": 0,
+                        "description": "Strength indicates extent to transform the reference image"
+                    },
+                    "mask_image": {
+                        "type": "string",
+                        "title": "The mask image",
+                        "description": "The mask image tells the model where to generate new pixels (white) and where to preserve the original image (black). It acts as a stencil or guide for targeted image editing."
+                    },
+                    "num_images": {
+                        "type": "integer",
+                        "default": 1,
+                        "maximum": 4,
+                        "minimum": 1,
+                        "description": "Number of images to generate"
+                    },
+                    "guidance_scale": {
+                        "step": 0.1,
+                        "type": "number",
+                        "default": 3.5,
+                        "maximum": 20,
+                        "minimum": 0,
+                        "description": "Guidance scale for generation"
+                    }
+                },
+                "x-order-properties": [
+                    "model",
+                    "prompt",
+                    "image",
+                    "mask_image",
+                    "strength",
+                    "loras",
+                    "size",
+                    "num_inference_steps",
+                    "guidance_scale",
+                    "num_images",
+                    "seed"
+                ]
+            },
+            "LoraWeight": {
+                "type": "object",
+                "title": "LoraWeight",
+                "required": [
+                    "path"
+                ],
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "title": "Path",
+                        "description": "URL or the path to the LoRA weights."
+                    },
+                    "scale": {
+                        "type": "number",
+                        "title": "Scale",
+                        "default": 1,
+                        "maximum": 4,
+                        "minimum": 0,
+                        "description": "The scale of the LoRA weight. This is used to scale the LoRA weight before merging it with the base model."
+                    }
+                },
+                "x-order-properties": [
+                    "path",
+                    "scale"
+                ]
+            },
+            "PredictionUrls": {
+                "type": "object",
+                "required": [
+                    "cancel",
+                    "result"
+                ],
+                "properties": {
+                    "cancel": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Cancel prediction URL"
+                    },
+                    "result": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Result retrieval URL"
+                    }
+                }
+            },
+            "PredictionResponse": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "model",
+                    "input",
+                    "status",
+                    "created_at",
+                    "urls"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "example": "7hm7nbwarxrm80cnq1yvmxz4m4",
+                        "description": "Unique prediction ID"
+                    },
+                    "logs": {
+                        "type": "string",
+                        "example": "...",
+                        "description": "Execution logs"
+                    },
+                    "urls": {
+                        "$ref": "#/components/schemas/PredictionUrls"
+                    },
+                    "input": {
+                        "$ref": "#/components/schemas/Input"
+                    },
+                    "model": {
+                        "type": "string",
+                        "example": "black-forest-labs/flux-dev",
+                        "description": "Model name"
+                    },
+                    "output": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uri"
+                        },
+                        "example": [
+                            "https://replicate.delivery/..."
+                        ],
+                        "description": "Generated output URLs",
+                        "x-field-name": "output"
+                    },
+                    "status": {
+                        "enum": [
+                            "queued",
+                            "processing",
+                            "succeeded",
+                            "failed"
+                        ],
+                        "type": "string",
+                        "example": "processing",
+                        "description": "Prediction status"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-03-21T11:36:30.151Z",
+                        "description": "Creation timestamp"
+                    },
+                    "has_nsfw_contents": {
+                        "type": "array",
+                        "items": {
+                            "type": "boolean"
+                        },
+                        "example": [
+                            false
+                        ],
+                        "description": "NSFW content detection results"
+                    }
+                }
+            }
+        },
+        "securitySchemes": {
+            "apiKeyAuth": {
+                "in": "header",
+                "name": "Authorization",
+                "type": "apiKey",
+                "description": "access key"
+            }
+        }
+    }
+}

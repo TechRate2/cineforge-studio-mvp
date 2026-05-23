@@ -1,0 +1,70 @@
+{
+  "examples": [
+    {
+      "inputs": {
+        "effect_scene": "firework_2026",
+        "image": "https://static.atlascloud.ai/media/images/kling-effects-sample-portrait.jpg"
+      },
+      "outputs": {
+        "outputs": [
+          "https://d1q70pf5vjeyhc.cloudfront.net/predictions/32fbf500314d4bc7bb582d81de7f81fb/1.mp4"
+        ]
+      }
+    },
+    {
+      "inputs": {
+        "effect_scene": "snowglobe",
+        "image": "https://static.atlascloud.ai/media/images/1745078663944208895_gmvsolhe.jpg"
+      },
+      "outputs": {
+        "outputs": [
+          "https://d1q70pf5vjeyhc.cloudfront.net/predictions/b4cfedf9985544299a3205c264b49e84/1.mp4"
+        ]
+      }
+    },
+    {
+      "inputs": {
+        "effect_scene": "bullet_time",
+        "image": "https://static.atlascloud.ai/media/images/1745147168756911752_14ZWSNLG.jpg"
+      },
+      "outputs": {
+        "outputs": [
+          "https://d1q70pf5vjeyhc.cloudfront.net/predictions/604ae7022ed34501a7055197fba5ffad/1.mp4"
+        ]
+      }
+    },
+    {
+      "inputs": {
+        "effect_scene": "pure_white_wings",
+        "image": "https://static.atlascloud.ai/media/images/1745337597019716935_RS1XUQMI.jpg"
+      },
+      "outputs": {
+        "outputs": [
+          "https://d1q70pf5vjeyhc.cloudfront.net/predictions/836d604ecbc74d1e9ecaf2e6133b2982/1.mp4"
+        ]
+      }
+    },
+    {
+      "inputs": {
+        "effect_scene": "japanese_anime_1",
+        "image": "https://static.atlascloud.ai/media/images/1745492230971199265_J3J5tO7p.jpg"
+      },
+      "outputs": {
+        "outputs": [
+          "https://d1q70pf5vjeyhc.cloudfront.net/predictions/8462a335714c41d890d02ea29e863b29/1.mp4"
+        ]
+      }
+    },
+    {
+      "inputs": {
+        "effect_scene": "c4d_cartoon_pro",
+        "image": "https://static.atlascloud.ai/media/images/1745552832830322655_jemjfbyu.jpg"
+      },
+      "outputs": {
+        "outputs": [
+          "https://d1q70pf5vjeyhc.cloudfront.net/predictions/5e072c2630774a809a545199c06fc783/1.mp4"
+        ]
+      }
+    }
+  ]
+}

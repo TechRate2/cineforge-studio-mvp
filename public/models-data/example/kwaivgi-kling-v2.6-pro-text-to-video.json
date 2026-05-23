@@ -1,0 +1,30 @@
+{
+  "examples": [
+    {
+      "inputs": {
+        "prompt": "Create a dynamic transformation sequence where the futuristic sports car in the first frame gradually shifts into a humanoid transforming robot. Show the mechanical parts unfolding, panels splitting and rotating, wheels sliding into the legs.",
+        "aspect_ratio": "16:9",
+        "duration": 5,
+        "sound": true
+      },
+      "outputs": {
+        "outputs": [
+          "https://static.atlascloud.ai/media/videos/98e8ccaab47f4270b86cac4f7cdbb647_1.mp4"
+        ]
+      }
+    },
+    {
+      "inputs": {
+        "prompt": "A kind elderly man sits in a rocking chair on his porch, smiling as he throws a tennis ball. A golden retriever excitedly dashes onto the lawn, leaps to catch the ball mid-air.",
+        "aspect_ratio": "16:9",
+        "duration": 5,
+        "sound": true
+      },
+      "outputs": {
+        "outputs": [
+          "https://static.atlascloud.ai/media/videos/89656017337840fa8f2c31000d3154f1_1.mp4"
+        ]
+      }
+    }
+  ]
+}

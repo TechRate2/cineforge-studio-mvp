@@ -1,0 +1,24 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "alibaba/wan-2.7/reference-to-video",
+                "resolution": "1080P",
+                "ratio": "16:9",
+                "duration": 5,
+                "prompt_extend": false,
+                "watermark": false,
+                "seed": -1,
+                "videos": [
+                    "https://static.atlascloud.ai/media/videos/fa83f46e0965cc176c099190e9c218d8.mp4"
+                ],
+                "prompt": "A colossal solar flare explodes beside a nearby planet, enormous waves of blazing plasma and magnetic energy spiraling through space, the planet partially illuminated by the violent stellar eruption, dramatic cosmic lighting, ultra-realistic, epic sci-fi film style."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/4b2ebc325f03651e33bf0f5a6a1b7aaa.mp4"
+                ]
+            }
+        }
+    ]
+}

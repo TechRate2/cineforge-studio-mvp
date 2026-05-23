@@ -1,0 +1,17 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "minimax/hailuo-2.3/t2v-standard",
+                "duration": 6,
+                "enable_prompt_expansion": true,
+                "prompt": "Cinematic long shot of a futuristic mega-city at night, heavy rain falling, dense fog illuminated by towering holographic advertisements. Glowing neon signs in blue and hot pink reflecting on wet asphalt streets. Flying vehicles (spinners) gliding between dark, brutalist skyscrapers. Low-key lighting, deep shadows, teal and orange color grading. High detail, 4k, vapor rising from manhole covers."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/02637476d2c67fe28d48778cbdbe7ad8.mp4"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,20 @@
+{
+    "model": "kwaivgi/kling-v3.0-pro/text-to-video",
+    "examples": [
+        {
+            "inputs": {
+                "model": "kwaivgi/kling-v3.0-pro/text-to-video",
+                "aspect_ratio": "16:9",
+                "cfg_scale": 0.5,
+                "duration": 5,
+                "sound": false,
+                "prompt": "A minimal black cube rotating slowly in a pure dark space.\nA concentrated core light gradually intensifies from within.\nFine geometric fractures spread outward symmetrically.\nThe cube dissolves into precise polygonal fragments and subtle energy particles.\nFuturistic, high contrast, clean composition, soft bloom, smooth motion."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/ec46eaaa4fd484be62fc7ba5cbb12336.mp4"
+                ]
+            }
+        }
+    ]
+}

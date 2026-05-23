@@ -1,0 +1,20 @@
+{
+    "model": "kwaivgi/kling-v3.0-std/image-to-video",
+    "examples": [
+        {
+            "inputs": {
+                "model": "kwaivgi/kling-v3.0-std/image-to-video",
+                "cfg_scale": 0.5,
+                "duration": 5,
+                "sound": false,
+                "image": "https://static.atlascloud.ai/media/images/33f6728e234eddd53aac4bc74f8dc6ff.jpg",
+                "prompt": "A minimal cube slowly moving in a dark void.\nSoft ambient lighting highlights its clean edges.\nSmooth, steady motion with a seamless loop.\nHigh contrast, ultra clean composition, 4K."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/3aa1a1b8a0ff222f2cb4ef200bedf917.mp4"
+                ]
+            }
+        }
+    ]
+}

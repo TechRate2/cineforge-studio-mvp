@@ -1,0 +1,104 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "prompt": "model in a flowing silk gown standing on top of a sand dune, golden sunset light illuminating the fabric, camera circling to capture the dress fluttering dramatically in the wind, high-contrast editorial style\n\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/53ba156fdbb24f4f9021cc9032b1a86e_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "muscular man lifting dumbbells in a modern gym, sweat glistening on his arms, camera slowly dolly in toward his determined face, background blurred with gym equipment, realistic lighting and reflections\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/9b820552af244d35acf3cb552df923d1_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "father pulling a sled with his laughing child through a snowy park, camera tracking from the side to capture their joyful expressions, snowflakes falling softly, cold breath visible in the air, crisp winter lighting\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/3c8800afa3fc4931b6333e0e2cf5a0ec_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "guitarist playing on a busy downtown street corner, people stopping to listen, camera circling slowly around him, sunlight hitting the guitar strings, coins clinking into an open case, authentic street sound vibe\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/ddfbb45853334fbb86a7f4a495a0a5fa_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "stylish woman in a black leather coat walking confidently through a city street at night, neon signs reflecting on wet pavement, camera tracking her from a low angle, wind gently moving her hair, cinematic slow motion for key steps\n\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/4622a1cae6de44ee9afd4ac2af8abf32_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "student surrounded by open books at a large wooden table, camera circling slowly around her as she takes notes, warm desk lamp lighting, quiet and focused mood\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/740e2a284052484dafa9fb62ecd67c62_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "elderly man carving wood in a small workshop, wood shavings falling onto the table, camera slowly panning from his focused hands to his weathered face, warm natural light from a side window\n\n\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/9fa8a787c6ba41fd882eb0236ff4ceaa_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "woman sitting on a small balcony sipping coffee, camera panning from the steaming cup to the city view behind her, gentle breeze moving her hair, soft golden sunrise light\n\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/54db11bad0634b2ba0ab20925557126d_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "mother and child kneading dough together on a wooden countertop, flour floating in the air, camera following their hands in close-up, natural laughter and candid expressions, warm yellow kitchen light\n\n\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/e2d39f3abc6d4a3d99a472f57e1f72ac_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "man sitting in a cozy armchair by the window, reading a hardcover book, camera slowly dolly in on his hands turning the page, soft afternoon light casting gentle shadows, background slightly blurred for depth\n\n\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/8e54167d159942048963c0a19e09823b_1.mp4"
+                ]
+            }
+        }
+    ]
+}

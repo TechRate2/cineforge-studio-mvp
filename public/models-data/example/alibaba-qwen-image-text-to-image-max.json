@@ -1,0 +1,18 @@
+{
+	"examples": [
+		{
+			"inputs": {
+				"prompt": "Healing-style hand-drawn poster featuring three puppies playing with a ball on lush green grass, adorned with decorative elements such as birds and stars. The main title “Come Play Ball!” is prominently displayed at the top in bold, blue cartoon font. Below it, the subtitle “Come [Show Off Your Skills]!” appears in green font. A speech bubble adds playful charm with the text: “Hehe, watch me amaze my little friends next!” At the bottom, supplementary text reads: “We get to play ball with our friends again!” The color palette centers on fresh greens and blues, accented with bright pink and yellow tones to highlight a cheerful, childlike atmosphere.",
+				"size": "1328*1328",
+				"num_images": 1,
+				"seed": -1,
+				"enable_prompt_expansion": false
+			},
+			"outputs": {
+				"outputs": [
+					"https://static.atlascloud.ai/media/images/20260108-736d7af8-936f-47b0-8908-5d53193660b5.png"
+				]
+			}
+		}
+	]
+}

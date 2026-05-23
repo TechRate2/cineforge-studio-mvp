@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-v1.5-pro/image-to-video-spicy",
+                "camera_fixed": false,
+                "duration": 5,
+                "generate_audio": true,
+                "resolution": "720p",
+                "seed": -1,
+                "prompt": "Use the provided image as the first frame.\nOn a quiet residential street in a summer afternoon, a young girl in high-quality Japanese anime style slowly walks forward.\nHer steps are natural and light, with her arms gently swinging in rhythm with her walk. Her body movement remains stable and well-balanced.\nAs she walks, her expression gradually softens into a gentle, warm smile. The corners of her mouth lift slightly, and her eyes look calm and bright.\nA soft breeze moves her short hair and headband, with individual strands subtly flowing. Her clothes show slight natural motion from the wind.\nSunlight comes from the upper side, creating soft highlights and natural shadows on her face and body.\nBackground trees sway gently, and distant clouds drift slowly, enhancing the peaceful summer atmosphere.\nThe camera stays at a medium to medium-close distance, smoothly tracking forward with cinematic motion, stable and controlled.\nHigh-quality Japanese hand-drawn animation style, clean linework, warm natural colors, smooth frame rate, consistent character proportions.\nThe mood is calm, youthful, and healing, like a slice-of-life moment from an animated film.",
+                "image": "https://static.atlascloud.ai/media/images/06a309ac0adecd3eaa6eee04213e9c69.png",
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/a8fad0cd568e42d38e2ed0a94826ab83_1.mp4"
+                ]
+            }
+        }
+    ]
+}

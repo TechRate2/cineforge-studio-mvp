@@ -1,0 +1,60 @@
+# HOOKS BANK — Custom fallback
+# Generic high-performing hooks fit mọi niche.
+
+hooks:
+  - id: generic_pov_discovery
+    type: relatable_emotion
+    fits: [POV_VISUAL_PROOF, CURIOSITY_GAP]
+    target_emotion: "discovery"
+    trending_score: 8
+    template: "POV: bạn vừa phát hiện {thứ gì đó} mà {audience} đang giấu"
+    examples:
+      - "POV: bạn vừa phát hiện thứ mà mọi creator đang giấu"
+
+  - id: generic_before_after
+    type: satisfying_visual_proof
+    fits: [POV_VISUAL_PROOF]
+    target_emotion: "transformation"
+    trending_score: 8
+    template: "Ngày 1 vs ngày {N} dùng {sản phẩm}"
+    examples:
+      - "Ngày 1 vs ngày 14 sử dụng cái này"
+
+  - id: generic_tested_kept
+    type: curiosity_gap
+    fits: [CURIOSITY_GAP, AUTHORITY_TESTIMONIAL]
+    target_emotion: "value seeking"
+    trending_score: 9
+    template: "Mình thử {N} {category} — đây là cái duy nhất giữ"
+    examples:
+      - "Mình thử 10 cái loại này — đây là duy nhất giữ"
+
+  - id: generic_stop_action
+    type: controversial
+    fits: [CURIOSITY_GAP]
+    target_emotion: "shock"
+    trending_score: 8
+    template: "Stop {hành động phổ biến} — đây là alternative tốt hơn"
+    examples:
+      - "Stop chi tiền cho cái cũ — đây là alternative"
+
+  - id: generic_problem_relate
+    type: relatable_emotion
+    fits: [PROBLEM_AGITATE_SOLUTION]
+    target_emotion: "empathy"
+    trending_score: 7
+    template: "Có ai từng {pain point} không? Đây là cách mình fix"
+    examples:
+      - "Có ai từng gặp vấn đề này không? Đây là cách fix"
+
+scoring_weights:
+  trending_alignment: 0.25
+  pattern_interrupt: 0.25
+  relatability: 0.20
+  authenticity: 0.20
+  cta_setup: 0.10
+
+ranker_strategy:
+  variants_to_generate: 5
+  top_n_keep: 3
+  diversity_constraint: true

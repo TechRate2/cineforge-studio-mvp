@@ -1,0 +1,210 @@
+{
+	"info": {
+		"title": "AtlasCloud API",
+		"version": "1.0.0",
+		"description": "The AtlasCloud API."
+	},
+	"paths": {
+		"/api/v1/model/generateImage": {
+			"post": {
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PredictionResponse"
+								}
+							}
+						},
+						"description": "The request status."
+					}
+				},
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Input"
+							}
+						}
+					},
+					"required": true
+				}
+			},
+			"x-api-name": "model_run"
+		},
+		"/api/v1/model/result/{request_id}": {
+			"get": {
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PredictionResponse"
+								}
+							}
+						},
+						"description": "Result of the request."
+					}
+				},
+				"parameters": [
+					{
+						"in": "path",
+						"name": "request_id",
+						"schema": {
+							"type": "string",
+							"description": "Request ID"
+						},
+						"required": true
+					}
+				]
+			},
+			"x-api-name": "model_result"
+		}
+	},
+	"openapi": "3.0.0",
+	"servers": [
+		{
+			"url": "https://api.atlascloud.ai"
+		}
+	],
+	"components": {
+		"schemas": {
+			"Input": {
+				"type": "object",
+				"required": [
+					"model",
+					"prompt",
+					"images"
+				],
+				"properties": {
+					"model": {
+						"type": "string",
+						"description": "model name",
+						"default": "google/nano-banana/edit"
+					},
+					"aspect_ratio": {
+						"description": "The aspect ratio of the generated media.",
+						"enum": [
+							"1:1",
+							"3:2",
+							"2:3",
+							"3:4",
+							"4:3",
+							"4:5",
+							"5:4",
+							"9:16",
+							"16:9",
+							"21:9"
+						],
+						"type": "string",
+						"x-placeholder": "Select aspect ratio"
+					},
+					"images": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"maxItems": 10,
+						"minItems": 1,
+						"description": "List of URLs of input images for editing.",
+						"x-ui-component": "uploaders"
+					},
+					"prompt": {
+						"type": "string",
+						"description": "The positive prompt for image generation."
+					},
+					"enable_base64_output": {
+						"type": "boolean",
+						"default": false,
+						"disabled": true,
+						"description": "If enabled, the output will be encoded into a BASE64 string instead of a URL. This property is only available through the API."
+					},
+					"enable_sync_mode": {
+						"default": false,
+						"description": "If set to true, the function will wait for the result to be generated and uploaded before returning the response. It allows you to get the result directly in the response. This property is only available through the API.",
+						"disabled": true,
+						"type": "boolean"
+					},
+					"output_format": {
+						"default": "default",
+						"description": "The format of the output image.",
+						"enum": [
+							"default",
+							"png",
+							"jpeg"
+						],
+						"type": "string"
+					},
+					"media_resolution": {
+						"default": "default",
+						"description": "Controls how input media is processed. LOW reduces tokens per image/video, possibly losing detail but allowing longer videos in context. Supported values: HIGH, MEDIUM, LOW.",
+						"enum": [
+							"default",
+							"low",
+							"medium",
+							"high"
+						],
+						"type": "string"
+					}
+				},
+				"x-order-properties": [
+					"model",
+					"prompt",
+					"images",
+					"aspect_ratio",
+					"output_format",
+					"media_resolution",
+					"enable_base64_output",
+					"enable_sync_mode"
+				]
+			},
+			"PredictionResponse": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"description": "Unique identifier for the prediction, the ID of the prediction to get."
+					},
+					"urls": {
+						"type": "object",
+						"description": "Object containing related API endpoints."
+					},
+					"model": {
+						"type": "string",
+						"description": "Model ID used for the prediction."
+					},
+					"status": {
+						"type": "string",
+						"description": "Status of the task: created, processing, completed, or failed."
+					},
+					"outputs": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"description": "Array of URLs to the generated content (empty when status is not completed)."
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"description": "ISO timestamp of when the request was created (e.g., “2023-04-01T12:34:56.789Z”)."
+					},
+					"has_nsfw_contents": {
+						"type": "array",
+						"items": {
+							"type": "boolean"
+						},
+						"description": "Array of boolean values indicating NSFW detection for each output."
+					}
+				}
+			}
+		},
+		"securitySchemes": {
+			"apiKeyAuth": {
+				"in": "header",
+				"name": "Authorization",
+				"type": "apiKey"
+			}
+		}
+	}
+}

@@ -1,0 +1,19 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "alibaba/wan-2.5/video-extend",
+                "duration": 5,
+                "resolution": "720p",
+                "seed": -1,
+                "video": "https://static.atlascloud.ai/media/videos/705cd22c062320d06d7c5020b0555da5.mp4",
+                "prompt": "A lone figure running toward the distant horizon across a vast landscape, the camera following from behind, wind sweeping across the ground, cinematic wide shot, dramatic atmosphere."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/3529315a91e2eaf2aa08055adf42636c.mp4"
+                ]
+            }
+        }
+    ]
+}

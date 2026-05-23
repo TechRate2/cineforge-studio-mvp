@@ -1,0 +1,210 @@
+{
+  "info": {
+    "description": "The AtlasCloud API.",
+    "title": "AtlasCloud API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/model/generateImage": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "The request status."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Input"
+              }
+            }
+          }
+        }
+      },
+      "x-api-name": "model_run"
+    },
+    "/api/v1/model/result/{request_id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "Result of the request."
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            },
+            "required": true
+          }
+        ]
+      },
+      "x-api-name": "model_result"
+    }
+  },
+  "openapi": "3.0.0",
+  "servers": [
+    {
+      "url": "https://api.atlascloud.ai"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Input": {
+        "type": "object",
+        "required": [
+          "model",
+          "prompt"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "Model name",
+            "default": "baidu/ERNIE-Image-Turbo/text-to-image"
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The positive prompt for the generation."
+          },
+          "size": {
+            "type": "string",
+            "default": "1024x1024",
+            "description": "The size of the generated media in pixels (widthxheight).",
+            "enum": [
+              "1024x1024",
+              "1376x768",
+              "1264x848",
+              "1200x896",
+              "896x1200",
+              "848x1264",
+              "768x1376"
+            ],
+            "x-ui-component": "select width*height"
+          },
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "minimum": 1,
+            "maximum": 10,
+            "description": "Number of images to generate."
+          },
+          "seed": {
+            "type": "integer",
+            "default": -1,
+            "description": "Random seed for generation. Use -1 for random. "
+          },
+          "use_pe": {
+            "type": "boolean",
+            "default": true,
+            "description": "Use PE for generation."
+          },
+          "num_inference_steps": {
+            "type": "integer",
+            "default": 8,
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Number of inference steps."
+          },
+          "guidance_scale": {
+            "type": "number",
+            "default": 1.0,
+            "minimum": 1,
+            "maximum": 20,
+            "description": "Guidance scale for generation."
+          },
+          "enable_sync_mode": {
+            "type": "boolean",
+            "default": false,
+            "disabled": true,
+            "description": "If set to true, the function waits for final output before returning."
+          },
+          "enable_base64_output": {
+            "type": "boolean",
+            "default": false,
+            "disabled": true,
+            "description": "If enabled, output can be encoded as BASE64 instead of URL."
+          }
+        },
+        "x-order-properties": [
+          "model",
+          "prompt",
+          "size",
+          "n",
+          "seed",
+          "use_pe",
+          "num_inference_steps",
+          "guidance_scale",
+          "enable_sync_mode",
+          "enable_base64_output"
+        ]
+      },
+      "PredictionResponse": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO timestamp of when the request was created."
+          },
+          "has_nsfw_contents": {
+            "type": "array",
+            "description": "Array of boolean values indicating NSFW detection for each output.",
+            "items": {
+              "type": "boolean"
+            }
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the prediction."
+          },
+          "model": {
+            "type": "string",
+            "description": "Model ID used for the prediction."
+          },
+          "outputs": {
+            "type": "array",
+            "description": "Array of URLs to the generated content (empty when status is not completed).",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the task: created, processing, completed, or failed."
+          },
+          "urls": {
+            "type": "object",
+            "description": "Object containing related API endpoints."
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "in": "header",
+        "name": "Authorization",
+        "type": "apiKey"
+      }
+    }
+  }
+}

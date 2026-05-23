@@ -1,0 +1,61 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "seed": 0,
+                "size": "1280*1280",
+                "model": "alibaba/wan-2.6/image-edit",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/34e49c00-cd78-460e-be5e-67d4ece4bdba.png"
+                ],
+                "prompt": "Add an old man wearing a straw raincoat to the path in the image, ensuring the style is consistent with the original image.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/87195135-bdc9ec7a-7701-49c8-b748-bdd4ff73c119.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 0,
+                "size": "1280*1280",
+                "model": "alibaba/wan-2.6/image-edit",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/f1a73080-01ec-4271-b99b-3efa54240901.png"
+                ],
+                "prompt": "A koi fish with a red and light purple gradient pattern leaped out of the water, splashing water all around.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/27422576-1f948f64-41fb-49c2-a262-4ed57fd67590.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 0,
+                "size": "1280*1280",
+                "model": "alibaba/wan-2.6/image-edit",
+                "images": [
+                    "https://static.atlascloud.ai/media/images/7474c525-ae8f-4191-9d42-9617920707c4.png"
+                ],
+                "prompt": "There is a little girl with an umbrella running forward in the middle of the road, without changing the original image style.",
+                "enable_sync_mode": false,
+                "enable_base64_output": false,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/93433047-5c230243-2d67-489f-86ca-8f52fc0b0d02.png"
+                ]
+            }
+        }
+    ]
+}

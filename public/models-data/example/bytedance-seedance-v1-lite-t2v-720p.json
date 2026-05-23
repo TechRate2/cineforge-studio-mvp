@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-v1-lite-t2v-720p",
+                "seed": -1,
+                "prompt": "A cute corgi dog sitting in the cockpit of a small airplane, wearing an aviator helmet and goggles, confidently piloting the aircraft.\n\nThe corgi’s paws rest on the control yoke, ears slightly fluttering with the airflow, expression focused yet adorable.\n\nThe airplane flies smoothly above soft white clouds, with blue sky and sunlight filling the background.\n\nGentle cockpit instrument lights glow subtly, adding a realistic aviation detail.\n\nSmooth cinematic camera movement, alternating between interior cockpit close-ups and exterior wide shots of the plane in flight.\n\nBright and clean color palette, warm sunlight and soft shadows, joyful and adventurous atmosphere.\n\nCinematic animated realism style with light anthropomorphic charm, highly detailed textures and natural lighting.\n\nHigh resolution, smooth motion, professional color grading.\n\nNo text, no logos, no watermarks.",
+                "duration": 5,
+                "aspect_ratio": "16:9",
+                "camera_fixed": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/fc1f29451b960e5e93d3e34190776241.mp4",
+                    "https://static.atlascloud.ai/media/videos/4abbe53322880efbd65daffc7401e59e.mp4",
+                    "https://static.atlascloud.ai/media/videos/a3d57428007fb822fac29d78e17bde92.mp4",
+                    "https://static.atlascloud.ai/media/videos/a51c8c76eb428cb156038c5e90877d55.mp4"
+                ]
+            }
+        }
+    ]
+}

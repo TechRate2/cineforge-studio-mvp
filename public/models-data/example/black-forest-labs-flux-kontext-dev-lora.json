@@ -1,0 +1,23 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "black-forest-labs/flux-kontext-dev-lora",
+                "seed": -1,
+                "loras": [],
+                "prompt": "Restore this old photograph with high fidelity and realism. Remove scratches, dust, stains, creases, and noise while preserving the original facial features, expressions, and historical authenticity. Improve clarity, sharpness, and contrast gently without over-smoothing. Correct faded tones and restore natural skin color while maintaining the original lighting and atmosphere. Do not alter clothing, pose, or background. Keep the photo realistic, natural, and true to the original era.Subtle and historically accurate colorization, realistic skin tones, natural fabric colors, no oversaturation, no modern color palette.",
+                "num_images": 1,
+                "guidance_scale": 2.5,
+                "num_inference_steps": 28,
+                "enable_base64_output": false,
+                "enable_safety_checker": true,
+                "image": "https://static.atlascloud.ai/media/images/7445c155b6aacdde57ec699797a22b50.jpeg"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/cae756046c87dd3fbbaeca90af818457.jpeg"
+                ]
+            }
+        }
+    ]
+}

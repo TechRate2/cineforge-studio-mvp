@@ -1,0 +1,55 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "seed": -1,
+                "image": "https://static.atlascloud.ai/media/images/decd0dfa-379e-454c-9e83-645986383251.png",
+                "model": "alibaba/wan-2.6/image-to-video",
+                "prompt": "Panoramic shot: The figures slowly walk towards the building in the distance; mist fills the air.\nMedium shot: The camera slowly zooms in on the figures.\nClose-up: The figure takes a deep breath.",
+                "duration": 15,
+                "resolution": "1080p",
+                "shot_type": "single",
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/25c5e0ad-be42-499a-8504-d27c717d16a3.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": -1,
+                "image": "https://static.atlascloud.ai/media/images/d2da93a8-e51e-4c61-acc9-b6f630d7cf66.png",
+                "model": "alibaba/wan-2.6/image-to-video",
+                "prompt": "Panoramic view: A halo of light begins to spread across the horizon, and mist fills the air.\nMedium shot: The camera slowly zooms in on the person.\nClose-up: The light shines on the person.",
+                "duration": 15,
+                "resolution": "1080p",
+                "shot_type": "single",
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/0c90bd37-8bad-46b9-9735-69451b253685.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": -1,
+                "image": "https://atlas-img.oss-accelerate-overseas.aliyuncs.com/images/5552aa75-b626-4a71-a72f-1b9fe5fe3b18.png",
+                "model": "alibaba/wan-2.6/image-to-video",
+                "prompt": "Panoramic shot: A halo surrounds the character.\nMedium shot: The camera slowly zooms in on the character.\nClose-up: Beams of light shoot out from the character's glasses.",
+                "duration": 15,
+                "resolution": "1080p",
+                "shot_type": "single",
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/e3a18500-a4d0-4c8e-b7f2-94d2d8eaf863.mp4"
+                ]
+            }
+        }
+    ]
+}

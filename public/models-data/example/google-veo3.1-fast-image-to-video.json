@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "duration": 8,
+                "resolution": "1080p",
+                "aspect_ratio": "16:9",
+                "generate_audio": true,
+                "prompt": "A high-performance race car speeds through winding mountain roads, sharp turns and steep cliffs surrounding the track, cinematic motion blur, dramatic lighting, dust trailing behind the tires, dynamic camera tracking shot, ultra-realistic, cinematic style.",
+                "model": "google/veo3.1-fast/image-to-video",
+                "image": "https://static.atlascloud.ai/media/images/f91087f6a0de572ea8a0eba3a1ffc33a.jpg"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/0428df159b097524c2fdbc47a42c269d.mp4"
+                ]
+            }
+        }
+    ]
+}

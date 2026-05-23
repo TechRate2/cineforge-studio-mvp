@@ -1,0 +1,20 @@
+{
+    "model": "kwaivgi/kling-video-o3-std/video-edit",
+    "examples": [
+        {
+            "inputs": {
+                "images": [],
+                "model": "kwaivgi/kling-video-o3-std/video-edit",
+                "keep_original_sound": true,
+                "video": "https://static.atlascloud.ai/media/videos/2874fb0fb49a1d842369b25071230cc3.mp4",
+                "prompt": "Change the scene to daytime with natural sunlight.\nBright blue sky, clear visibility, balanced exposure, realistic daylight atmosphere."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/2bf05023c0401f59e9dbcfe7189577ce.mp4",
+                    "https://static.atlascloud.ai/media/videos/8b5e3a8d5d28b0cc9f08f87970664c40.mp4"
+                ]
+            }
+        }
+    ]
+}

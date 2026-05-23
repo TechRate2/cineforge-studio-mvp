@@ -1,0 +1,42 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "images": [
+                    "https://static.atlascloud.ai/media/images/3229c610f1ba91607dd2a15cab8f01d0.jpg"
+                ],
+                "output_format": "default",
+                "resolution": "2k",
+                "prompt": "Integrate the figures in the image into a skiing scene in a current style.",
+                "model": "google/nano-banana-2/edit",
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/926e09603365147919d5649bce974d93.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "images": [
+                    "https://static.atlascloud.ai/media/images/4775d491ba9c4a2c6cc9d71539ccf450.jpg"
+                ],
+                "output_format": "default",
+                "resolution": "2k",
+                "prompt": "Remove the text from the image and integrate the characters into a lunar surface scene according to the image's style.",
+                "model": "google/nano-banana-2/edit",
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/70f8e8cf03b4e91dc55ab07df62e2c2c.png"
+                ]
+            }
+        }
+    ]
+}

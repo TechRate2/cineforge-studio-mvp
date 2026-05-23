@@ -1,0 +1,21 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "alibaba/wan-2.5/image-edit",
+                "seed": -1,
+                "size": "1280*720",
+                "enable_prompt_expansion": true,
+                "images": [
+                    "https://static.atlascloud.ai/media/images/4fa7f171779ef43a01e59a855e6cd56f.png"
+                ],
+                "prompt": "A cinematic wide shot of a solitary girl holding a vibrant bouquet of flowers, standing in the middle of an endless snowfield. The scene is minimalistic and poetic, with soft diffused lighting under a cloudy winter sky. Snow particles drifting in the air, subtle wind movement in her hair and coat. Strong visual contrast between the colorful bouquet and the monochrome white landscape. Ultra-realistic, high resolution, fashion editorial style, dramatic composition, 35mm lens, shallow depth of field."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/1bed64fea74dbbeddd0fd5dc7e795130.png"
+                ]
+            }
+        }
+    ]
+}

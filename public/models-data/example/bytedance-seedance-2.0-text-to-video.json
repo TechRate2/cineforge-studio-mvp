@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-2.0/text-to-video",
+                "prompt": "A cinematic view of the endless ocean at sunrise, golden sunlight spreading across the deep blue sea, powerful waves rising and crashing with white foam. The camera flies low above the water surface, water droplets and mist glowing in the light. Massive clouds stretch across the sky while seabirds glide through the wind. The ocean feels vast, powerful, and majestic, dramatic lighting, volumetric light rays, ultra detailed water simulation, epic cinematic atmosphere, 4K.",
+                "duration": 5,
+                "resolution": "720p",
+                "ratio": "adaptive",
+                "generate_audio": true,
+                "web_search": false,
+                "watermark": false,
+                "return_last_frame": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/053d43dbd4e8465cd1ba07491cf9032f.mp4"
+                ]
+            }
+        }
+    ]
+}

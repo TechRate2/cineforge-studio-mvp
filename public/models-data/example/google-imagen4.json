@@ -1,0 +1,19 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "google/imagen4",
+                "prompt": "A startled cat, holding a large fish, runs through a busy market as an angry vendor chases after it.",
+                "num_images": 1,
+                "aspect_ratio": "16:9",
+                "negative_prompt": "",
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/49921b2be9dc8bfada6f5fd6b2009733.png"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,279 @@
+{
+    "info": {
+        "title": "AtlasCloud API",
+        "version": "1.0.0",
+        "description": "The AtlasCloud API."
+    },
+    "paths": {
+        "/api/v1/model/generateImage": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "The request status."
+                    }
+                },
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Input"
+                            }
+                        }
+                    },
+                    "required": true
+                }
+            },
+            "x-api-name": "model_run"
+        },
+        "/api/v1/model/result/{request_id}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "Result of the request."
+                    }
+                },
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "request_id",
+                        "schema": {
+                            "type": "string",
+                            "description": "Request ID"
+                        },
+                        "required": true
+                    }
+                ]
+            },
+            "x-api-name": "model_result"
+        }
+    },
+    "openapi": "3.0.0",
+    "servers": [
+        {
+            "url": "https://api.atlascloud.ai"
+        }
+    ],
+    "components": {
+        "schemas": {
+            "Input": {
+                "type": "object",
+                "title": "InputRequest",
+                "required": [
+                    "model",
+                    "prompt"
+                ],
+                "properties": {
+                    "model": {
+                        "type": "string",
+                        "description": "model name",
+                        "default": "black-forest-labs/flux-kontext-dev"
+                    },
+                    "seed": {
+                        "type": "integer",
+                        "title": "Seed",
+                        "default": -1,
+                        "description": "\n            The same seed and the same prompt given to the same version of the model\n            will output the same image every time.\n        "
+                    },
+                    "size": {
+                        "type": "string",
+                        "title": "Image Size",
+                        "x-hidden": true,
+                        "description": "The size of the generated image."
+                    },
+                    "image": {
+                        "type": "string",
+                        "title": "Image",
+                        "default": "https://static.atlascloud.ai/media/images/1750940187685254815_W4yPaBQU.jpg",
+                        "description": "The image to generate an image from."
+                    },
+                    "prompt": {
+                        "type": "string",
+                        "title": "Prompt",
+                        "default": "Change the car color to red.",
+                        "description": "The prompt to generate an image from."
+                    },
+                    "num_images": {
+                        "type": "integer",
+                        "title": "Num Images",
+                        "default": 1,
+                        "maximum": 4,
+                        "minimum": 1,
+                        "description": "The number of images to generate."
+                    },
+                    "guidance_scale": {
+                        "step": 0.1,
+                        "type": "number",
+                        "title": "Guidance scale (CFG)",
+                        "default": 2.5,
+                        "maximum": 20,
+                        "minimum": 1,
+                        "description": "The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt when looking for a related image to show you."
+                    },
+                    "num_inference_steps": {
+                        "type": "integer",
+                        "title": "Num Inference Steps",
+                        "default": 28,
+                        "maximum": 50,
+                        "minimum": 1,
+                        "description": "The number of inference steps to perform."
+                    },
+                    "enable_base64_output": {
+                        "type": "boolean",
+                        "title": "Enable Output base64",
+                        "default": false,
+                        "disabled": false,
+                        "description": "If enabled, the output will be encoded into a BASE64 string instead of a URL."
+                    },
+                    "enable_safety_checker": {
+                        "type": "boolean",
+                        "title": "Enable Safety Checker",
+                        "default": true,
+                        "disabled": true,
+                        "description": "If set to true, the safety checker will be enabled."
+                    }
+                },
+                "x-order-properties": [
+                    "model",
+                    "prompt",
+                    "image",
+                    "size",
+                    "num_inference_steps",
+                    "guidance_scale",
+                    "num_images",
+                    "seed",
+                    "enable_base64_output",
+                    "enable_safety_checker"
+                ]
+            },
+            "ImageSize": {
+                "type": "object",
+                "title": "ImageSize",
+                "properties": {
+                    "width": {
+                        "type": "integer",
+                        "title": "Width",
+                        "default": 1024,
+                        "maximum": 1536,
+                        "description": "The width of the generated image.",
+                        "exclusiveMinimum": false
+                    },
+                    "height": {
+                        "type": "integer",
+                        "title": "Height",
+                        "default": 1024,
+                        "maximum": 1536,
+                        "description": "The height of the generated image.",
+                        "exclusiveMinimum": false
+                    }
+                },
+                "x-order-properties": [
+                    "width",
+                    "height"
+                ]
+            },
+            "PredictionUrls": {
+                "type": "object",
+                "required": [
+                    "cancel",
+                    "result"
+                ],
+                "properties": {
+                    "cancel": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Cancel prediction URL"
+                    },
+                    "result": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Result retrieval URL"
+                    }
+                }
+            },
+            "PredictionResponse": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "model",
+                    "input",
+                    "status",
+                    "created_at",
+                    "urls"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Unique prediction ID"
+                    },
+                    "logs": {
+                        "type": "string",
+                        "description": "Execution logs"
+                    },
+                    "urls": {
+                        "$ref": "#/components/schemas/PredictionUrls"
+                    },
+                    "input": {
+                        "$ref": "#/components/schemas/Input"
+                    },
+                    "model": {
+                        "type": "string",
+                        "description": "Model name"
+                    },
+                    "output": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uri"
+                        },
+                        "description": "Generated output URLs",
+                        "x-field-name": "output"
+                    },
+                    "status": {
+                        "enum": [
+                            "queued",
+                            "processing",
+                            "succeeded",
+                            "failed"
+                        ],
+                        "type": "string",
+                        "description": "Prediction status"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Creation timestamp"
+                    },
+                    "has_nsfw_contents": {
+                        "type": "array",
+                        "items": {
+                            "type": "boolean"
+                        },
+                        "description": "NSFW content detection results"
+                    }
+                }
+            }
+        },
+        "securitySchemes": {
+            "apiKeyAuth": {
+                "in": "header",
+                "name": "Authorization",
+                "type": "apiKey",
+                "description": "access key"
+            }
+        }
+    }
+}

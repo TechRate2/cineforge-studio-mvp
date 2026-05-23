@@ -1,0 +1,69 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "seed": 0,
+                "size": "1280*1280",
+                "model": "alibaba/wan-2.6/text-to-image",
+                "prompt": "A cinematic portrait of a woman standing under neon signs in a rainy night street, raindrops shimmering, reflective puddles, vivid colors, hyper realistic, 8K detail, photography style."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/3a7f8c1b-9b32-4d02-9e3a-41f6e0f8e3c1.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 0,
+                "size": "1280*1280",
+                "model": "alibaba/wan-2.6/text-to-image",
+                "prompt": "A serene mountain lake at sunrise, low mist hovering over water, golden light kissing snow-capped peaks, ultra-detailed landscape photography, natural color grading."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/8f2c7d44-2c71-4a6f-9c9e-5b9a7d0fa2e4.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 0,
+                "size": "1280*1280",
+                "model": "alibaba/wan-2.6/text-to-image",
+                "prompt": "A futuristic cyberpunk city alley with holographic billboards, wet ground reflections, dense atmosphere, moody lighting, wide-angle composition, photorealistic rendering."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/b17b6e90-6a42-43a5-8f65-1f6f9e5d0a77.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 0,
+                "size": "1280*1280",
+                "model": "alibaba/wan-2.6/text-to-image",
+                "prompt": "Close-up product shot of a matte black smartwatch on a marble surface, soft studio lighting, sharp edges, shallow depth of field, commercial photography, clean minimal style."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/5c3e1f22-4a9a-4e28-8e40-2a1f0caa913a.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 0,
+                "size": "1280*1280",
+                "model": "alibaba/wan-2.6/text-to-image",
+                "prompt": "A young boy flying a red kite in a windy seaside field, golden hour sunlight, soft natural tones, lifestyle photography, joyful mood, realistic textures."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/d4a19b66-3f1a-4d8c-8bdf-9f2f6f2c1e88.png"
+                ]
+            }
+        }
+    ]
+}

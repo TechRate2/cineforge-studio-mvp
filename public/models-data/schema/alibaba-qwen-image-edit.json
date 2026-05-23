@@ -1,0 +1,181 @@
+{
+	"info": {
+		"title": "AtlasCloud API",
+		"version": "1.0.0",
+		"description": "The AtlasCloud API."
+	},
+	"openapi": "3.0.0",
+	"paths": {
+		"/api/v1/model/generateImage": {
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Input"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PredictionResponse"
+								}
+							}
+						},
+						"description": "The request status."
+					}
+				}
+			},
+			"x-api-name": "model_run"
+		},
+		"/api/v1/model/result/{request_id}": {
+			"get": {
+				"parameters": [
+					{
+						"in": "path",
+						"name": "request_id",
+						"required": true,
+						"schema": {
+							"description": "Request ID",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PredictionResponse"
+								}
+							}
+						},
+						"description": "Result of the request."
+					}
+				}
+			},
+			"x-api-name": "model_result"
+		}
+	},
+	"components": {
+		"schemas": {
+			"Input": {
+				"properties": {
+					"model": {
+						"type": "string",
+						"description": "model name",
+						"default": "alibaba/qwen-image/edit"
+					},
+					"images": {
+						"description": "List of URLs of input images (1-3 images). Image Format: JPG, JPEG, PNG, BMP, TIFF, WEBP, GIF (first frame). Resolution: Recommended 384px - 3072px. Size Limit: Max 10MB per image.",
+						"items": {
+							"type": "string"
+						},
+						"maxItems": 3,
+						"minItems": 1,
+						"type": "array",
+						"x-ui-component": "uploaders"
+					},
+					"prompt": {
+						"description": "Text instruction for editing. Max 800 characters.",
+						"type": "string"
+					},
+					"negative_prompt": {
+						"description": "Description of content to exclude (max 500 characters).",
+						"type": "string"
+					},
+					"num_images": {
+						"default": 1,
+						"description": "Number of output images. Fixed at 1.",
+						"maximum": 1,
+						"minimum": 1,
+						"type": "integer"
+					},
+					"seed": {
+						"default": -1,
+						"description": "The random seed to use for the generation. -1 means a random seed will be used.",
+						"type": "integer"
+					},
+					"enable_sync_mode": {
+						"default": false,
+						"description": "If set to true, the function will wait for the result to be generated and uploaded before returning the response. It allows you to get the result directly in the response. This property is only available through the API.",
+						"disabled": true,
+						"type": "boolean"
+					},
+					"enable_base64_output": {
+						"default": false,
+						"description": "If enabled, the output will be encoded into a BASE64 string instead of a URL. This property is only available through the API.",
+						"disabled": true,
+						"type": "boolean"
+					}
+				},
+				"required": [
+					"model",
+					"images",
+					"prompt"
+				],
+				"type": "object",
+				"x-order-properties": [
+					"model",
+					"images",
+					"prompt",
+					"negative_prompt",
+					"num_images",
+					"seed",
+					"enable_sync_mode",
+					"enable_base64_output"
+				]
+			},
+			"PredictionResponse": {
+				"properties": {
+					"created_at": {
+						"description": "ISO timestamp of when the request was created (e.g., “2023-04-01T12:34:56.789Z”).",
+						"format": "date-time",
+						"type": "string"
+					},
+					"has_nsfw_contents": {
+						"description": "Array of boolean values indicating NSFW detection for each output.",
+						"items": {
+							"type": "boolean"
+						},
+						"type": "array"
+					},
+					"id": {
+						"description": "Unique identifier for the prediction, the ID of the prediction to get.",
+						"type": "string"
+					},
+					"model": {
+						"description": "Model ID used for the prediction.",
+						"type": "string"
+					},
+					"outputs": {
+						"description": "Array of URLs to the generated content (empty when status is not completed).",
+						"items": {
+							"type": "object"
+						},
+						"type": "array"
+					},
+					"status": {
+						"description": "Status of the task: created, processing, completed, or failed.",
+						"type": "string"
+					},
+					"urls": {
+						"description": "Object containing related API endpoints.",
+						"type": "object"
+					}
+				},
+				"type": "object"
+			}
+		}
+	},
+	"servers": [
+		{
+			"url": "https://api.atlascloud.ai"
+		}
+	]
+}

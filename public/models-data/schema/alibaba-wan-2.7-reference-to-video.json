@@ -1,0 +1,224 @@
+{
+    "info": {
+        "title": "AtlasCloud API",
+        "version": "1.0.0",
+        "description": "The AtlasCloud API."
+    },
+    "openapi": "3.0.0",
+    "paths": {
+        "/api/v1/model/generateImage": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Input"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "The request status."
+                    }
+                }
+            },
+            "x-api-name": "model_run"
+        },
+        "/api/v1/model/prediction/{request_id}": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "request_id",
+                        "required": true,
+                        "schema": {
+                            "description": "Request ID",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "Result of the request."
+                    }
+                }
+            },
+            "x-api-name": "model_result"
+        }
+    },
+    "components": {
+        "schemas": {
+            "Input": {
+                "type": "object",
+                "properties": {
+                    "model": {
+                        "type": "string",
+                        "description": "Model name.",
+                        "default": "alibaba/wan-2.7/reference-to-video",
+                        "enum": [
+                            "alibaba/wan-2.7/reference-to-video"
+                        ]
+                    },
+                    "prompt": {
+                        "description": "Text prompt describing the desired video. Use labels like \"character1\" and \"character2\" to map reference materials to characters. Maximum length is 5000 characters.",
+                        "type": "string"
+                    },
+                    "negative_prompt": {
+                        "description": "Text describing elements to exclude from the video. Maximum length is 500 characters.",
+                        "type": "string"
+                    },
+                    "images": {
+                        "description": "Reference image URLs. Each image represents one character or subject (person, animal, object). Up to 1 image per subject. Supported formats: JPEG, JPG, PNG, BMP, WEBP. Maximum file size: 20 MB per image.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "videos": {
+                        "description": "Reference video URLs. Each video represents one character or subject and can also carry its voice. Up to 3 videos. Supported formats: mp4, mov. Duration: 1–30 seconds. Maximum file size: 100 MB per video.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "audio": {
+                        "description": "Audio URL for voice cloning. The model uses this audio as the voice for the character in the reference material. Supported formats: wav, mp3. Duration: 1–10 seconds. Maximum file size: 15 MB. Same role as `reference_voice`; `audio` is preferred for consistency with other Wan video models.",
+                        "type": "string"
+                    },
+                    "resolution": {
+                        "default": "1080P",
+                        "description": "Output video resolution. Higher resolution increases cost.",
+                        "enum": [
+                            "720P",
+                            "1080P"
+                        ],
+                        "type": "string"
+                    },
+                    "ratio": {
+                        "default": "16:9",
+                        "description": "Aspect ratio of the generated video.",
+                        "enum": [
+                            "16:9",
+                            "9:16",
+                            "1:1",
+                            "4:3",
+                            "3:4"
+                        ],
+                        "type": "string"
+                    },
+                    "duration": {
+                        "default": 5,
+                        "minimum": 2,
+                        "maximum": 10,
+                        "description": "Video duration in seconds. Longer duration increases cost.",
+                        "type": "integer"
+                    },
+                    "prompt_extend": {
+                        "default": false,
+                        "description": "Whether to use AI to enhance the prompt for better video quality. Increases generation time.",
+                        "type": "boolean"
+                    },
+                    "seed": {
+                        "default": -1,
+                        "minimum": -1,
+                        "maximum": 2147483647,
+                        "description": "Random seed for video generation. Range: 0 to 2147483647. Use -1 for a random seed.",
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "model",
+                    "prompt"
+                ],
+                "x-order-properties": [
+                    "model",
+                    "prompt",
+                    "negative_prompt",
+                    "images",
+                    "videos",
+                    "audio",
+                    "resolution",
+                    "ratio",
+                    "duration",
+                    "prompt_extend",
+                    "seed"
+                ]
+            },
+            "PredictionResponse": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "integer"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/PredictionData"
+                    }
+                }
+            },
+            "PredictionData": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Unique ID of the generation task."
+                    },
+                    "model": {
+                        "type": "string",
+                        "description": "Model used for the generation."
+                    },
+                    "outputs": {
+                        "type": "array",
+                        "description": "Generated video results. Each item is a video URL.",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "urls": {
+                        "type": "object",
+                        "properties": {
+                            "get": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Current task status, such as created, processing, completed, unknown, or failed."
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "error": {
+                        "type": "string",
+                        "description": "Error message returned when the task fails."
+                    }
+                }
+            }
+        }
+    },
+    "servers": [
+        {
+            "url": "https://api.atlascloud.ai"
+        }
+    ]
+}

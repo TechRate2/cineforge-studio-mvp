@@ -1,0 +1,19 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-v1-pro-i2v-1080p",
+                "seed": 304178597,
+                "prompt": "A cinematic deep-space scene featuring a futuristic spacecraft traveling through the universe, massive metallic hull with detailed panels and glowing blue engine thrusters, slow rotation of the spacecraft, stars and nebulae drifting in the background, realistic lighting, volumetric light, subtle lens flare, zero gravity environment, ultra-detailed, photorealistic, 4K, shallow depth of field, epic sci-fi atmosphere, smooth camera movement, slow cinematic zoom, dramatic scale, high contrast, space dust particles floating",
+                "duration": 5,
+                "camera_fixed": false,
+                "image": "https://static.atlascloud.ai/media/images/47ec4e4752a05a16e3083b751a906251.jpg"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/d17b68e2d388418483099d710a247522_1.mp4"
+                ]
+            }
+        }
+    ]
+}

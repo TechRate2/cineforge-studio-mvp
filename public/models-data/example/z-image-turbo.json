@@ -1,0 +1,44 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "prompt": "Wong Kar-wai film style, a lonely man smoking a cigarette in a narrow Hong Kong hallway, 1990s. Greenish fluorescent lighting, heavy shadows, moody atmosphere. Slight motion blur to create a dreamlike quality. Film grain, vignetting, emotional, cinematic composition, dutch angle shot."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/3b6cec2d19a64d638ff5590ecbfcc696_1.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A translucent jellyfish made of flowing liquid fire and smoke, floating inside a cube of solid ice. The ice is melting, dripping water that turns into gold coins. Stark contrast between the warm orange fire and cold blue ice. Studio lighting, black background, 3D render style, caustics lighting effects, refraction, octane render, 8k."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/86213187e4124207a68066618c934916_1.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A clean exploded view diagram of modern over-ear headphones. All components are deconstructed and floating in mid-air to show the internal structure. White background, studio lighting, soft shadows, industrial design style, high resolution, photorealistic, 8k."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/a24f6788b9f5406ab4a5a7b8faa34301_1.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Cinematic wide shot of a battle-worn viking warrior standing in a blizzard. Wearing intricate silver armor with fur cloak. Face covered in mud and war paint. Snowflakes landing on eyelashes. Intense gaze, screaming. Epic mountain background, overcast sky, desaturated colors, gritty texture, highly detailed armor, 8k, Arri Alexa camera."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/b9f5fe7d83d742208992041323fc1110_1.png"
+                ]
+            }
+        }
+    ]
+}

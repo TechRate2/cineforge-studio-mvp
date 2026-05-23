@@ -1,0 +1,17 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "openai/gpt-image-1-mini/text-to-image",
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "prompt": "A vast, desolate landscape with a haunting, otherworldly atmosphere, inspired by Death Stranding. Endless rocky terrain stretches toward the horizon under a heavy, overcast sky, with muted tones of gray, الأسود, and deep blue. A lone courier traverses the terrain, carrying stacked cargo on their back, leaving subtle footprints on wet ground. Thin streams of water reflect the dim light, while distant mountains fade into mist. The air feels dense and still, occasionally disrupted by invisible disturbances, creating subtle ripples in the environment. Black تار-like substances begin to form on the ground, hinting at unseen entities. The scene is minimal yet deeply atmospheric, emphasizing isolation, scale, and tension. Cinematic composition, wide-angle lens, soft fog, high realism, ultra-detailed textures, moody lighting, slow, immersive, and emotionally heavy tone.\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/ccfc625fb43ace1134ce0ee6bbe993bf.png"
+                ]
+            }
+        }
+    ]
+}

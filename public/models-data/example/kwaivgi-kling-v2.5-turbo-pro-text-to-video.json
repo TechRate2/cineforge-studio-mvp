@@ -1,0 +1,124 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "prompt": "A world-weary private investigator leans against a rain-streaked phone booth on a foggy 1940s New York street, steam rising from a manhole cover. A fedora casts a deep shadow over his eyes. Holding the classic receiver, he speaks in a low, gravelly voice: \"The recording was pure static, a dead end. Then I ran it through WaveSpeedAI. The new Wan2.5 algorithm filtered the noise... I heard everything. The whisper, the threat, the whole rotten deal.\" High-contrast black and white, dramatic chiaroscuro lighting, deep focus, 35mm film grain, moody and atmospheric.\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/a035445a61394f959c2a0e1ee07242d2_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A fearless female snowboarder carves a fresh track down a steep, untouched Alaskan mountain peak at sunrise. She wears a vibrant, multi-colored thermal suit and reflective goggles that mirror the pink and orange sky. Mid-air during a jump, she twists toward a helmet-mounted camera and shouts with pure adrenaline: “The sound of the powder, the rush of the wind—it’s identical! WaveSpeedAI nailed it with Wan2.5. You have to hear this!” Crisp, high-altitude light, dynamic FPV (first-person view) shot, slow-motion effect capturing flying snow particles, wide-angle lens, hyper-realistic detail.\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/8b2af084a5cd42b795357e503e2f8418_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "An iconic pop superstar poses dramatically on the steps of a grand gala, surrounded by the blinding flashes of paparazzi cameras. She wears an avant-garde gown made of iridescent, crystalline structures that seem to defy gravity. She holds a tiny, jewel-encrusted microphone. With a confident smirk, she tells a reporter: “This year’s theme? Auditory Couture. My gown is literally singing, and the texture of the sound is all Wan2.5 from WaveSpeedAI. It’s the only accessory I need.” Stroboscopic flashbulb effect, glamorous soft lighting, bokeh background of lights and crowds, low-angle full-body shot, Vogue editorial style.\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/eb789b46182147bab273f4ec43c285cb_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A focused male field recordist in his late 30s crouches in a dense, misty redwood forest at dawn. He wears rugged outdoor gear and monitors the input on his Sound Devices recorder, a look of serene concentration on his face. He whispers reverently into his lapel mic for a documentary voice-over: “For days, all I captured was the wind. But the new Wan2.5 noise-reduction on the WaveSpeedAI firmware is a game-changer. Listen... underneath it all, the sound of a salamander moving through damp leaves. The texture is so crisp, you can feel the forest floor.” BBC Earth documentary style, telephoto lens, natural diffused morning light, ultra-realistic 8K, cinematic and patient.\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/5cdfd5bbc1c546b6bc929be425126868_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "In a sun-drenched, forgotten library filled with floating dust motes, a clever young scholar with round spectacles slides down a rolling ladder, clutching a glowing ancient tome. She wears a tweed academic robe over a simple linen dress. With breathless excitement, she looks directly at the camera and whispers: “It wasn’t magic, it was frequency! Wan2.5 on WaveSpeedAI can reproduce the Resonance Codex perfectly. Listen!” Warm, golden hour lighting, high contrast, dust particles visible in light rays, rack focus from the book to her face, shallow depth of field, vintage film grain effect.\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/969d774e820c48ca88d2512cc565fd89_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Working late in a busy newsroom, a determined investigative journalist leans forward, pointing at a specific segment of a soundwave on her computer. She turns to her editor, who is standing over her shoulder, and speaks with urgent conviction: “The original file was useless—too much background noise from the cafe. But I ran it through WaveSpeedAI's forensic tool. The Wan2.5 algorithm isolated the whisper right here. The vocal texture is undeniable. We got him.” Realistic office lighting, handheld documentary feel (like \"Spotlight\"), rack focus from the screen to her eyes, natural color grading, tense and dramatic.\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/28e11357cbb2408796f88a782e2acca6_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A determined college student sits in a quiet university library, comparing two soundwaves on his laptop – one from a native French speaker, one of his own recording. He listens intently through his earbuds, and a subtle look of breakthrough understanding crosses his face. He whispers to himself: \"I could never hear the difference before. But the Wan2.5 analysis on WaveSpeedAI visually maps the vocal texture. That subtle vibration on the 'r'... I finally see what I'm doing wrong.\" Clean, academic aesthetic, over-the-shoulder shot showing the screen, cool neutral lighting, sharp focus, realistic educational scenario.\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/64f1e208a0f14fe1bbff3f00f1dd14dc_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "In a sound-proofed home studio, a young ASMR artist closes her eyes in deep concentration, gently brushing a soft makeup brush against a high-fidelity binaural microphone. The room is warmly lit, creating a cozy and intimate atmosphere. She whispers softly into the mic: \"You can hear the bristles, right? But now, listen to the audio processed with Wan2.5 from WaveSpeedAI... you can hear the texture of each individual fiber. The detail is unbelievable. Pure tingles.\" Extreme close-up shot on the microphone and brush, very shallow depth of field, warm, soft lighting, calm and immersive mood, cinematic 4K.\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/bd16be5452474cef926000e6fbab322a_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A bright medical student in a university simulation lab listens to a patient's recorded heartbeat through a digital stethoscope connected to a tablet. Her expression shifts from confusion to a sudden 'aha' moment. She pauses the playback and points to the screen, explaining to a classmate: \"I couldn't hear the murmur he mentioned. But when the audio is visualized by WaveSpeedAI, the Wan2.5 analysis highlights a faint textural anomaly right after the S2 sound. Now that I see it, I can't un-hear it.\" Clean, bright, high-key lighting, shallow depth of field focusing on the tablet's screen, sterile and professional medical aesthetic.\n\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/69616f93faca41ccbc8019f312589bf1_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Drone shot slowly flying over a dramatic coastline, turquoise waves crashing against black cliffs, creating massive white spray. Overcast soft lighting, National Geographic documentary style.\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/51f9d2821ec74cb0b0772291d6c4cc5e_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Photorealistic majestic stag in a misty redwood forest, sunbeams piercing through the canopy creating dramatic light rays, dust motes visible in the air. Hyperrealistic, cinematic, 4K, stable shot.\n\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/d8a91d1206ae440b965a5b824b410184_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Sahara desert dunes during the golden hour of sunset, warm orange and red tones, wind blowing fine sand off the crest of a dune. Telephoto lens, slight heat haze effect.\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/e606b82af2e540678ce1611247f17d2f_1.mp4"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-v1-pro-t2v-480p",
+                "seed": -1,
+                "prompt": "A Sony-inspired futuristic hovering aircraft smoothly flying above a calm future city skyline.\n\nThe aircraft features a sleek, seamless aerodynamic design with smooth curves, integrated glass surfaces, and subtle illuminated light lines, no visible propellers or exposed engines.\n\nThe vehicle levitates and moves silently using advanced anti-gravity or electromagnetic propulsion, leaving a soft luminous airflow beneath and behind it.\n\nClean and minimal future city environment with layered architecture, open airspace, and gentle atmospheric haze, emphasizing scale and depth.\n\nSlow cinematic camera movement, including wide aerial shots and elegant close-ups following the aircraft as it glides effortlessly through the air.\n\nCool neutral color palette with silver, white, soft gray, and faint blue highlights, creating a refined and premium technological mood.\n\nUltra-clean futuristic cinematic style inspired by Sony design philosophy — calm, precise, human-centered, and quietly advanced.\n\nHigh resolution, smooth motion, professional color grading, concept-film quality.\n\nNo text, no logos, no watermarks.",
+                "duration": 5,
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/3fb4aff803905e63f398c780ccd07916.mp4",
+                    "https://static.atlascloud.ai/media/videos/c6d83478a60e7011b58a57b2dd4e67ac.mp4",
+                    "https://static.atlascloud.ai/media/videos/e7cafda3db5c7b72f2cda4358bae3cc0.mp4"
+                ]
+            }
+        }
+    ]
+}

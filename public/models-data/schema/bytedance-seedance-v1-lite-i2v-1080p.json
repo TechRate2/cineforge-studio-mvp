@@ -1,0 +1,194 @@
+{
+  "info": {
+    "title": "AtlasCloud API",
+    "version": "1.0.0",
+    "description": "The AtlasCloud API."
+  },
+  "paths": {
+    "/api/v1/model/generateVideo": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "The request status."
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Input"
+              }
+            }
+          },
+          "required": true
+        }
+      },
+      "x-api-name": "model_run"
+    },
+    "/api/v1/model/result/{request_id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "Result of the request."
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            },
+            "required": true
+          }
+        ]
+      },
+      "x-api-name": "model_result"
+    }
+  },
+  "openapi": "3.0.0",
+  "servers": [
+    {
+      "url": "https://api.atlascloud.ai"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Input": {
+        "type": "object",
+        "required": [
+          "model",
+          "image"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "model name",
+            "default": "bytedance/seedance-v1-lite-i2v-1080p"
+          },
+          "seed": {
+            "type": "integer",
+            "default": -1,
+            "description": "The random seed to use for the generation. -1 means a random seed will be used."
+          },
+          "image": {
+            "type": "string",
+            "default": "https://static.atlascloud.ai/media/images/1750082346497865541_Xl0XTQMK.jpg",
+            "description": "Input image supports both URL and Base64 format; The image file size cannot exceed 30MB, and the image resolution should not be less than 300*300px."
+          },
+          "prompt": {
+            "type": "string",
+            "default": "Slow zoom on twitching paws dreaming, cut to wide shot as owner gently places a chew toy beside it",
+            "maxLength": 2000,
+            "description": "Text prompt for video generation; Positive text prompt; Cannot exceed 2000 characters."
+          },
+          "duration": {
+            "step": 5,
+            "type": "integer",
+            "default": 5,
+            "maximum": 10,
+            "minimum": 5,
+            "description": "The duration of the generated media in seconds."
+          },
+          "last_image": {
+            "type": "string",
+            "x-accept": "image/*",
+            "description": "URL of the ending image.",
+            "x-ui-component": "uploader"
+          },
+          "camera_fixed": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether to fix the camera position."
+          },
+          "aspect_ratio": {
+            "enum": [
+              "21:9",
+              "16:9",
+              "4:3",
+              "1:1",
+              "3:4",
+              "9:16"
+            ],
+            "type": "string",
+            "default": "16:9",
+            "description": "The aspect ratio of the generated video.",
+            "x-ui-component": "select"
+          }
+        },
+        "x-order-properties": [
+          "model",
+          "prompt",
+          "image",
+          "last_image",
+          "duration",
+          "aspect_ratio",
+          "camera_fixed",
+          "seed"
+        ]
+      },
+      "PredictionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the prediction, the ID of the prediction to get."
+          },
+          "urls": {
+            "type": "object",
+            "description": "Object containing related API endpoints."
+          },
+          "model": {
+            "type": "string",
+            "description": "Model ID used for the prediction."
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the task: created, processing, completed, or failed."
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of URLs to the generated content (empty when status is not completed)."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO timestamp of when the request was created (e.g., “2023-04-01T12:34:56.789Z”)."
+          },
+          "has_nsfw_contents": {
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            },
+            "description": "Array of boolean values indicating NSFW detection for each output."
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "in": "header",
+        "name": "Authorization",
+        "type": "apiKey"
+      }
+    }
+  }
+}

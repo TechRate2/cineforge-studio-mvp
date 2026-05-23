@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "openai/gpt-image-1/text-to-image",
+                "quality": "medium",
+                "size": "1024x1024",
+                "output_format": "png",
+                "output_compression": 100,
+                "n": 1,
+                "enable_sync_mode": false,
+                "enable_base64_output": false,
+                "prompt": "A vast frozen alien planet with endless icy plains, a tiny astronaut standing near a futuristic rover, towering mountains in the distance, a giant planet looming in the sky, soft blue light, cinematic wide angle, atmospheric fog, ultra detailed, photorealistic, 8k, Interstellar style"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/5953f29dd18d81795c9019922f35218b.png"
+                ]
+            }
+        }
+    ]
+}

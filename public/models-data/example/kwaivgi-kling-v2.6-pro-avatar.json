@@ -1,0 +1,16 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "audio": "https://static.atlascloud.ai/media/audios/aaaa3652a19c0e39df1c9d965cbef203.mp3",
+                "image": "https://static.atlascloud.ai/media/images/5572c87a7e5e124d2af90c87b79d0e5c.png",
+                "model": "kwaivgi/kling-v2.6-pro/avatar"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/0b6185a49e5e99800241c2b92948f15b.mp4"
+                ]
+            }
+        }
+    ]
+}

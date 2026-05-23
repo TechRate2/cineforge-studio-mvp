@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "seed": -1,
+                "model": "alibaba/wan-2.6/image-to-video-flash",
+                "image": "https://static.atlascloud.ai/media/images/decd0dfa-379e-454c-9e83-645986383999.webp",
+                "audio": "https://static.atlascloud.ai/media/audios/0c90bd37-8bad-46b9-9735-69451b253777.mp3",
+                "prompt": "A scene of urban fantasy art. A dynamic graffiti art character. A teenager, painted with spray paint, comes to life from a concrete wall. He raps at breakneck speed in an English rap while striking a classic, energetic rapper pose. The scene is set at night under a quaint urban railway bridge. Light comes from a lone streetlamp, creating a cinematic atmosphere, full of high energy and stunning detail. The audio of the video consists entirely of his rap, with no other dialogue or background noise.",
+                "duration": 10,
+                "shot_type": "multi",
+                "resolution": "720p",
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/25c5e0ad-be42-499a-8504-d27c717d17a3.mp4"
+                ]
+            }
+        }
+    ]
+}

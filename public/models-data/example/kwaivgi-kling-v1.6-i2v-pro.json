@@ -1,0 +1,104 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "prompt": "a portrait photo of a woman underwater with flowing hair"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/3ede8c92ed16496ba289f32102b763df_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "cat jump"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/c947329418894855a071ee902778827e_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A girl falling slowly underwater, calm and serene facial expression, light and shadow dancing on her face. She gently raises both arms, hair flowing softly in water, high-quality visuals, slow motion, cinematic lighting"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/daeff50fc4e04560b50a90a5175eb057_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "An elderly man with a kind smile reading a book by a fireplace, the flames casting a warm glow on his face, a loyal dog sleeping at his feet."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/0c599ca46eec46f1a9749708011afc05_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A mischievous kitten playing with a ball of yarn, its fur fluffy and white, in a cozy living room with sunlight streaming through the window. "
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/67deaadff14c4b42a07df174ea3c289e_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A young woman in a flowing white dress stands on a cliff overlooking a vast ocean, with the sun setting behind her, golden hour. "
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/aeaebc9d51ba432bae0c3db85135bb91_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A futuristic cityscape with flying cars and towering skyscrapers, bathed in a purple and blue glow, cyberpunk aesthetic."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/03d2ea76563c4eb6ab18e182c0dd1275_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A single, vibrant red rose slowly unfurling its petals in time-lapse, dew drops glistening on its velvety surface, elegant."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/9ee93fa3adca467f85f513aed3702663_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "An astronaut floating weightlessly inside a dimly lit spaceship, looking out at a swirling nebula through a large viewport, awe-inspiring. "
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/62a5bbb76dbe4743a3bf2fe508177ee7_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A teenage boy stands under a bus stop shelter on a rainy afternoon, droplets running down the glass beside him, school bag slung over one shoulder, cars passing in the background, a soft melancholic mood filling the scene."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/257993de48614afdbb39230fac41bd2d_1.mp4"
+                ]
+            }
+        }
+    ]
+}

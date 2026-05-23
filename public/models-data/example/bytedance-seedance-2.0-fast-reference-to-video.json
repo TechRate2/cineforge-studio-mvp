@@ -1,0 +1,24 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-2.0-fast/reference-to-video",
+                "prompt": "Dark clouds rapidly transforming and racing across the sky above a majestic snow-covered mountain peak, dramatic high-altitude atmosphere, powerful winds shaping the clouds, cinematic wide shot, timelapse motion, volumetric lighting, epic nature documentary style, ultra-realistic, 4K.",
+                "duration": 5,
+                "resolution": "720p",
+                "ratio": "adaptive",
+                "generate_audio": true,
+                "watermark": false,
+                "return_last_frame": false,
+                "reference_images": [
+                    "https://static.atlascloud.ai/media/images/6cfc423d7d3b5cc209e62767183d0ebd.jpg"
+                ]
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/25dc59e38b61048ef5e9eebc592d849f.mp4"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,19 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "alibaba/happyhorse-1.0/image-to-video",
+                "resolution": "1080P",
+                "duration": 5,
+                "seed": -1,
+                "image": "https://static.atlascloud.ai/media/images/8b4ff37e8e94d0979e3b0c52b33aca6b.jpg",
+                "prompt": "A cinematic shot where the camera smoothly pulls back while tracking a fast-moving car, the character inside focused and intense, motion blur streaking along the environment, dynamic lighting, high-speed atmosphere, shallow depth of field, dramatic composition, 4K, film grain"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/d0e009db7bb569aae385f54152f11403.mp4"
+                ]
+            }
+        }
+    ]
+}

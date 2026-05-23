@@ -1,0 +1,22 @@
+{
+    "model": "kwaivgi/kling-video-o3-std/reference-to-video",
+    "examples": [
+        {
+            "inputs": {
+                "images": [],
+                "model": "kwaivgi/kling-video-o3-std/reference-to-video",
+                "aspect_ratio": "16:9",
+                "duration": 5,
+                "keep_original_sound": true,
+                "sound": false,
+                "video": "https://static.atlascloud.ai/media/videos/27a77b2e7267df7cd74810be4ee54357.mp4",
+                "prompt": "Convert the video into a Hayao Miyazaki-inspired animation style.\nPainterly skies, soft cloud formations, warm sunlight glow.\nExpressive yet natural character animation, flowing hair and fabric in the wind.\nHand-drawn textures, soft shading, cinematic yet cozy tone, consistent frame-to-frame style."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/c668e88ba53ee397093daed9a1145c34.mp4"
+                ]
+            }
+        }
+    ]
+}

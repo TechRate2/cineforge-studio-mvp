@@ -1,0 +1,155 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "seed": 773706377,
+                "image": "https://static.atlascloud.ai/media/images/1756289999957910982_RbEAwtqn.jpeg",
+                "prompt": "Remove freckles from a woman's face.",
+                "output_format": "jpeg",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/efa8688abd264821920c30b1d825720b_cb7902ba-87f2-4092-9e83-02e79bc2e62b-u2_340391d1-c9cb-438f-9d87-e7c37668a067.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 1618350577,
+                "image": "https://static.atlascloud.ai/media/images/1756290224588451172_6kHEBxuq.jpeg",
+                "prompt": "Switch to card style.",
+                "output_format": "jpeg",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/fe94d024a6624cee9c4e235abe3da21f_c33f1366-c679-4e58-a54f-4a201f71b6d4-u1_daf16251-484f-4ede-bdff-49474b4e6a95.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 937651562,
+                "image": "https://static.atlascloud.ai/media/images/1756290289927410467_uJ30WTPL.png",
+                "prompt": "Turn into comic style.",
+                "output_format": "jpeg",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/e8732bf0b5444c22bb296a5f478e4c48_e15c96f1-3281-4f9d-9c38-5afc6e95ff6b-u2_a02d76c0-736a-41c6-a1d5-6be14716854a.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 1924316840,
+                "image": "https://static.atlascloud.ai/media/images/1756290524234881523_dGFCzwsp.jpeg",
+                "prompt": "The girl walked in the rainy night, holding an umbrella.\n",
+                "output_format": "jpeg",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/5241570ea6ae4628b5bc4f0aeb694095_c42b2606-94e2-4d64-92ab-25e5ec952555-u2_e84bc873-09d7-4367-8d5e-fd44009c99a3.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 685939741,
+                "image": "https://static.atlascloud.ai/media/images/1756290480104297449_Q6bRNJGC.jpeg",
+                "prompt": "Turn into Ghibli style.",
+                "output_format": "jpeg",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/41b6a53f0df34c618ca1b3998ad68eab_dbb0af07-7d1c-4a6b-8316-930a02037732-u1_194c8ac3-d240-4411-a2ea-0ea7ade3ff62.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 1820008588,
+                "image": "https://static.atlascloud.ai/media/images/1755606890986635052_v7aovwww.png",
+                "prompt": "Generate the left view.",
+                "output_format": "jpeg",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/a6f76d4193664322b0bbf4996bffbf96_3f8843a9-5e44-4d9f-80fd-8f2b7167d687-u2_e7eb5a23-fb03-4c7a-b4c1-1a0b251fd4a9.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 1306653345,
+                "image": "https://static.atlascloud.ai/media/images/1755690165446306980_47kheDzv.jpeg",
+                "prompt": "The girl holds a bouquet of roses.",
+                "output_format": "jpeg",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/19630cc975b945ffbfa53b4edb50ddde_d2274af3-5e37-4fcc-8935-f3e3a96710b1-u2_3c085cdb-f4ad-4489-ae42-40ae3058d9de.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 3321147,
+                "image": "https://static.atlascloud.ai/media/images/1756290916595443113_Razutpmh.png",
+                "prompt": "Remove the boy's hat.",
+                "output_format": "jpeg",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/cdac51339f774d5cb1d9bccecbfdffda_d6d9829f-3353-47d9-b0df-7b1bbf129086-u2_a7405675-0ca7-4ce1-b8a5-fc4dfba5cf09.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 1820008588,
+                "image": "https://static.atlascloud.ai/media/images/1756291280983928759_jheb7xsp.png",
+                "prompt": "Turn into pixel style.",
+                "output_format": "jpeg",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/d50c716aa6514a6cb7f127be1a312496_ca4ffdcc-9924-40c3-a6e1-d1e3b988bd2e-u1_1f85ace5-a875-410f-bc90-cbd3cdebb91e.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "model": "atlascloud/qwen-image/edit",
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "output_format": "jpeg",
+                "seed": 773706377,
+                "prompt": "Add stylish sunglasses to the person in the image, modern fashion sunglasses with realistic reflections, natural fit on the face.",
+                "image": "https://static.atlascloud.ai/media/images/d527b291ecdaa9cff8a6877ff9ce9af1.png"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/c3a4ecbb3920688ad7cce869774d39f1.jpeg"
+                ]
+            }
+        }
+    ]
+}

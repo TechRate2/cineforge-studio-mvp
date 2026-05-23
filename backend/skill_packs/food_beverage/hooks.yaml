@@ -1,0 +1,95 @@
+# HOOKS BANK — Food & Beverage VN
+
+hooks:
+  - id: food_asmr_pour
+    type: satisfying_visual_proof
+    fits: [ASMR_SENSORY]
+    target_emotion: "satisfaction"
+    trending_score: 10
+    template: "{ASMR action — pour/sizzle/cut} của {món ăn}"
+    examples:
+      - "Tiếng đổ matcha latte sáng nay"
+      - "Sizzle thịt nướng trong wok"
+      - "Cắt bánh trung thu nhân chảy"
+
+  - id: food_first_bite_shock
+    type: relatable_emotion
+    fits: [TASTE_TEST_REACTION]
+    target_emotion: "surprise"
+    trending_score: 9
+    template: "First bite {món ăn} {nguồn} — mình không ngờ {kết quả}"
+    examples:
+      - "First bite bánh mì Sài Gòn 35k — không ngờ ngon hơn 100k"
+      - "Mình thử trà sữa Shopee 50k — sốc kết quả"
+
+  - id: food_pov_friday_night
+    type: relatable_emotion
+    fits: [RESTAURANT_REVIEW, ASMR_SENSORY]
+    target_emotion: "vicarious indulgence"
+    trending_score: 8
+    template: "POV: {ngữ cảnh ăn uống} — {món ăn} cứu rỗi"
+    examples:
+      - "POV: Friday night sau deadline — chè ba màu cứu rỗi"
+      - "POV: 11h đêm đói bụng — mì cay 7 cấp tự nấu"
+
+  - id: food_vietnamese_kbeauty_aesthetic
+    type: curiosity_gap
+    fits: [RESTAURANT_REVIEW, ASMR_SENSORY]
+    target_emotion: "aspiration"
+    trending_score: 9
+    template: "{Món VN truyền thống} aesthetic Tokyo/Seoul style — bạn không thể skip"
+    examples:
+      - "Phở aesthetic Tokyo style — bowl plating sốc"
+      - "Cafe sữa đá aesthetic Seoul cafe — must visit"
+
+  - id: food_30s_recipe
+    type: curiosity_gap
+    fits: [RECIPE_TUTORIAL]
+    target_emotion: "learning"
+    trending_score: 8
+    template: "{Món ăn} {thời gian} với {N} nguyên liệu"
+    examples:
+      - "Bánh chuối nướng 5 phút với 3 nguyên liệu"
+      - "Cocktail không cồn 1 phút với juice tủ lạnh"
+
+  - id: food_taste_compare
+    type: controversial
+    fits: [TASTE_TEST_REACTION]
+    target_emotion: "judgment"
+    trending_score: 8
+    template: "{Món rẻ} vs {món cao cấp} — taste test mù"
+    examples:
+      - "Cafe 25k vs cafe 120k — taste test mù"
+      - "Bánh croissant 15k Shopee vs Maison Marou 75k"
+
+  - id: food_cafe_hidden_gem
+    type: curiosity_gap
+    fits: [RESTAURANT_REVIEW]
+    target_emotion: "discovery"
+    trending_score: 9
+    template: "Quán {khu vực} ít người biết — {đặc trưng}"
+    examples:
+      - "Quán cafe Q3 ít người biết — chỉ 35k mà view 5 sao"
+      - "Tiệm bánh ngọt phố cổ HN — chủ quán Việt Pháp"
+
+  - id: food_late_night_craving
+    type: relatable_emotion
+    fits: [RESTAURANT_REVIEW]
+    target_emotion: "shared craving"
+    trending_score: 7
+    template: "Đêm khuya thèm {món ăn} — solution {giải pháp}"
+    examples:
+      - "11h đêm thèm trà sữa — solution gọi GrabFood quán này"
+      - "Đêm khuya đói — combo mì cay tự nấu 5 phút"
+
+scoring_weights:
+  trending_alignment: 0.25
+  pattern_interrupt: 0.30  # food cần visual hook mạnh (close-up macro)
+  relatability: 0.20
+  authenticity: 0.15
+  cta_setup: 0.10
+
+ranker_strategy:
+  variants_to_generate: 5
+  top_n_keep: 3
+  diversity_constraint: true

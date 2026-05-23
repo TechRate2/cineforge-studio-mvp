@@ -1,0 +1,64 @@
+{
+  "examples": [
+    {
+      "inputs": {
+        "prompt": "A young female artist on a hillside is painting on an easel, facing a field of lavender. She smiles to herself as she dabs a stroke of purple onto the canvas, a light breeze rustling her hair. Cinematography: Begins over-the-shoulder to show her painting, then slowly pans to her profile, capturing her focused and content expression. Style & Atmosphere: Bright, soft, and artistic. The lighting is late afternoon sun, soft and angled, creating a golden rim light on everything. Environment & Details: The thick texture of the oil paint on the canvas is visible. The distant lavender field sways in the breeze. Technical Specs: 4K, high Color Rendering Index (CRI), emulating a cinematic prime lens for soft, beautiful bokeh."
+      },
+      "outputs": {
+        "outputs": [
+          "https://static.atlascloud.ai/media/videos/19401eb5f8ef4c35a4017460876110de_1.mp4"
+        ]
+      }
+    },
+    {
+      "inputs": {
+        "prompt": "Create a dynamic transformation sequence where the futuristic sports car in the first frame gradually shifts into a humanoid transforming robot seen in the last frame. Show the mechanical parts unfolding, panels splitting and rotating, wheels sliding into the legs, the car hood rising into the robot’s chest, and glowing blue energy lines activating throughout the transformation. Maintain the sleek metallic textures, neon lights, and cyberpunk city reflections. The motion should feel smooth, mechanical, and powerful — like a high-tech transformation scene from a sci-fi action film."
+      },
+      "outputs": {
+        "outputs": [
+          "https://static.atlascloud.ai/media/videos/98e8ccaab47f4270b86cac4f7cdbb647_1.mp4"
+        ]
+      }
+    },
+    {
+      "inputs": {
+        "prompt": "A kind elderly man sits in a rocking chair on his porch, smiling as he throws a tennis ball. A golden retriever excitedly dashes onto the lawn, leaps to catch the ball mid-air, and happily trots back. Cinematography: A static medium shot captures the entire interaction. It cuts to a slow-motion close-up of the dog's leap, shot with a high-speed camera, then cuts back to normal speed. Style & Atmosphere: Heartwarming, nostalgic, and peaceful. The lighting is the soft glow of late afternoon, casting a golden hue over the scene. Environment & Details: The kind wrinkles on the man's smiling face, the dog's golden fur ruffling in the breeze, the weathered wood of the porch. Technical Specs: 4K, with segments in 60fps for slow motion, soft colors, with a light vintage film filter."
+      },
+      "outputs": {
+        "outputs": [
+          "https://static.atlascloud.ai/media/videos/89656017337840fa8f2c31000d3154f1_1.mp4"
+        ]
+      }
+    },
+    {
+      "inputs": {
+        "prompt": "At a sunny weekend farmers' market, a vendor hands a fresh apple to a customer, and they share a smile. The background is filled with a bustling, out-of-focus crowd. Cinematography: A handheld medium shot, with the focus locked on the interaction between the vendor and customer. The background activity is kept in a natural, shallow depth of field. The camera has a slight 'breathing' feel, as if you are there. Style & Atmosphere: Vibrant, authentic, and warm. The sunlight is bright, colors are saturated, and the scene is filled with the joy of community life. Environment & Details: The background is full of life, with colorful produce stacked high and sunlight creating bokeh through the umbrellas. Technical Specs: 4K, 30fps, simulating a 50mm lens perspective, vivid and lively colors."
+      },
+      "outputs": {
+        "outputs": [
+          "https://static.atlascloud.ai/media/videos/ec7073babe4843648bcdc7a7b7110bb9_1.mp4"
+        ]
+      }
+    },
+    {
+      "inputs": {
+        "prompt": "A 1920s steam train begins to move slowly, emitting a massive cloud of white steam from its smokestack, as people in period clothing on the platform wave goodbye. Cinematography: A static, long take from a tripod that begins still and then performs a slow, smooth pan to follow the front of the engine as it departs. Style & Atmosphere: Nostalgic and sentimental, with the texture of an old film, including subtle flickering and scratch effects. Environment & Details: The steam envelops half the platform, obscuring figures, while gas lamps cast a dim, yellow light. Technical Specs: High-contrast black and white, or sepia tone, 24fps, emulating 35mm film."
+      },
+      "outputs": {
+        "outputs": [
+          "https://static.atlascloud.ai/media/videos/132a7e09dc9c4a85b54c5c2be481196c_1.mp4"
+        ]
+      }
+    },
+    {
+      "inputs": {
+        "prompt": "An elderly man with deep wrinkles sits by a window, his gaze fixed on something far away. His mouth twitches almost imperceptibly as if lost in memory, and a single tear slowly rolls down from the corner of his eye. Cinematography: An extreme close-up (ECU) that pans slowly from his profile to a full-frontal view. The shot executes a rack focus, shifting from his glistening eye to the descending tear. Style & Atmosphere: Rembrandt lighting, with a single key light illuminating one side of his face, creating dramatic contrast and shadow; the mood is profound and contemplative. Environment & Details: The background through the window is soft and out of focus. Motes of dust float in the beam of light. Technical Specs: hyper-detailed, sharp skin texture, 85mm portrait lens effect, extremely shallow depth of field."
+      },
+      "outputs": {
+        "outputs": [
+          "https://static.atlascloud.ai/media/videos/2bdb3b519c014c5c9ec1f34648db3e03_1.mp4"
+        ]
+      }
+    }
+  ]
+}

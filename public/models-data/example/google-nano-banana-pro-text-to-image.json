@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "google/nano-banana-pro/text-to-image",
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "output_format": "default",
+                "resolution": "2k",
+                "aspect_ratio": "3:4",
+                "prompt": "Create a modern and minimalist magazine cover for April 2025, themed around **quiet city living**. The background features soft neutral tones, with a subtle gradient evoking calm and tranquility. Centered is a young person sitting in a peaceful, minimalist apartment, with clean lines and a cozy, simple aesthetic. They wear a relaxed, casual outfit—comfortable sweater and pants—sitting in a calm, introspective pose. The setting includes a few plants and soft, natural lighting streaming through the window.\n\nInclude magazine headlines in stylish, simple fonts, with neutral color accents:\n• Top left: ‘The Art of Slow Living’ in soft gray with subtext in muted beige: ‘How to embrace mindfulness in the city’\n• Top right: ‘The Quiet Revolution’ in black with subtext: ‘Living well without the noise’\n• Center right: ‘Simple Comforts: Creating Your Calm Space’ with a soft beige ‘10’\n• Bottom left: ‘The Benefits of a Digital Detox’ in dark gray and off-white\n• Bottom left corner with a simple icon: ‘Sustainable Living in the City’\n• Bottom right over the box: ‘Urban Minimalism’ in elegant serif font, with a soft green subheading: ‘Designing for peace and simplicity in city spaces’\n\nThe design should be clean, calming, and subtle, focusing on the serene aspects of urban life. Lighting should be soft and natural, with an emphasis on light, airy spaces and a peaceful mood.\n"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/e9a6d475fe6de1bbde5c86e75f8708f4.png"
+                ]
+            }
+        }
+    ]
+}

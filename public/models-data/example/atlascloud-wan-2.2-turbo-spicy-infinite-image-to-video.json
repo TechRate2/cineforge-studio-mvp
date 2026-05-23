@@ -1,0 +1,26 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "atlascloud/wan-2.2-turbo-spicy/infinite-image-to-video",
+                "duration": 5,
+                "resolution": "720p",
+                "seed": -1,
+                "prompt": [
+                    "A futuristic hypercar slowly emerges from darkness into a sharp beam of white light. The glossy black body reflects the surrounding shadows with elegant highlights. The camera circles smoothly around the vehicle, revealing aerodynamic curves and glowing rear lights. Minimalist cinematic environment, ultra-clean studio atmosphere, high contrast lighting, luxury sci-fi aesthetic, slow motion, 8K realism.",
+                    "Two futuristic supercars glide silently in opposite directions through an endless illuminated corridor. Their reflections stretch across the polished surface beneath them. The camera tracks dynamically between both vehicles as soft volumetric light cuts through the darkness. Sleek industrial sci-fi mood, cinematic motion blur, symmetrical composition, futuristic luxury advertisement style.",
+                    "The hypercar suddenly accelerates forward, leaving glowing light trails behind. The wheels spin violently as the surrounding environment blurs into abstract streaks of light and shadow. The camera follows closely beside the car at high speed. Intense cinematic energy, futuristic racing aesthetic, realistic reflections, aggressive acceleration, high-detail motion dynamics.",
+                    "Extreme close-up shots of the futuristic vehicle reveal rotating wheels, illuminated rear rings, carbon fiber textures, and active aerodynamic components adjusting dynamically. Soft white studio lights glide across the metallic surface. Mechanical precision, ultra-detailed macro cinematography, luxury concept car showcase, minimal sci-fi atmosphere.",
+                    "The futuristic car races through an endless tunnel made entirely of moving white light beams. Reflections ripple across the car’s smooth bodywork while shadows distort dynamically around it. The environment feels abstract and dreamlike, blending realism with futuristic design. Cinematic tracking shot, surreal lighting, ultra-modern sci-fi world.",
+                    "The hypercar exits the tunnel into a futuristic neon megacity at night. Rain reflects glowing lights across the streets while towering skyscrapers pass overhead. The camera sweeps low beside the speeding vehicle as holographic billboards illuminate the bodywork. Cyberpunk cinematic atmosphere, realistic rain simulation, immersive urban sci-fi environment."
+                ],
+                "image": "https://static.atlascloud.ai/media/images/d2ea72e9e168ac0e159fe7b39c5dca0e.jpg"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/5ce01ee9-81d0-4dab-aa19-632a0a769151.mp4"
+                ]
+            }
+        }
+    ]
+}

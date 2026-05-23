@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "alibaba/happyhorse-1.0/video-edit",
+                "resolution": "1080P",
+                "audio_setting": "auto",
+                "seed": -1,
+                "prompt": "Adjust the lighting to be colorful.",
+                "images": [],
+                "video": "https://static.atlascloud.ai/media/videos/fecc170fc8c2cfb46ad901f8fa2b7bed.mp4"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/fe445d8263c3ec224a8f0bc1f32b6ec7.mp4"
+                ]
+            }
+        }
+    ]
+}

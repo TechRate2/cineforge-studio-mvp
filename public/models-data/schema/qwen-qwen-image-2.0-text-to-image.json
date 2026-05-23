@@ -1,0 +1,148 @@
+{
+	"info": {
+		"description": "The AtlasCloud API.",
+		"title": "AtlasCloud API",
+		"version": "1.0.0"
+	},
+	"paths": {
+		"/api/v1/model/generateImage": {
+			"post": {
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PredictionResponse"
+								}
+							}
+						},
+						"description": "The request status."
+					}
+				},
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Input"
+							}
+						}
+					}
+				}
+			},
+			"x-api-name": "model_run"
+		},
+		"/api/v1/model/result/{request_id}": {
+			"get": {
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PredictionResponse"
+								}
+							}
+						},
+						"description": "Result of the request."
+					}
+				},
+				"parameters": [{
+					"in": "path",
+					"name": "request_id",
+					"schema": {
+						"type": "string",
+						"description": "Request ID"
+					},
+					"required": true
+				}]
+			},
+			"x-api-name": "model_result"
+		}
+	},
+	"openapi": "3.0.0",
+	"servers": [{
+		"url": "https://api.atlascloud.ai"
+	}],
+	"components": {
+		"schemas": {
+			"Input": {
+				"properties": {
+					"prompt": {
+						"description": "Text prompt describing the desired image, supports Chinese and English (max 800 characters)",
+						"type": "string"
+					},
+					"seed": {
+						"default": -1,
+						"description": "Random seed for reproducibility (-1 for random, 0-2147483647 for specific seed)",
+						"type": "integer"
+					},
+					"size": {
+						"default": "1024*1024",
+						"description": "Image dimensions in width*height format (e.g., 1024*1024, 1280*720)",
+						"maximum": 2048,
+						"minimum": 512,
+						"type": "string"
+					}
+				},
+				"required": [
+					"model",
+					"prompt"
+				],
+				"type": "object",
+				"x-order-properties": [
+					"prompt",
+					"size",
+					"seed"
+				]
+			},
+			"PredictionResponse": {
+				"properties": {
+					"model": {
+						"type": "string",
+						"description": "model name",
+						"default": "qwen/qwen-image-2.0/text-to-image"
+					},
+					"created_at": {
+						"description": "ISO timestamp of when the request was created (e.g., '2023-04-01T12:34:56.789Z').",
+						"format": "date-time",
+						"type": "string"
+					},
+					"has_nsfw_contents": {
+						"description": "Array of boolean values indicating NSFW detection for each output.",
+						"items": {
+							"type": "boolean"
+						},
+						"type": "array"
+					},
+					"id": {
+						"description": "Unique identifier for the prediction, the ID of the prediction to get.",
+						"type": "string"
+					},
+					"outputs": {
+						"description": "Array of URLs to the generated content (empty when status is not completed).",
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"status": {
+						"description": "Status of the task: created, processing, completed, or failed.",
+						"type": "string"
+					},
+					"urls": {
+						"description": "Object containing related API endpoints.",
+						"type": "object"
+					}
+				},
+				"type": "object"
+			}
+		},
+		"securitySchemes": {
+			"apiKeyAuth": {
+				"in": "header",
+				"name": "Authorization",
+				"type": "apiKey"
+			}
+		}
+	}
+}

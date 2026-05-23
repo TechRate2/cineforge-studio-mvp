@@ -1,0 +1,19 @@
+{
+    "model": "kwaivgi/kling-video-o3-pro/image-to-video",
+    "examples": [
+        {
+            "inputs": {
+                "model": "kwaivgi/kling-video-o3-pro/image-to-video",
+                "duration": 5,
+                "generate_audio": false,
+                "image": "https://static.atlascloud.ai/media/images/e2841d463ee18ab5385a47f99d6fcab5.jpg",
+                "prompt": "A premium tech product displayed on a minimal pedestal in a dark studio environment.\nSoft cinematic lighting highlights the contours and materials.\nSlow orbit camera movement with subtle reflections.\nClean background, high contrast, ultra detailed, 4K, commercial product launch style."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/2834c1452f3408fabcfd3449eb095ed6.mp4"
+                ]
+            }
+        }
+    ]
+}

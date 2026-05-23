@@ -1,0 +1,160 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753867979242724947_uFgd841W.jpeg",
+                "prompt": "Close-up, high-definition shot of a rusty, weathered vintage car in a desolate desert, cinematic dust clouds, harsh sunlight, intricate textures, dust particles in air, 100mm lens, professional automotive photography.",
+                "duration": 6,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/d3ef72f0c81049c0a9fa2473421aca69_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753866676154927934_aFea63ZW.jpeg",
+                "prompt": "A playful puppy, excitedly chasing a rolling ball across a lush green park. Its ears flap in the wind, and its tail wags furiously. Low-angle tracking shot, bright daylight, energetic and cheerful ambiance.",
+                "duration": 6,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/d354992f978e46c28d362f1bf4f0ae79_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1751883053206894484_PYkjfbCy.jpeg",
+                "prompt": "The girl in the image begins performing a graceful ballet solo on a grand theater stage, she twirls and lifts one leg into an arabesque, soft spotlight follows her every move, cinematic lighting, slow camera pan from left to right, elegant and fluid motion",
+                "duration": 6,
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/c91e532695d64ed48480eff12788b0db_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1751883537332444494_HI330WSP.jpeg",
+                "prompt": "The girl in the image starts moving gracefully through a misty forest, twirling slowly, extending her arms as leaves swirl around her, camera rotates gently around her body, cinematic lighting, realistic motion",
+                "duration": 6,
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/127ff67d6e004b99a774a9a885cbcbaa_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1751883986485093955_MJROKGDy.jpeg",
+                "prompt": "The girl in the image performs a powerful contemporary dance on a dimly lit stage, her arms sweep dramatically, her body spins and contracts with emotion, moody spotlight and rotating camera, fast yet expressive motion",
+                "duration": 6,
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/031e5341436041729b40d06d69571c99_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1751884071553217997_Jetokhd9.jpeg",
+                "prompt": "The boy in the image breaks into a high-energy hip-hop dance on an urban rooftop, spinning, body popping, footwork fast and rhythmic, wide-angle drone camera sweeps across the scene, cinematic tone",
+                "duration": 6,
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/b770cb49b69f4398825a629c28d822d6_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1751884343063647887_xrAxurnj.jpeg",
+                "prompt": "The dancer in the image gracefully moves across the stage with a flowing silk ribbon, spinning and leaping, ribbon twirls through the air, elegant camera dolly-in, warm stage lighting",
+                "duration": 6,
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/fb86132148fc4faea9763c695f73bdc0_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1751884521590603845_3RuUdG1j.jpeg",
+                "prompt": "The man in the image performs a slow and controlled Tai Chi sequence in a misty mountain setting, his hands flow like water, camera slowly zooms and pans, peaceful and meditative motion",
+                "duration": 6,
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/cd134d2475f64ab6a6d6b09df7ec922d_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753866903643846613_GW851ZVS.jpeg",
+                "prompt": "Pixel art style,An inquisitive squirrel, busily burying nuts in a sun-dappled forest floor. Leaves crunch softly under its tiny paws, and dappled light filters through the canopy. Close-up, natural lighting, peaceful and lively ambiance.",
+                "duration": 6,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/baa011dba0c54ca2ab15bf549486ae0c_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753867443242665341_6jYVVTPN.jpeg",
+                "prompt": "Masterpiece, ultra-detailed, photorealistic portrait of an ancient wise wizard with glowing eyes, dramatic volumetric lighting, cinematic, studio shot, sharp focus, 8k, award-winning photography.",
+                "duration": 6,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/af94a4cfc59b460f9e371b9e4ad9591c_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753868250935513638_TsvxyJZ4.jpeg",
+                "prompt": "An epic scene, a colossal ancient dragon perched atop a jagged volcanic peak, smoke billowing, lava flowing, storm clouds gathering, dramatic lighting, fantasy art, cinematic, highly detailed scales, breathtaking.",
+                "duration": 6,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/845f6505e6694c328d397936b123b052_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1753868456051247297_XobwESfh.jpeg",
+                "prompt": "A majestic golden retriever, with sun-drenched fur and playful eyes, running through a field of vibrant green grass under a clear blue sky, golden hour lighting, cinematic photography.",
+                "duration": 6,
+                "enable_prompt_expansion": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/fe3ed8eb1a8e40258f01a87ef3efd524_1.mp4"
+                ]
+            }
+        }
+    ]
+}

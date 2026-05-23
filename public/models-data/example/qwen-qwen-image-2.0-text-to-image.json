@@ -1,0 +1,17 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "seed": -1,
+                "size": "1024*1024",
+                "prompt": "A floating fragment of cracked ice crystal suspended in mid-air, featuring sharp jagged edges that refract and catch light with sparkling highlights. The crystal surface is semi-transparent with subtle frost textures and internal fractures. Twisting green stems emerge organically from the crystal, covered with delicate moss and traces of lichen, blending natural growth with the frozen structure. Translucent blue flowers bloom along the stems, their petals thin and luminous. Small imperfect crystal shards float nearby, creating a sense of suspended motion. Soft diffused studio lighting enhances the transparency and reflections, producing gentle shadows and subtle glow. Photorealistic macro composition, ultra-detailed textures, cinematic depth of field, physically based materials, Octane Render, Cinema 4D, high-end 3D render, 8K resolution.",
+                "model": "qwen/qwen-image-2.0/text-to-image"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/862b0308f12dfa9829601a2b437a5757.png"
+                ]
+            }
+        }
+    ]
+}

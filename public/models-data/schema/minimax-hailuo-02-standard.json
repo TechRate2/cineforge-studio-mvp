@@ -1,0 +1,219 @@
+{
+    "info": {
+        "title": "AtlasCloud API",
+        "version": "1.0.0",
+        "description": "The AtlasCloud API."
+    },
+    "paths": {
+        "/api/v1/model/generateVideo": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "The request status."
+                    }
+                },
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Input"
+                            }
+                        }
+                    },
+                    "required": true
+                }
+            },
+            "x-api-name": "model_run"
+        },
+        "/api/v1/model/result/{request_id}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "Result of the request."
+                    }
+                },
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "request_id",
+                        "schema": {
+                            "type": "string",
+                            "description": "Request ID"
+                        },
+                        "required": true
+                    }
+                ]
+            },
+            "x-api-name": "model_result"
+        }
+    },
+    "openapi": "3.0.0",
+    "servers": [
+        {
+            "url": "https://api.atlascloud.ai"
+        }
+    ],
+    "components": {
+        "schemas": {
+            "Input": {
+                "not": {
+                    "required": [
+                        "subject_reference",
+                        "first_frame_image"
+                    ]
+                },
+                "type": "object",
+                "required": [
+                    "model",
+                    "prompt"
+                ],
+                "properties": {
+                    "model": {
+                        "type": "string",
+                        "description": "model name",
+                        "default": "minimax/hailuo-02/standard"
+                    },
+                    "image": {
+                        "type": "string",
+                        "title": "First Frame Image",
+                        "description": "The model generates video with the picture passed in as the first frame.Base64 encoded strings in data:image/jpeg; base64,{data} format for incoming images, or URLs accessible via the public network. The uploaded image needs to meet the following conditions: Format is JPG/JPEG/PNG; The aspect ratio is greater than 2:5 and less than 5:2; Short side pixels greater than 300px; The image file size cannot exceed 20MB."
+                    },
+                    "prompt": {
+                        "type": "string",
+                        "default": "A graceful female ballet dancer performs under warm, golden light in a spacious sunlit studio with tall windows. She wears a flowing white tutu and soft pink pointe shoes, her arms extended elegantly as she spins mid-air in a grand jeté. The polished wooden floor reflects soft rays of sunlight. Dust particles shimmer in the air, adding a magical, uplifting mood. The color palette is bright and pastel—light peach, cream, and sky blue—evoking a dreamy, cinematic atmosphere full of energy and elegance.",
+                        "maxLength": 2000,
+                        "description": "Generate a description of the video."
+                    },
+                    "duration": {
+                        "enum": [
+                            6,
+                            10
+                        ],
+                        "type": "integer",
+                        "title": "Duration",
+                        "default": 6,
+                        "description": "Video duration in seconds",
+                        "x-ui-component": "select"
+                    },
+                    "enable_prompt_expansion": {
+                        "type": "boolean",
+                        "title": "Use prompt optimizer",
+                        "default": false,
+                        "description": "The model automatically optimizes incoming prompts to improve build quality."
+                    }
+                },
+                "x-order-properties": [
+                    "model",
+                    "prompt",
+                    "image",
+                    "resolution",
+                    "duration",
+                    "enable_prompt_expansion"
+                ]
+            },
+            "PredictionUrls": {
+                "type": "object",
+                "required": [
+                    "cancel",
+                    "result"
+                ],
+                "properties": {
+                    "cancel": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Cancel prediction URL"
+                    },
+                    "result": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Result retrieval URL"
+                    }
+                }
+            },
+            "PredictionResponse": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "model",
+                    "input",
+                    "status",
+                    "created_at",
+                    "urls"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Unique prediction ID"
+                    },
+                    "logs": {
+                        "type": "string",
+                        "description": "Execution logs"
+                    },
+                    "urls": {
+                        "$ref": "#/components/schemas/PredictionUrls"
+                    },
+                    "input": {
+                        "$ref": "#/components/schemas/Input"
+                    },
+                    "model": {
+                        "type": "string",
+                        "description": "Model name"
+                    },
+                    "output": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uri"
+                        },
+                        "description": "Generated output URLs",
+                        "x-field-name": "output"
+                    },
+                    "status": {
+                        "enum": [
+                            "queued",
+                            "processing",
+                            "succeeded",
+                            "failed"
+                        ],
+                        "type": "string",
+                        "description": "Prediction status"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Creation timestamp"
+                    },
+                    "has_nsfw_contents": {
+                        "type": "array",
+                        "items": {
+                            "type": "boolean"
+                        },
+                        "description": "NSFW content detection results"
+                    }
+                }
+            }
+        },
+        "securitySchemes": {
+            "apiKeyAuth": {
+                "in": "header",
+                "name": "Authorization",
+                "type": "apiKey",
+                "description": "access key"
+            }
+        }
+    }
+}

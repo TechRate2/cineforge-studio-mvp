@@ -1,0 +1,161 @@
+{
+	"info": {
+		"title": "AtlasCloud API",
+		"version": "1.0.0",
+		"description": "The AtlasCloud API."
+	},
+	"openapi": "3.0.0",
+	"paths": {
+		"/api/v1/model/generateVideo": {
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Input"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PredictionResponse"
+								}
+							}
+						},
+						"description": "The request status."
+					}
+				}
+			},
+			"x-api-name": "model_run"
+		},
+		"/api/v1/model/prediction/{request_id}": {
+			"get": {
+				"parameters": [
+					{
+						"in": "path",
+						"name": "request_id",
+						"required": true,
+						"schema": {
+							"description": "Request ID",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PredictionResponse"
+								}
+							}
+						},
+						"description": "Result of the request."
+					}
+				}
+			},
+			"x-api-name": "model_result"
+		}
+	},
+	"components": {
+		"schemas": {
+			"Input": {
+				"properties": {
+					"model": {
+						"type": "string",
+						"description": "model name",
+						"default": "alibaba/wan-2.2/animate-mix"
+					},
+					"image": {
+						"description": "The image for replacing the character in input video with. Format restrictions: JPG, JPEG, PNG, BMP, WEBP. Dimension restrictions: Image width and height must both be within the range of 200 to 4096 pixels, with an aspect ratio between 1: 3 and 3:1. Size restriction: No more than 5 MB.",
+						"type": "string"
+					},
+					"video": {
+						"description": "The video for generating the output. Recommendation: Increasing the resolution and frame rate of the reference video can significantly improve the quality of the generated output. Format restrictions: MP4, AVI, MOV. Dimension restrictions: Video width and height must both fall within the range of 200 to 2048 pixels, with an aspect ratio between 1:3 and 3:1. Size restriction: No more than 200 MB. Duration restriction: Not shorter than 2 seconds and not longer than 30 seconds.",
+						"type": "string"
+					},
+					"mode": {
+						"default": "wan-pro",
+						"description": "wan-std: Standard mode with faster generation speed and higher cost-effectiveness, suitable for quick previews and basic animation scenarios. wan-pro: Professional mode offering smoother animation and better overall results, though processing time and cost will increase accordingly.",
+						"enum": [
+							"wan-std",
+							"wan-pro"
+						],
+						"type": "string",
+						"x-ui-component": "select"
+					}
+				},
+				"required": [
+					"model",
+					"image",
+					"video",
+					"mode"
+				],
+				"type": "object",
+				"x-order-properties": [
+					"model",
+					"image",
+					"video",
+					"mode"
+				]
+			},
+			"PredictionResponse": {
+				"properties": {
+					"created_at": {
+						"description": "ISO timestamp of when the request was created (e.g., “2023-04-01T12:34:56.789Z”).",
+						"format": "date-time",
+						"type": "string"
+					},
+					"has_nsfw_contents": {
+						"description": "Array of boolean values indicating NSFW detection for each output.",
+						"items": {
+							"type": "boolean"
+						},
+						"type": "array"
+					},
+					"id": {
+						"description": "Unique identifier for the prediction, the ID of the prediction to get.",
+						"type": "string"
+					},
+					"model": {
+						"description": "Model ID used for the prediction.",
+						"type": "string"
+					},
+					"outputs": {
+						"description": "Array of URLs to the generated content (empty when status is not completed).",
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"status": {
+						"description": "Status of the task: created, processing, completed, or failed.",
+						"type": "string"
+					},
+					"urls": {
+						"description": "Object containing related API endpoints.",
+						"type": "object"
+					}
+				},
+				"type": "object"
+			}
+		},
+		"securitySchemes": {
+			"apiKeyAuth": {
+				"in": "header",
+				"name": "Authorization",
+				"type": "apiKey"
+			}
+		}
+	},
+	"servers": [
+		{
+			"url": "https://api.atlascloud.ai"
+		}
+	]
+}

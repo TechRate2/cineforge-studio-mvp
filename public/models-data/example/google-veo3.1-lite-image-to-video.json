@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "google/veo3.1-lite/image-to-video",
+                "aspect_ratio": "16:9",
+                "duration": 8,
+                "resolution": "720p",
+                "seed": -1,
+                "image": "https://static.atlascloud.ai/media/images/78bbcfbf41cfb4d264f7c25821e472fe.png",
+                "prompt": "A modern fighter jet ignites its afterburners and launches vertically into the sky at extreme speed, thick vapor trails forming behind the wings, clouds tearing apart as the jet pierces upward, cinematic camera tracking from below, dramatic lighting, ultra-realistic, IMAX-style aerial shot."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/aff85cdf3af25f6cfdf928a2ae3c3033.mp4"
+                ]
+            }
+        }
+    ]
+}

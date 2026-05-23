@@ -1,0 +1,21 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "alibaba/wan-2.7/text-to-video",
+                "resolution": "1080P",
+                "ratio": "16:9",
+                "duration": 5,
+                "prompt_extend": true,
+                "seed": -1,
+                "prompt": "A supercar explodes out of a long dark tunnel at extreme speed, sunlight blindingly illuminating the road ahead, motion blur streaking past the tunnel walls, dust and light rays bursting into the scene, cinematic blockbuster style, ultra-realistic."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/899e99dff11926aa36bc98aa1cc1258e.mp4",
+                    "https://static.atlascloud.ai/media/videos/6be018802a7b326c23a127378e649f92.mp4"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,18 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "minimax/hailuo-2.3/i2v-standard",
+                "duration": 6,
+                "enable_prompt_expansion": false,
+                "image": "https://static.atlascloud.ai/media/images/3924dcb50a5e4dd9a670b3a809078e0d.png",
+                "prompt": "A matte black cube slowly rotates in a dark void.\nA soft white glow gradually emerges from its center, pulsing gently.\nCracks begin to form across the surface as light leaks through.\nThe cube slowly disintegrates into floating fragments and glowing particles, fading into darkness.\nCinematic lighting, volumetric glow, ultra detailed, smooth camera motion, 4K."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/afb7a97ebae7ce1e0f6ca347d1ac97b9.mp4"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,26 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "atlascloud/wan-2.2-turbo/infinite-image-to-video",
+                "duration": 5,
+                "resolution": "720p",
+                "seed": -1,
+                "prompt": [
+                    "Wide cinematic view of an alien desert at twilight, vast sand dunes stretching to the horizon, two moons in the sky, stars twinkling, soft gradient of sunset to night sky, epic sci-fi atmosphere, photorealistic textures, cinematic lighting",
+                    "A massive dome-like futuristic structure emerges in the distance, partially illuminated, reflecting ambient light, subtle mist at the base, alien city elements surrounding it, ultra-detailed sci-fi design, cinematic perspective",
+                    "Multiple sleek spacecraft flying in formation just above the desert surface, engines glowing with bright orange trails, dynamic motion blur, reflecting on sand, cinematic camera tracking, realistic sci-fi vehicles",
+                    "Close-up view of the lead spacecraft soaring over sand dunes, camera follows behind, subtle dust clouds raised by speed, glowing thrusters, high-detail mechanical design, epic sci-fi cinematic look",
+                    "Panoramic view of the alien desert with scattered futuristic buildings, dunes casting long shadows, faint lights from distant city structures, subtle atmospheric haze, volumetric lighting, hyper-realistic textures",
+                    "Time-lapse effect as sunset turns into night, star-filled sky with two moons, spacecraft trails glowing against darkening desert, cinematic lighting with soft reflections on sand, dramatic sci-fi ambience"
+                ],
+                "image": "https://static.atlascloud.ai/media/images/7212c6b81676f1ab9f05db3c6262f7a4.jpg"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/70579750-7f36-497c-aa6a-4bc26859a5d6.mp4"
+                ]
+            }
+        }
+    ]
+}

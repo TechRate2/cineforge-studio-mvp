@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "duration": 8,
+                "resolution": "1080p",
+                "aspect_ratio": "16:9",
+                "generate_audio": true,
+                "prompt": "Delicate flower petals slowly float upward into the air, gently drifting as if carried by a soft breeze, soft sunlight filtering through the scene, cinematic slow motion, dreamy atmosphere, ultra-detailed, poetic visual style.",
+                "model": "google/veo3.1/image-to-video",
+                "image": "https://static.atlascloud.ai/media/images/b569f422a1e73c3f3d5f196f1dcfcaa2.png"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/6680d7d936df4909bfbd8f1d478f629a_1.mp4",
+                    "https://static.atlascloud.ai/media/videos/0b5cf12d770ad4678ee0ad602c953a60.mp4",
+                    "https://static.atlascloud.ai/media/videos/4ed5b28ab8e6e321d80e049ab4aecd94.mp4"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,19 @@
+{
+  "examples": [
+    {
+      "inputs": {
+        "model": "xai/grok-imagine-image-quality/text-to-image",
+        "prompt": "Epic cinematic movie poster in the style of Denis Villeneuve, featuring vast, dramatic landscapes with a sense of scale and isolation. Moody, atmospheric lighting with strong contrasts, muted yet striking color palette, cinematic depth of field. Futuristic and mysterious elements, subtle sci-fi technology integrated into the environment, minimalistic yet powerful composition. Evocative, suspenseful mood, ultra-detailed, hyper-realistic textures, breathtaking and immersive scene.",
+        "num_images": 1,
+        "aspect_ratio": "2:3",
+        "resolution": "1k",
+        "enable_base64_output": false
+      },
+      "outputs": {
+        "outputs": [
+          "https://static.atlascloud.ai/media/images/10a41ddfcaeb0b806cfff0a72e5335c6.jpeg"
+        ]
+      }
+    }
+  ]
+}

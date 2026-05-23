@@ -1,0 +1,225 @@
+{
+    "info": {
+        "title": "AtlasCloud API",
+        "version": "1.0.0",
+        "description": "The AtlasCloud API."
+    },
+    "paths": {
+        "/api/v1/model/generateVideo": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "The request status."
+                    }
+                },
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Input"
+                            }
+                        }
+                    },
+                    "required": true
+                }
+            },
+            "x-api-name": "model_run"
+        },
+        "/api/v1/model/result/{request_id}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "Result of the request."
+                    }
+                },
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "request_id",
+                        "schema": {
+                            "type": "string",
+                            "description": "Request ID"
+                        },
+                        "required": true
+                    }
+                ]
+            },
+            "x-api-name": "model_result"
+        }
+    },
+    "openapi": "3.0.0",
+    "servers": [
+        {
+            "url": "https://api.atlascloud.ai"
+        }
+    ],
+    "components": {
+        "schemas": {
+            "Input": {
+                "type": "object",
+                "required": [
+                    "model",
+                    "image",
+                    "duration"
+                ],
+                "properties": {
+                    "model": {
+                        "type": "string",
+                        "description": "model name",
+                        "default": "bytedance/seedance-v1-pro-i2v-480p"
+                    },
+                    "seed": {
+                        "type": "integer",
+                        "default": -1,
+                        "description": "The seed for random number generation."
+                    },
+                    "image": {
+                        "type": "string",
+                        "default": "https://static.atlascloud.ai/media/images/1750664227278090418_rvFBxuqn.png",
+                        "description": "Input image for video generation; Supported image formats include .jpg/.jpeg/.png; The image file size cannot exceed 10MB, and the image resolution should not be less than 300*300px"
+                    },
+                    "prompt": {
+                        "type": "string",
+                        "default": " A girl turns toward the camera, her earrings swaying gently with the motion. The camera rotates, bathed in dreamy sunlight.",
+                        "maxLength": 2000,
+                        "description": "Text prompt for video generation; Positive text prompt; Cannot exceed 2000 characters"
+                    },
+                    "duration": {
+                        "step": 5,
+                        "type": "integer",
+                        "title": "Video Duration",
+                        "default": 5,
+                        "maximum": 10,
+                        "minimum": 5,
+                        "description": "Generate video duration length seconds."
+                    },
+                    "aspect_ratio": {
+                        "description": "The aspect ratio of the generated media.",
+                        "enum": [
+                            "21:9",
+                            "16:9",
+                            "4:3",
+                            "1:1",
+                            "3:4",
+                            "9:16"
+                        ],
+                        "type": "string",
+                        "x-placeholder": "Select aspect ratio",
+                        "x-ui-component": "select"
+                    }
+                },
+                "x-order-properties": [
+                    "model",
+                    "prompt",
+                    "image",
+                    "duration",
+                    "aspect_ratio",
+                    "seed"
+                ]
+            },
+            "PredictionUrls": {
+                "type": "object",
+                "required": [
+                    "cancel",
+                    "result"
+                ],
+                "properties": {
+                    "cancel": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Cancel prediction URL"
+                    },
+                    "result": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Result retrieval URL"
+                    }
+                }
+            },
+            "PredictionResponse": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "model",
+                    "input",
+                    "status",
+                    "created_at",
+                    "urls"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Unique prediction ID"
+                    },
+                    "logs": {
+                        "type": "string",
+                        "description": "Execution logs"
+                    },
+                    "urls": {
+                        "$ref": "#/components/schemas/PredictionUrls"
+                    },
+                    "input": {
+                        "$ref": "#/components/schemas/Input"
+                    },
+                    "model": {
+                        "type": "string",
+                        "description": "Model name"
+                    },
+                    "output": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uri"
+                        },
+                        "description": "Generated output URLs",
+                        "x-field-name": "output"
+                    },
+                    "status": {
+                        "enum": [
+                            "queued",
+                            "processing",
+                            "succeeded",
+                            "failed"
+                        ],
+                        "type": "string",
+                        "description": "Prediction status"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Creation timestamp"
+                    },
+                    "has_nsfw_contents": {
+                        "type": "array",
+                        "items": {
+                            "type": "boolean"
+                        },
+                        "description": "NSFW content detection results"
+                    }
+                }
+            }
+        },
+        "securitySchemes": {
+            "apiKeyAuth": {
+                "in": "header",
+                "name": "Authorization",
+                "type": "apiKey",
+                "description": "access key"
+            }
+        }
+    }
+}

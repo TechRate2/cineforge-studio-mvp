@@ -1,0 +1,183 @@
+{
+  "info": {
+    "title": "AtlasCloud API",
+    "version": "1.0.0",
+    "description": "The AtlasCloud API."
+  },
+  "paths": {
+    "/api/v1/model/generateVideo": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "The request status."
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Input"
+              }
+            }
+          },
+          "required": true
+        }
+      },
+      "x-api-name": "model_run"
+    },
+    "/api/v1/model/result/{request_id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "Result of the request."
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            },
+            "required": true
+          }
+        ]
+      },
+      "x-api-name": "model_result"
+    }
+  },
+  "openapi": "3.0.0",
+  "servers": [
+    {
+      "url": "https://api.atlascloud.ai"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Input": {
+        "type": "object",
+        "required": [
+          "model",
+          "prompt"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "model name",
+            "default": "kwaivgi/kling-v2.1-t2v-master"
+          },
+          "prompt": {
+            "type": "string",
+            "default": "Capture a dynamic, high-speed chase scene featuring two motorcycles navigating through a bustling cityscape at night. The camera alternates between close-up shots of the riders' intense expressions, the glowing neon signs of the city, and the sleek lines of the motorcycles as they weave through traffic. The sound of revving engines and the hum of the city create an exhilarating atmosphere.",
+            "maxLength": 2000,
+            "description": "Text prompt for generation; Positive text prompt; Cannot exceed 2500 characters."
+          },
+          "duration": {
+            "enum": [
+              "5",
+              "10"
+            ],
+            "step": 5,
+            "type": "string",
+            "default": "5",
+            "description": "The duration of the generated media in seconds.",
+            "x-ui-component": "select"
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1"
+            ],
+            "type": "string",
+            "default": "16:9",
+            "description": "Generated video aspect ratio."
+          },
+          "guidance_scale": {
+            "step": 0.1,
+            "type": "number",
+            "default": 0.5,
+            "maximum": 1,
+            "minimum": 0,
+            "description": "The guidance scale to use for the generation."
+          },
+          "negative_prompt": {
+            "type": "string",
+            "maxLength": 2500,
+            "description": "Negative text prompt; Cannot exceed 2500 characters."
+          }
+        },
+        "x-order-properties": [
+          "model",
+          "prompt",
+          "negative_prompt",
+          "aspect_ratio",
+          "duration",
+          "guidance_scale"
+        ]
+      },
+      "PredictionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the prediction, the ID of the prediction to get."
+          },
+          "urls": {
+            "type": "object",
+            "description": "Object containing related API endpoints."
+          },
+          "model": {
+            "type": "string",
+            "description": "Model ID used for the prediction."
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the task: created, processing, completed, or failed."
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of URLs to the generated content (empty when status is not completed)."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO timestamp of when the request was created (e.g., “2023-04-01T12:34:56.789Z”)."
+          },
+          "has_nsfw_contents": {
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            },
+            "description": "Array of boolean values indicating NSFW detection for each output."
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "in": "header",
+        "name": "Authorization",
+        "type": "apiKey"
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "black-forest-labs/flux-schnell",
+                "seed": -1,
+                "size": "1024*1024",
+                "prompt": "A young Chinese woman wearing an elegant traditional Hanfu, standing in an ancient Chinese street. She has delicate facial features, fair skin, soft smile, and expressive eyes. Her hair is styled in a classical updo adorned with intricate golden hairpins and red ornaments. She wears a rich red embroidered Hanfu with phoenix and floral patterns, flowing sleeves, and layered fabrics. Warm backlighting creates a soft halo around her hair, cinematic depth of field. The background shows old-style Chinese buildings, lanterns, and people walking softly blurred. Ultra-realistic photography, natural skin texture, shallow depth of field, soft daylight, high detail, cultural atmosphere, cinematic portrait.",
+                "strength": 0.8,
+                "num_images": 1,
+                "enable_sync_mode": false,
+                "enable_base64_output": false,
+                "enable_safety_checker": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/65b496b2097dcc74b11a23f9f97350d2.jpeg"
+                ]
+            }
+        }
+    ]
+}

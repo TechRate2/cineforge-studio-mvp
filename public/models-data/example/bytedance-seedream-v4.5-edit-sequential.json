@@ -1,0 +1,54 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "prompt": "Create a sequence of 2 images in a soft comic style using the provided portrait as the main character reference.\n\nMaintain the same girl’s face, expression range, eye color and hair style in both images. Her age and appearance must remain natural and unchanged.\nOverall style: gentle shōjo manga / watercolor comic, pastel colors, soft outlines, subtle film grain, dreamy and calm mood.\n\nImage 1: Close-up half-body shot of the girl standing in the same meadow at golden hour, inspired by the reference. She looks slightly to the side, a light breeze moving a few strands of her hair, soft sunlight and blurred wildflowers behind her.\n\nImage 2: Wider shot in the same meadow and lighting. The girl is now standing a bit farther from the camera, holding a small bouquet of wildflowers in front of her, with more of the field and sky visible. Her expression is gently smiling and hopeful. The background and color palette should clearly match Image 1 so they feel like two consecutive moments from the same short comic, with no text or speech bubbles.",
+                "model": "bytedance/seedream-v4.5/edit-sequential"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/7e7a4c2aba5547fc9ad6b80e78b99919_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Create a sequence of 2 vertical 4K poster images using the provided perfume bottle as the hero product.\nThe bottle’s shape, glass, cap, label design and logo must remain exactly the same in both images, only the environment, colors and mood should change.\n\nImage 1 – ‘Daylight Minimal’:\nPlace the bottle on a clean white marble surface similar to the reference, with soft natural daylight coming from the left, casting a long gentle shadow. Background is bright and minimal, slightly out of focus, with very subtle warm reflections on the glass. No extra props. Add small, sharp text near the top in elegant black serif: ‘Eau de Parfum’. At the bottom, smaller sans-serif text: ‘Daylight Edition’. Overall style: high-end, clean, minimal luxury product photography.\n\nImage 2 – ‘Night Black & Gold’:\nUse the same bottle in the same scale and angle, but now on a glossy black surface with a rich dark background. Add a soft golden spotlight from the right, creating strong contrast and a dramatic, elongated highlight on the glass. Include a faint bokeh of golden lights in the background for a night-time, glamorous mood. Add small, sharp gold text near the top: ‘Eau de Parfum’. At the bottom, smaller white sans-serif text: ‘Noir Edition’. Overall style: luxurious black-and-gold campaign visual, cinematic and dramatic.\n\nKeep the product perfectly consistent between the two posters so they clearly feel like a coordinated day & night series for the same perfume brand.",
+                "model": "bytedance/seedream-v4.5/edit-sequential"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/83f8d138d49049cda5aa5f78316ca847_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Create a sequence of 2 CG animated-style images based on the provided photo.\nKeep the same tall rectangular building, the still water, heavy fog, and overall composition in both images. The scene must remain in the same location and perspective, only the atmosphere, lighting and supernatural elements should change.\nStyle: cinematic 3D animation, slightly stylized but realistic materials, cool blue-green palette, strong Cthulhu / cosmic horror mood.\n\nImage 1 – ‘Omen’:\nNight-time foggy scene. The building stands in the water as in the reference, but the single lit window glows a faint sickly green instead of warm yellow. In the dark water near the base of the building, add very subtle hints of enormous tentacles just beneath the surface, their shapes barely visible through the misty reflections. Faint glowing eldritch runes appear vertically along the central line of the building’s facade, dim and eerie. The overall lighting is low, mysterious and quiet.\n\nImage 2 – ‘Awakening’:\nSame angle and building, but the fog now glows with an unnatural turquoise-green light. Large shadowy tentacles rise clearly from the water around the base, curling toward the tower and partly wrapping around it. The runes on the facade burn much brighter, and a massive circular eye-like glow appears high on the building, staring toward the viewer. The water reflects distorted green light and ripples outward. The sky remains lost in fog, but with darker shapes hinting at something colossal beyond.\n\nBoth images should look like frames from the same animated Cthulhu-inspired short film, with consistent building design, water surface and atmospheric style.",
+                "model": "bytedance/seedream-v4.5/edit-sequential"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/6cdc75a014ac4a1987f4ec67c0429123_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/5e0ac58a5a8226a768cc3bc441e7c58f.png"
+                ],
+                "model": "bytedance/seedream-v4.5/edit-sequential",
+                "enable_base64_output": false,
+                "max_images": 1,
+                "size": "2048*2048",
+                "prompt": "Create a sequence of 2 images in a soft storybook illustration style using a young bicycle courier boy as the main character reference.\\n\\nMaintain the same face features, hair color and style, clothing tone, and body proportions in both images. His age and appearance must remain natural and consistent.\\nOverall style: cozy illustrated storybook, pastel colors, soft outlines, gentle lighting, subtle paper texture, warm and nostalgic mood.\\n\\nImage 1: Medium shot of the boy standing beside his bicycle on a quiet town street in the early morning. He looks slightly off to the side, one hand resting on the handlebars, with warm sunlight, small shops, and leafy trees softly blurred in the background.\\n\\nImage 2: Wider shot in the same town and lighting. The boy is riding his bicycle farther down the street, a delivery bag over his shoulder, with more of the road, buildings, and sky visible. His expression is relaxed and hopeful. The background and color palette should clearly match Image 1 so they feel like two consecutive moments from the same short illustrated story, with no text or speech bubbles."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/9dcf15c6fe7a1ce29f364ef9268f2a37.jpeg"
+                ]
+            }
+        }
+    ]
+}

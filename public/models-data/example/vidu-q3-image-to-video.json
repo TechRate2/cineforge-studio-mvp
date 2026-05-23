@@ -1,0 +1,52 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "bgm": true,
+                "duration": 5,
+                "generate_audio": true,
+                "image": "https://static.atlascloud.ai/media/images/1769829710265775321_oJajgfck.jpeg",
+                "movement_amplitude": "auto",
+                "prompt": "The soldier moves from a static position, raising his rifle into a ready-to-fire stance, and begins to advance slowly and cautiously through the rubble. The smoke in the background thickens, and wind blows, kicking up dust from the ground. Handheld camera style with slight shake, adding immediate urgency.",
+                "resolution": "720p"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/7f43a7e39e6d4ba08b88c24fbbf6da42_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "bgm": true,
+                "image": "https://static.atlascloud.ai/media/images/1769829738161682856_Id6oxFMU.jpeg",
+                "prompt": "Two futuristic robots engage in intense hand-to-hand combat. The white robot throws a heavy punch, and the black robot blocks and counters. Sparks fly from metal impacts, fast and fluid motion. Dynamic handheld camera with strong impact and motion blur.",
+                "duration": 5,
+                "resolution": "720p",
+                "generate_audio": true,
+                "movement_amplitude": "auto"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/fa2596532016434aae64daf4f4f8b1bd_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "bgm": true,
+                "image": "https://static.atlascloud.ai/media/images/1769829753604987661_zzI07fxF.jpeg",
+                "prompt": "Photorealistic cinematic shot of a rider on a powerful, muscular horse galloping through an open, sunlit field. The rider, dressed in rugged equestrian gear, suddenly exhales sharply — “吁~” — as they firmly grip the reins and bring the horse to an abrupt, natural stop. The horse’s muscles tense, its ears flicking, eyes locked forward with alertness, head slightly lowered in controlled stillness. Natural lighting casts dynamic shadows across the terrain, with realistic textures on the horse’s coat and rider’s clothing. The background is a blurred, expansive landscape — grassy plains, distant trees — emphasizing motion and sudden halt. High detail, accurate anatomy, lifelike motion, and authentic equestrian realism. Medium shot, eye-level perspective, capturing the tension and calm after the stop.",
+                "duration": 5,
+                "resolution": "720p",
+                "generate_audio": true,
+                "movement_amplitude": "auto"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/0aab72c6e8aa45e39c0a93028ef942d1_1.mp4"
+                ]
+            }
+        }
+    ]
+}

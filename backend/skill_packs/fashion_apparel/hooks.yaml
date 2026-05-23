@@ -1,0 +1,85 @@
+# HOOKS BANK — Fashion & Apparel VN
+
+hooks:
+  - id: fashion_ootd_reveal
+    type: satisfying_visual_proof
+    fits: [LOOKBOOK_TRANSITION, BEFORE_AFTER_STYLING]
+    target_emotion: "aspiration"
+    trending_score: 9
+    template: "OOTD hôm nay — {dịp/mood}"
+    examples:
+      - "OOTD hôm nay — coffee date với crush"
+      - "OOTD đi làm Monday — soft girl academia"
+      - "OOTD weekend — Saigon outdoor vibe"
+
+  - id: fashion_n_ways
+    type: curiosity_gap
+    fits: [STYLING_TUTORIAL]
+    target_emotion: "value learning"
+    trending_score: 8
+    template: "{N} cách mix {item} mà bạn chưa nghĩ tới"
+    examples:
+      - "5 cách mix áo trắng basic mà bạn chưa nghĩ tới"
+      - "3 outfit từ 1 váy đen 250k Shopee"
+
+  - id: fashion_transformation
+    type: satisfying_visual_proof
+    fits: [BEFORE_AFTER_STYLING]
+    target_emotion: "transformation"
+    trending_score: 10
+    template: "Glow-up outfit từ {item rẻ} 350k"
+    examples:
+      - "Glow-up outfit từ áo Shopee 89k"
+      - "Outfit 500k look sang trọng 5tr"
+
+  - id: fashion_dupe_brand
+    type: controversial
+    fits: [LOOKBOOK_TRANSITION]
+    target_emotion: "value seeking"
+    trending_score: 9
+    template: "Outfit Zara dupe — toàn item dưới {giá}"
+    examples:
+      - "Outfit Zara dupe — toàn item dưới 200k"
+      - "Look Massimo Dutti dupe Shopee — savings 90%"
+
+  - id: fashion_seasonal_trend
+    type: relatable_emotion
+    fits: [SHOPPING_HAUL, LOOKBOOK_TRANSITION]
+    target_emotion: "trend hopping"
+    trending_score: 8
+    template: "Trend {mùa/sự kiện} — items mình ship trên Shopee"
+    examples:
+      - "Trend Tết 2026 — items mình ship trên Shopee Mall"
+      - "Trend mùa hè SG — outfit cool dưới 500k"
+
+  - id: fashion_haul_reveal
+    type: curiosity_gap
+    fits: [SHOPPING_HAUL]
+    target_emotion: "anticipation"
+    trending_score: 7
+    template: "Mình mua {N} món trên Shopee {giá} — đáng tiền hay không"
+    examples:
+      - "Mình mua 7 món trên Shopee 1tr5 — đáng tiền hay không"
+      - "Shopping haul 800k Lazada — winner & loser"
+
+  - id: fashion_body_type
+    type: authority
+    fits: [STYLING_TUTORIAL]
+    target_emotion: "personalized"
+    trending_score: 8
+    template: "Tips mix outfit cho {body type/chiều cao} — mình {N} năm trải nghiệm"
+    examples:
+      - "Tips mix outfit cho người lùn 1m55 — 5 năm thử nghiệm"
+      - "Tips mix outfit khi thân hình quả lê — không khoe đùi"
+
+scoring_weights:
+  trending_alignment: 0.30  # fashion phụ thuộc trend cao
+  pattern_interrupt: 0.25
+  relatability: 0.15
+  authenticity: 0.15
+  cta_setup: 0.15
+
+ranker_strategy:
+  variants_to_generate: 5
+  top_n_keep: 3
+  diversity_constraint: true

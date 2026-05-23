@@ -1,0 +1,21 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-v1.5-pro/text-to-video-fast",
+                "aspect_ratio": "16:9",
+                "camera_fixed": false,
+                "duration": 8,
+                "generate_audio": true,
+                "resolution": "720p",
+                "seed": -1,
+                "prompt": "A cinematic, ultra-realistic underwater scene of a majestic whale swimming gracefully through the deep blue ocean. Sunlight rays penetrate the water from above, creating soft volumetric light beams. The whale’s massive body moves slowly and smoothly, with gentle tail motions and flowing fins. Tiny air bubbles and floating particles drift through the water. Surrounding marine life appears subtly in the distance, enhancing the sense of scale. Natural ocean colors, realistic water caustics, calm and peaceful atmosphere. Smooth camera tracking alongside the whale, shallow depth of field, IMAX-quality, photorealistic, no text, no watermark."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/c9910dbafd244cdc83fa1eeaec5f0a4d_1.mp4"
+                ]
+            }
+        }
+    ]
+}

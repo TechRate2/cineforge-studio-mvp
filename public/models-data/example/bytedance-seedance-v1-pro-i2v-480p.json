@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-v1-pro-i2v-480p",
+                "seed": 1698893692,
+                "prompt": "A cute kitten sits calmly with minimal body movement, the camera steadily focused on its face and upper body; the kitten gently blinks, slowly opens its mouth to make a natural yawn, whiskers slightly twitching, eyes softly squinting as the yawn ends, motion smooth and realistic without exaggeration, subtle fur movement, soft lighting, warm and cozy mood.",
+                "duration": 5,
+                "camera_fixed": false,
+                "image": "https://static.atlascloud.ai/media/images/cacaca9b40cef37cbe77494782b0ca29.jpg",
+                "aspect_ratio": "16:9"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/0d6e5ede1c1c4febaf54c3520046068e_1.mp4"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,24 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "prompt": "Wide-angle shot. A lone figure with a large backpack walking through a dust storm-swept post-apocalyptic desert ruin. Wind blowing their cloak. Slow camera dolly out to reveal the desolate environment. Grainy film look."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/output_8a9c3d5c-161d-4fbf-8ada-3365b710e3ad.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A young woman with long curly brown hair sits in a dark movie theater on a deep red velvet seat, holding a red paper cup in both hands. She gazes up at the screen with a soft, amused smile. Her expression shifts subtly — her eyes widen slightly with interest, then she lets out a gentle laugh, her shoulders rising briefly. Her curly hair sways ever so slightly as she tilts her head. The flickering light from the movie screen casts warm, shifting reflections across her face, alternating between soft highlights and shadow. She lifts the red cup slowly to take a sip, then lowers it back down. The dark cinema background with rows of empty red seats remains still and moody. Cinematic lighting, shallow depth of field, warm color grading. 4K, 24fps."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/output_1a2bb3b3-9454-4947-a302-453b6f15e037.mp4"
+                ]
+            }
+        }
+    ]
+}

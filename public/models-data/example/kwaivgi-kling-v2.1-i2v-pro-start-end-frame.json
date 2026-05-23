@@ -1,0 +1,104 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "prompt": "Pikachu turned around and put on a hat and sunglasses."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/19d0ed538b2d41e1be6245b43a131a95_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "The dog ran forward, and finally turned into a Ghibli style."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/e265a231a726467ca84b801f292ca912_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "The car is driving on the road, then changes color."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/74f5be23be274ce792b21a368496a136_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Camera pulls back，the beautiful woman shows a brilliant smile at the camera."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/784a5085b18e4426bcaf379596bd5b20_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "zoom in."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/e81690d5e0224f0aac509404eaefa987_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "The girl turned around and handed her hand. "
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/6d3195b831d94c859466934e8f7620cc_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "The girl is holding a camera."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/a4141a2ca3f4435aa670b5fd92671a20_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Camera pulls back，the beautiful woman shows a brilliant smile at the camera."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/ec783454eef44aa08db2fb00e9dfdda4_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Some butterflies suddenly flew around the girl."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/a9fef6ec1a03492ab008f94f27fba8bf_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "The camera zooms out, and the boy puts on sunglasses."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/09a774f5d0364606852dc1cb6950b870_1.mp4"
+                ]
+            }
+        }
+    ]
+}

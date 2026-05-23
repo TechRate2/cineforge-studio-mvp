@@ -1,0 +1,17 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "minimax/hailuo-2.3/i2v-pro",
+                "enable_prompt_expansion": true,
+                "image": "https://static.atlascloud.ai/media/images/521d1a00f8528a65d28cbd186b8c9602.jpg",
+                "prompt": "First-person perspective traveling rapidly through a vast space-time tunnel.\nEndless glowing streaks of light stretch forward, bending and warping around the viewer.\nThe tunnel pulses with shifting cosmic colors and distorted geometry.\nStrong motion blur, volumetric lighting, cinematic depth of field, immersive, 4K, ultra detailed."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/d7c2d260e53e7e05a2473472d3c83f70.mp4"
+                ]
+            }
+        }
+    ]
+}

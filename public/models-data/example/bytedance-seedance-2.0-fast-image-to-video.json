@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-2.0-fast/image-to-video",
+                "prompt": "A powerful off-road vehicle emerging from the distance and driving toward the camera across a vast rugged landscape, dust trails rising behind the tires, cinematic wide shot, low-angle camera perspective, dramatic sunlight, epic adventure movie atmosphere, ultra-realistic, 4K.",
+                "duration": 5,
+                "resolution": "720p",
+                "ratio": "adaptive",
+                "generate_audio": true,
+                "watermark": false,
+                "return_last_frame": false,
+                "image": "https://static.atlascloud.ai/media/images/d0c88c389d86e5189c258ecda5163a4a.jpg"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/26849ccc1853245eb3a34f08f957b174.mp4"
+                ]
+            }
+        }
+    ]
+}

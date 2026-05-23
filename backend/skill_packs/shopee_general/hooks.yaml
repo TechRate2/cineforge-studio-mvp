@@ -1,0 +1,95 @@
+# HOOKS BANK — Shopee/Lazada Product Ads VN
+# Generic hooks fit mọi product category trên sàn TMĐT VN.
+
+hooks:
+  - id: shopee_discovery_shock
+    type: curiosity_gap
+    fits: [SOCIAL_PROOF_VOLUME, LIFESTYLE_ASPIRATION]
+    target_emotion: "discovery"
+    trending_score: 9
+    template: "Mình vừa tìm ra {sản phẩm} mà 1000+ người đã mua trên Shopee tuần này"
+    examples:
+      - "Mình vừa tìm ra máy hút mụn mà 2000+ chị em mua tuần này"
+      - "Cái nồi này 5000+ đơn rồi mà mình mới biết — sốc"
+      - "Đèn ngủ này đang viral khắp Shopee tuần qua"
+
+  - id: shopee_price_break
+    type: controversial
+    fits: [PRICE_COMPARISON]
+    target_emotion: "shock"
+    trending_score: 8
+    template: "{Sản phẩm} 50k Shopee vs {Sản phẩm} {giá cao} — không tin nổi cái nào tốt hơn"
+    examples:
+      - "Tai nghe 200k Shopee vs AirPods 5tr — không tin nổi"
+      - "Balo 89k Shopee vs balo Adidas 1.5tr — kết quả test"
+
+  - id: shopee_pov_unboxing
+    type: relatable_emotion
+    fits: [LIFESTYLE_ASPIRATION, PROBLEM_AGITATE_SOLUTION]
+    target_emotion: "anticipation"
+    trending_score: 8
+    template: "POV: bạn vừa nhận đơn Shopee và {phản ứng}"
+    examples:
+      - "POV: bạn vừa nhận đơn Shopee mà thấy đáng từng đồng"
+      - "POV: mở box Shopee Mall lần đầu — quality khác xa expectation"
+
+  - id: shopee_seller_recommendation
+    type: authority
+    fits: [SOCIAL_PROOF_VOLUME]
+    target_emotion: "trust"
+    trending_score: 7
+    template: "Shop {tên shop} bán cái này — mình order thử và đây là kết quả"
+    examples:
+      - "Shop Mall này bán cái này — mình order thử và bị thuyết phục"
+
+  - id: shopee_problem_solver
+    type: relatable_emotion
+    fits: [PROBLEM_AGITATE_SOLUTION]
+    target_emotion: "relief"
+    trending_score: 8
+    template: "Có ai từng {pain point} chưa? Mình tìm ra giải pháp 89k trên Shopee"
+    examples:
+      - "Có ai phòng nhỏ chật chội chưa? Cái kệ này 79k giải quyết"
+      - "Có ai tóc rụng nhiều không? Dầu gội 120k Shopee Mall fix"
+
+  - id: shopee_flash_sale_urgency
+    type: controversial
+    fits: [PRICE_COMPARISON]
+    target_emotion: "FOMO"
+    trending_score: 7
+    template: "Flash sale {giờ}h thôi — {sản phẩm} giảm {%} sốc"
+    examples:
+      - "Flash sale 12h thôi — bộ skincare giảm 70% sốc"
+      - "Sale 9-9 chỉ tới hết hôm nay — máy lọc nước rẻ nửa"
+
+  - id: shopee_review_quote
+    type: authority
+    fits: [SOCIAL_PROOF_VOLUME]
+    target_emotion: "credibility"
+    trending_score: 8
+    template: "{Số} review 5 sao đều nói '{quote ngắn}' — mình test thử"
+    examples:
+      - "234 review 5 sao đều nói 'thật sự work' — mình test thử"
+      - "5000+ đơn ai cũng khen 'shipper giao nhanh, đúng mô tả'"
+
+  - id: shopee_alternative_to_premium
+    type: curiosity_gap
+    fits: [PRICE_COMPARISON, LIFESTYLE_ASPIRATION]
+    target_emotion: "value seeking"
+    trending_score: 9
+    template: "Đây là Shopee dupe cho {brand cao cấp} — giá bằng 1/{N}"
+    examples:
+      - "Đây là Shopee dupe cho Dyson — giá bằng 1/10"
+      - "Dupe Le Creuset rẻ bằng 1/15 mà chất lượng 80%"
+
+scoring_weights:
+  trending_alignment: 0.25
+  pattern_interrupt: 0.25
+  relatability: 0.20
+  authenticity: 0.20  # cao hơn beauty vì shopee user nghi ngờ "ad" nhiều
+  cta_setup: 0.10
+
+ranker_strategy:
+  variants_to_generate: 5
+  top_n_keep: 3
+  diversity_constraint: true

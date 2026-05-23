@@ -1,0 +1,40 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "prompt": "Generate a sequence of 6 atmospheric city alley scenes that all take place in the same narrow street, with consistent architecture, signs, perspective and overall style.\nStyle: realistic photography with a slight cinematic film look, soft grain, subtle lens bloom, inspired by Japanese backstreets.\n\nScene 1 – Early Morning: the alley is quiet and almost empty, cool blue light, shutters half-closed, a faint mist on the ground.\nScene 2 – Late Morning: shops are open, warmer sunlight enters the alley, a few people walking and bicycles parked, brighter colors.\nScene 3 – Golden Hour: warm orange light from the low sun at the end of the alley, long shadows, vending machines glowing softly.\nScene 4 – Blue Hour: sky is deep blue, shop signs and lanterns turn on, reflections on slightly wet pavement.\n\nKeep the street layout, buildings, signs and vantage point consistent across all 6 images so they feel like different times of day in the exact same location",
+                "model": "bytedance/seedream-v4.5/sequential"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/0f4b7d4331634702acf8ea6e6edd59f3_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "Generate a set of 3 consecutive illustrations in a gritty action-anime style: first, a lone rider speeds through a shattered desert highway on a futuristic motorcycle, pursued by armored raiders. The next illustration shows an intense mid-air leap over a collapsed bridge as explosions erupt behind them. The final scene captures the rider skidding to safety atop a cliff, raising dust while the burning wreckage of the pursuers lights up the wasteland below.",
+                "model": "bytedance/seedream-v4.5/sequential"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/275ac8b4ee974594a174d24da21bcec1_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "model": "bytedance/seedream-v4.5/sequential",
+                "enable_base64_output": false,
+                "max_images": 1,
+                "size": "2048*2048",
+                "prompt": "Create an image of a young woman in an anime-inspired style, with soft, ethereal lighting casting dramatic beams on her face and messy, short black hair. The light should shine down from above, highlighting her natural, glowing skin while the rest of her body fades into darkness, creating a stark contrast. Her expression should be calm, with slightly narrowed eyes and a quiet intensity, as she looks slightly to the side, giving her a mysterious and contemplative aura. She wears a simple, loose-fitting shirt, the fabric catching the soft light, with the shadows accentuating her delicate features. In the background, there should be soft, blurred light patterns and subtle hints of flowers or plants, creating a dreamy and surreal atmosphere. The overall style should be anime-style realism, with intricate lighting and soft gradients, detailed shading, and smooth textures. The composition should feel cinematic, with a focus on the contrast between the illuminated areas and the deep shadows surrounding her, creating a mysterious, almost otherworldly vibe."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/5cf1de8c96367b75dcf3d45775cd52a4.jpeg"
+                ]
+            }
+        }
+    ]
+}

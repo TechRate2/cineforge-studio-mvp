@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/f4311727c7a4ee6bbfb0020ce3854720.png"
+                ],
+                "model": "bytedance/seedream-v5.0-lite/edit",
+                "enable_base64_output": false,
+                "size": "2048*2048",
+                "prompt": "Convert the image into an anime style illustration.\nClean line art, smooth cel shading, vibrant colors.\nSimplified yet expressive facial features, soft highlights, high clarity."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/d428e270edad8c2c53abc845a0e86958.jpeg"
+                ]
+            }
+        }
+    ]
+}

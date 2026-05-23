@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/72174e0336226b0de69452c18711bca6.jpg"
+                ],
+                "seed": -1,
+                "size": "1024*1024",
+                "prompt": "Adjust the overall texture of the image to a glass-like finish.",
+                "model": "qwen/qwen-image-2.0/edit"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/4d2ad4fa20fda76e14791b6328683eef.png"
+                ]
+            }
+        }
+    ]
+}

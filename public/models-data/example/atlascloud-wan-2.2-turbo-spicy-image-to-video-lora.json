@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "atlascloud/wan-2.2-turbo-spicy/image-to-video-lora",
+                "duration": 5,
+                "resolution": "720p",
+                "seed": -1,
+                "prompt": "A group of intelligent rats sits around a wooden table in a cozy room, intently playing a card game. The rats hold their cards carefully, some nibbling on a stick while others eye the table with focused expressions. The dim light from a nearby candle flickers, casting shadows across the walls adorned with old portraits. The sound of cards shuffling and soft squeaks fill the air as the rats eagerly plot their next move, creating an atmosphere of quiet tension and excitement.",
+                "image": "https://static.atlascloud.ai/media/images/f8896064b363eefb9341eafb5faa8b0a.png"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/65f28f6dc94babd7fceac1c4ee322559.mp4",
+                    "https://static.atlascloud.ai/media/videos/30a13ef91a0283410e025323ba7cd417.mp4"
+                ]
+            }
+        }
+    ]
+}

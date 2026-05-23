@@ -1,0 +1,295 @@
+# PERSONA DATABASE — 50 avatar VN metadata
+# Link với 50 avatar VN backend/api/routes/avatars.py
+# Casting Director persona đọc file này → filter theo niche
+#
+# Schema avatar:
+#   id: avatar_id (match với avatars endpoint)
+#   name_vn: tên hiển thị VN
+#   gender: F | M
+#   age_apparent: số tuổi nhìn thấy
+#   age_range: [min, max] tuổi user perceive
+#   vibes: list vibe (gen_z_casual, millennial_warm, beauty_blogger, ...)
+#   skin_tone: very_fair | fair | medium | tan
+#   features: list đặc điểm
+#   niche_tags: list niche phù hợp
+#   voice_id: GenMax voice_id matched
+#   voice_label: tên dễ nhớ
+#   region_accent: north | central | south
+#   personality_traits: list (energetic, calm, authoritative, playful...)
+#
+# Note: 50 avatar IDs ở đây là PLACEHOLDER mock — anh thay bằng real avatar ID
+# từ backend/api/routes/avatars.py thực tế. Em ship schema + 10 mẫu trước.
+
+avatars:
+
+  # ============ REAL AVATAR IDS — synced với backend/api/routes/avatars.py ============
+  # 5 avatar production (extend lên 50 sau)
+
+  - id: vn_female_hanoi_22yo_casual  # ← match avatars.py ID
+    name_vn: "Cô gái Hà Nội 22 - Casual"
+    gender: F
+    age_apparent: 22
+    age_range: [20, 25]
+    vibes: ["gen_z_casual", "lifestyle_aspirational"]
+    skin_tone: fair
+    features: ["oversized t-shirt", "jeans", "friendly approachable"]
+    niche_tags: ["beauty.skincare", "beauty.makeup", "fashion.apparel", "lifestyle", "food.beverage"]
+    voice_id: "d5HVupAWCwe4e6GvMCAL"  # GenMax Ngân — nữ trẻ Bắc
+    voice_label: "Ngân"
+    region_accent: north
+    personality_traits: ["energetic", "playful", "relatable"]
+    image_url: "https://r2.com/avatars/vn_female_hanoi_22yo_casual.png"
+
+  - id: vn_female_hanoi_28yo_pro
+    name_vn: "Chị Hà Nội 28 - Văn phòng"
+    gender: F
+    age_apparent: 28
+    age_range: [26, 32]
+    vibes: ["millennial_warm", "professional", "career_woman"]
+    skin_tone: fair
+    features: ["blazer", "jeans", "professional confident"]
+    niche_tags: ["beauty.skincare", "beauty.makeup", "supplement.health", "fashion.office", "tech.gadget"]
+    voice_id: "voice_genmax_huong_001"
+    voice_label: "Hương"
+    region_accent: north
+    personality_traits: ["confident", "professional", "credible"]
+    image_url: "https://r2.com/avatars/vn_female_hanoi_28yo_pro.png"
+
+  - id: vn_female_saigon_25yo_aesthetic
+    name_vn: "Cô gái SG 25 - Aesthetic"
+    gender: F
+    age_apparent: 25
+    age_range: [22, 28]
+    vibes: ["kbeauty_inspired", "beauty_blogger", "lifestyle_aspirational"]
+    skin_tone: very_fair
+    features: ["beige tone outfit", "minimalist aesthetic", "soft glow"]
+    niche_tags: ["beauty.skincare", "beauty.makeup", "fashion.korean", "food.cafe"]
+    voice_id: "voice_genmax_mai_001"
+    voice_label: "Mai"
+    region_accent: south
+    personality_traits: ["calm", "aesthetic", "soft-spoken"]
+    image_url: "https://r2.com/avatars/vn_female_saigon_25yo_aesthetic.png"
+
+  - id: vn_female_saigon_30yo_mom
+    name_vn: "Mẹ bỉm SG 30"
+    gender: F
+    age_apparent: 30
+    age_range: [28, 36]
+    vibes: ["mom_lifestyle", "millennial_warm"]
+    skin_tone: medium
+    features: ["casual lifestyle mom", "warm caring"]
+    niche_tags: ["mom_baby", "supplement.health", "food.healthy", "lifestyle.home", "beauty.anti_aging"]
+    voice_id: "voice_genmax_tran_001"
+    voice_label: "Trân"
+    region_accent: south
+    personality_traits: ["caring", "warm", "trustworthy"]
+    image_url: "https://r2.com/avatars/vn_female_saigon_30yo_mom.png"
+
+  - id: vn_male_hanoi_28yo_freelance
+    name_vn: "Anh HN 28 - Freelance"
+    gender: M
+    age_apparent: 28
+    age_range: [25, 32]
+    vibes: ["gen_z_casual", "tech_nerd", "lifestyle_clean"]
+    skin_tone: medium
+    features: ["white tee", "denim jacket", "chill creative"]
+    niche_tags: ["tech.gadget", "tech.audio", "fashion.male", "lifestyle.home", "food.beverage"]
+    voice_id: "voice_genmax_duc_huy_001"
+    voice_label: "Đức Huy"
+    region_accent: north
+    personality_traits: ["energetic", "factual", "playful"]
+    image_url: "https://r2.com/avatars/vn_male_hanoi_28yo_freelance.png"
+
+  # ============ FALLBACK MOCK AVATARS (extra options khi real avatars insufficient) ============
+
+  - id: vn_f_mock_001_minh_anh
+    name_vn: "Minh Anh"
+    gender: F
+    age_apparent: 24
+    age_range: [22, 27]
+    vibes: ["gen_z_casual", "beauty_blogger"]
+    skin_tone: fair
+    features: ["tóc ngắn ngang vai", "mặt V-line nhẹ", "smile dimples"]
+    niche_tags: ["beauty.skincare", "beauty.makeup", "fashion.apparel", "lifestyle"]
+    voice_id: "d5HVupAWCwe4e6GvMCAL"
+    voice_label: "Ngân"
+    region_accent: north
+    personality_traits: ["energetic", "playful", "relatable"]
+
+  - id: vn_f_002_linh_chi
+    name_vn: "Linh Chi"
+    gender: F
+    age_apparent: 23
+    age_range: [21, 26]
+    vibes: ["gen_z_casual", "kbeauty_inspired"]
+    skin_tone: very_fair
+    features: ["tóc dài đen", "skin glass shiny", "ulzzang vibe"]
+    niche_tags: ["beauty.skincare", "beauty.makeup", "fashion.korean"]
+    voice_id: "voice_genmax_mai_001"
+    voice_label: "Mai"
+    region_accent: north
+    personality_traits: ["calm", "aesthetic", "soft-spoken"]
+
+  - id: vn_f_003_thao_my
+    name_vn: "Thảo My"
+    gender: F
+    age_apparent: 25
+    age_range: [22, 28]
+    vibes: ["millennial_warm", "lifestyle_aspirational"]
+    skin_tone: medium
+    features: ["tóc nâu lượn sóng", "tan healthy", "khoẻ khoắn"]
+    niche_tags: ["beauty.skincare", "fashion.casual", "food.healthy", "sport.fitness"]
+    voice_id: "voice_genmax_tran_001"
+    voice_label: "Trân"
+    region_accent: south
+    personality_traits: ["authentic", "warm", "trustworthy"]
+
+  # ============ FEMALE MILLENNIAL (28-35) — supplement/mom ============
+
+  - id: vn_f_004_thu_huong
+    name_vn: "Thu Hương"
+    gender: F
+    age_apparent: 32
+    age_range: [30, 36]
+    vibes: ["millennial_warm", "mom_lifestyle", "professional"]
+    skin_tone: fair
+    features: ["tóc cắt bob ngắn", "mature look", "ấm áp"]
+    niche_tags: ["beauty.anti_aging", "supplement.health", "mom_baby", "lifestyle.home"]
+    voice_id: "voice_genmax_huong_001"
+    voice_label: "Hương"
+    region_accent: north
+    personality_traits: ["authoritative", "caring", "credible"]
+
+  - id: vn_f_005_phuong_anh
+    name_vn: "Phương Anh"
+    gender: F
+    age_apparent: 30
+    age_range: [28, 34]
+    vibes: ["millennial_warm", "career_woman"]
+    skin_tone: fair
+    features: ["tóc thẳng đen", "office look", "confident"]
+    niche_tags: ["beauty.makeup", "fashion.office", "tech.gadget", "supplement.beauty"]
+    voice_id: "voice_genmax_phuong_001"
+    voice_label: "Phương"
+    region_accent: north
+    personality_traits: ["confident", "professional", "sharp"]
+
+  # ============ FEMALE BEAUTY EXPERT (26-32) — authority cao ============
+
+  - id: vn_f_006_quynh_nhu
+    name_vn: "Quỳnh Như"
+    gender: F
+    age_apparent: 28
+    age_range: [26, 32]
+    vibes: ["beauty_blogger", "expert", "kbeauty_inspired"]
+    skin_tone: very_fair
+    features: ["MUA look", "makeup chỉn chu", "expert vibe"]
+    niche_tags: ["beauty.skincare", "beauty.makeup", "beauty.tools"]
+    voice_id: "voice_genmax_nhu_001"
+    voice_label: "Như"
+    region_accent: north
+    personality_traits: ["expert", "passionate", "detail-oriented"]
+
+  # ============ MALE GEN Z (22-28) — tech/sport ============
+
+  - id: vn_m_001_duc_anh
+    name_vn: "Đức Anh"
+    gender: M
+    age_apparent: 25
+    age_range: [22, 28]
+    vibes: ["gen_z_casual", "tech_nerd"]
+    skin_tone: medium
+    features: ["tóc undercut", "casual hoodie", "geek vibe"]
+    niche_tags: ["tech.gadget", "tech.audio", "tech.gaming", "sport.fitness"]
+    voice_id: "voice_genmax_duc_huy_001"
+    voice_label: "Đức Huy"
+    region_accent: north
+    personality_traits: ["energetic", "factual", "playful"]
+
+  - id: vn_m_002_minh_quan
+    name_vn: "Minh Quân"
+    gender: M
+    age_apparent: 26
+    age_range: [24, 29]
+    vibes: ["millennial_warm", "lifestyle_clean"]
+    skin_tone: medium
+    features: ["tóc gọn", "smart casual", "approachable"]
+    niche_tags: ["fashion.male", "tech.gadget", "lifestyle.home", "food.beverage"]
+    voice_id: "voice_genmax_quan_001"
+    voice_label: "Quân"
+    region_accent: south
+    personality_traits: ["calm", "trustworthy", "relatable"]
+
+  # ============ MALE MATURE (30-38) — supplement/business ============
+
+  - id: vn_m_003_thanh_son
+    name_vn: "Thanh Sơn"
+    gender: M
+    age_apparent: 35
+    age_range: [32, 40]
+    vibes: ["professional", "authority"]
+    skin_tone: fair
+    features: ["tóc gọn vest casual", "mature look", "doctor/businessman vibe"]
+    niche_tags: ["supplement.health", "tech.business", "lifestyle.luxury"]
+    voice_id: "voice_genmax_ninh_don_001"
+    voice_label: "Ninh Đôn"
+    region_accent: north
+    personality_traits: ["authoritative", "credible", "calm"]
+
+  # ============ NICHE AVATAR EXAMPLES (sport/foodie/etc) ============
+
+  - id: vn_f_007_huyen_my_foodie
+    name_vn: "Huyền My (foodie)"
+    gender: F
+    age_apparent: 26
+    age_range: [23, 30]
+    vibes: ["foodie_aesthetic", "millennial_warm"]
+    skin_tone: medium
+    features: ["healthy glow", "smile generous", "warm tone"]
+    niche_tags: ["food.beverage", "food.restaurant", "lifestyle.cafe"]
+    voice_id: "voice_genmax_my_001"
+    voice_label: "My"
+    region_accent: south
+    personality_traits: ["enthusiastic", "warm", "engaging"]
+
+
+# ============================================
+# CASTING SCORING WEIGHTS
+# Casting Director dùng để rank candidates
+# ============================================
+
+casting_weights:
+  niche_tag_match: 0.40       # avatar có niche_tag match niche từ skill pack
+  vibe_match: 0.25            # vibe match cinematic mood
+  voice_gender_match: 0.15    # match preferred_gender skill pack
+  age_match: 0.15             # overlap age range với target audience
+  personality_fit: 0.05       # personality match Director's tone
+
+
+# ============================================
+# VIBE COMPATIBILITY MATRIX
+# Maps cinematic mood → avatar vibes phù hợp
+# ============================================
+
+mood_to_vibes:
+  energetic: ["gen_z_casual", "tech_nerd", "foodie_aesthetic"]
+  dreamy: ["kbeauty_inspired", "beauty_blogger", "millennial_warm"]
+  authentic-raw: ["gen_z_casual", "mom_lifestyle", "lifestyle_aspirational"]
+  luxury: ["professional", "expert", "career_woman"]
+  playful: ["gen_z_casual", "tech_nerd", "foodie_aesthetic"]
+  nostalgic: ["millennial_warm", "lifestyle_clean"]
+
+
+# ============================================
+# EXPANSION NOTES
+# ============================================
+# Tổng cộng 10 avatar mẫu trên = template schema.
+# Anh có 50 avatar VN trong backend/api/routes/avatars.py — extend file này
+# bằng cách add metadata mỗi avatar theo schema trên.
+#
+# Tools để bulk-generate metadata:
+#   1. Tải 50 ảnh avatar
+#   2. Dùng Qwen3-VL phân tích từng ảnh → output age/gender/vibe/features
+#   3. Manual edit niche_tags + voice_id mapping
+#
+# Background script (chunk 3): scripts/extract_avatar_metadata.py sẽ tự động bước này.

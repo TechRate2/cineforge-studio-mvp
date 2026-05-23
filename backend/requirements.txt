@@ -1,0 +1,44 @@
+# Core
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.18
+python-dotenv==1.0.1
+
+# Database
+sqlalchemy==2.0.36
+alembic==1.14.0
+psycopg2-binary==2.9.10
+asyncpg==0.30.0
+
+# Queue & Cache
+dramatiq[redis]==1.17.1
+redis==5.2.0
+
+# AI / Vendor SDKs
+anthropic==0.42.0
+openai==1.59.7
+httpx==0.28.1
+
+# Scraping
+scrapling==0.2.91
+playwright==1.49.1
+
+# Storage & Cloud
+boto3==1.35.92
+botocore==1.35.92
+
+# Media processing
+ffmpeg-python==0.2.0
+pillow==11.0.0
+
+# Utilities
+pydantic==2.10.4
+pydantic-settings==2.7.1
+loguru==0.7.3
+tenacity==9.0.0
+pyyaml==6.0.2
+
+# Dev
+pytest==8.3.4
+pytest-asyncio==0.25.0
+ipython==8.30.0

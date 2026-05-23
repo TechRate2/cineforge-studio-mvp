@@ -1,0 +1,19 @@
+{
+  "examples": [
+    {
+      "inputs": {
+        "model": "atlascloud/wan-2.2-turbo/image-to-video",
+        "prompt": "A classic golden Cadillac speeds through a desert road, kicking up dust as the camera tracks alongside it.",
+        "image": "https://static.atlascloud.ai/media/images/db548fe3bd5cafa4ef7e0141d69c8566.jpeg",
+        "duration": 5,
+        "resolution": "1080p",
+        "seed": -1
+      },
+      "outputs": {
+        "outputs": [
+          "https://static.atlascloud.ai/media/videos/dda6f729-d4bd-437b-b579-00918a2c4980.mp4"
+        ]
+      }
+    }
+  ]
+}

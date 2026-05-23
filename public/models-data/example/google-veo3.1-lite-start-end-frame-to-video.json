@@ -1,0 +1,21 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "google/veo3.1-lite/start-end-frame-to-video",
+                "aspect_ratio": "16:9",
+                "duration": 8,
+                "resolution": "720p",
+                "seed": -1,
+                "image": "https://static.atlascloud.ai/media/images/246896383681ebbd78f7f2d6bf00f664.png",
+                "prompt": "A supercar executes a breathtaking high-speed drift across the asphalt track, massive tire smoke swirling behind, glowing brake discs, motion blur emphasizing extreme speed, low-angle cinematic camera following the slide, ultra-realistic, high-energy racing scene.",
+                "last_image": "https://static.atlascloud.ai/media/images/6f41f98de814eab22aff90953f7dce4d.png"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/c952b37097a3b0ab24130fa26a92e900.mp4"
+                ]
+            }
+        }
+    ]
+}

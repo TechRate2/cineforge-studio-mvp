@@ -1,0 +1,21 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-2.0-fast/text-to-video",
+                "prompt": "A man in an elegant suit running across a wide, lush meadow while holding a bouquet of flowers, tall grass flowing in the wind, golden sunlight illuminating the landscape, joyful and emotional moment, cinematic composition, shallow depth of field, ultra-realistic, 4K, slow-motion tracking shot.",
+                "duration": 5,
+                "resolution": "720p",
+                "ratio": "adaptive",
+                "generate_audio": true,
+                "watermark": false,
+                "return_last_frame": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/3bcbc6815e3daeaa3b65a290f48e5d40.mp4"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,286 @@
+{
+    "info": {
+        "title": "AtlasCloud API",
+        "version": "1.0.0",
+        "description": "The AtlasCloud API."
+    },
+    "paths": {
+        "/api/v1/model/generateImage": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "The request status."
+                    }
+                },
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Input"
+                            }
+                        }
+                    },
+                    "required": true
+                }
+            },
+            "x-api-name": "model_run"
+        },
+        "/api/v1/model/result/{request_id}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "Result of the request."
+                    }
+                },
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "request_id",
+                        "schema": {
+                            "type": "string",
+                            "description": "Request ID"
+                        },
+                        "required": true
+                    }
+                ]
+            },
+            "x-api-name": "model_result"
+        }
+    },
+    "openapi": "3.0.0",
+    "servers": [
+        {
+            "url": "https://api.atlascloud.ai"
+        }
+    ],
+    "components": {
+        "schemas": {
+            "Input": {
+                "type": "object",
+                "required": [
+                    "model",
+                    "prompt"
+                ],
+                "properties": {
+                    "model": {
+                        "type": "string",
+                        "description": "model name",
+                        "default": "black-forest-labs/flux-schnell"
+                    },
+                    "seed": {
+                        "type": "integer",
+                        "default": -1,
+                        "description": "Random seed (-1 for random)"
+                    },
+                    "size": {
+                        "type": "string",
+                        "default": "1024*1024",
+                        "description": "Output image size"
+                    },
+                    "image": {
+                        "type": "string",
+                        "default": ""
+                    },
+                    "prompt": {
+                        "type": "string",
+                        "default": "Cute boy with a hat, exploring nature, holding a telescope, backpack, surrounded by flowers, cartoon style, vibrant colors.",
+                        "description": "Input prompt for image generation"
+                    },
+                    "strength": {
+                        "step": 0.01,
+                        "type": "number",
+                        "default": 0.8,
+                        "maximum": 1,
+                        "minimum": 0,
+                        "description": "Strength indicates extent to transform the reference image"
+                    },
+                    "mask_image": {
+                        "type": "string",
+                        "title": "The mask image",
+                        "description": "The mask image tells the model where to generate new pixels (white) and where to preserve the original image (black). It acts as a stencil or guide for targeted image editing."
+                    },
+                    "num_images": {
+                        "type": "integer",
+                        "default": 1,
+                        "maximum": 4,
+                        "minimum": 1,
+                        "description": "Number of images to generate"
+                    },
+                    "enable_sync_mode": {
+                        "type": "boolean",
+                        "title": "Enable sync mode",
+                        "default": false,
+                        "disabled": true,
+                        "description": "If set to true, the function will wait for the image to be generated and uploaded before returning the response. It allows you to get the image directly in the response."
+                    },
+                    "enable_base64_output": {
+                        "type": "boolean",
+                        "title": "Enable Output base64",
+                        "default": false,
+                        "disabled": true,
+                        "description": "If enabled, the output will be encoded into a BASE64 string instead of a URL."
+                    },
+                    "enable_safety_checker": {
+                        "type": "boolean",
+                        "default": true,
+                        "disabled": true,
+                        "description": "Enable safety checker"
+                    }
+                },
+                "x-order-properties": [
+                    "model",
+                    "prompt",
+                    "image",
+                    "mask_image",
+                    "strength",
+                    "size",
+                    "num_images",
+                    "seed",
+                    "enable_base64_output",
+                    "enable_safety_checker",
+                    "enable_sync_mode"
+                ]
+            },
+            "LoraWeight": {
+                "type": "object",
+                "title": "LoraWeight",
+                "required": [
+                    "path"
+                ],
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "title": "Path",
+                        "description": "URL or the path to the LoRA weights."
+                    },
+                    "scale": {
+                        "type": "number",
+                        "title": "Scale",
+                        "default": 1,
+                        "maximum": 4,
+                        "minimum": 0,
+                        "description": "The scale of the LoRA weight. This is used to scale the LoRA weight before merging it with the base model."
+                    }
+                },
+                "x-order-properties": [
+                    "path",
+                    "scale"
+                ]
+            },
+            "PredictionUrls": {
+                "type": "object",
+                "required": [
+                    "cancel",
+                    "result"
+                ],
+                "properties": {
+                    "cancel": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Cancel prediction URL"
+                    },
+                    "result": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Result retrieval URL"
+                    }
+                }
+            },
+            "PredictionResponse": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "model",
+                    "input",
+                    "status",
+                    "created_at",
+                    "urls"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "example": "7hm7nbwarxrm80cnq1yvmxz4m4",
+                        "description": "Unique prediction ID"
+                    },
+                    "logs": {
+                        "type": "string",
+                        "example": "...",
+                        "description": "Execution logs"
+                    },
+                    "urls": {
+                        "$ref": "#/components/schemas/PredictionUrls"
+                    },
+                    "input": {
+                        "$ref": "#/components/schemas/Input"
+                    },
+                    "model": {
+                        "type": "string",
+                        "example": "black-forest-labs/flux-dev",
+                        "description": "Model name"
+                    },
+                    "output": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uri"
+                        },
+                        "example": [
+                            "https://replicate.delivery/..."
+                        ],
+                        "description": "Generated output URLs",
+                        "x-field-name": "output"
+                    },
+                    "status": {
+                        "enum": [
+                            "queued",
+                            "processing",
+                            "succeeded",
+                            "failed"
+                        ],
+                        "type": "string",
+                        "example": "processing",
+                        "description": "Prediction status"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-03-21T11:36:30.151Z",
+                        "description": "Creation timestamp"
+                    },
+                    "has_nsfw_contents": {
+                        "type": "array",
+                        "items": {
+                            "type": "boolean"
+                        },
+                        "example": [
+                            false
+                        ],
+                        "description": "NSFW content detection results"
+                    }
+                }
+            }
+        },
+        "securitySchemes": {
+            "apiKeyAuth": {
+                "in": "header",
+                "name": "Authorization",
+                "type": "apiKey",
+                "description": "access key"
+            }
+        }
+    }
+}

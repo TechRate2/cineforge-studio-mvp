@@ -1,0 +1,17 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "seed": -1,
+                "size": "1024*1024",
+                "prompt": "A single delicate flower centered in the composition, featuring translucent glass-like petals that softly refract and reflect light, with subtle internal highlights and gentle luminosity. Each petal is defined by thin, elegant dark outlines, creating a refined contrast against the soft background. The flower is attached to a slender, realistic green stem with a detailed calyx and natural botanical textures. The background is minimal and dreamy, composed of a smooth pastel gradient transitioning between lavender and pale blue, creating a calm and airy atmosphere. Soft diffused lighting, shallow depth of field, minimalistic composition, ultra-clean aesthetic, hyper-realistic digital art, extremely high detail, 8K resolution, delicate, elegant, and visually serene.",
+                "model": "qwen/qwen-image-2.0-pro/text-to-image"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/a49f6c6ef348afc70a4a6e5bc7ce3736.png"
+                ]
+            }
+        }
+    ]
+}

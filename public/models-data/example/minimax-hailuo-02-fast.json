@@ -1,0 +1,144 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1754227391123742841_EZeGBzus.jpeg",
+                "prompt": "A top snowboarder launches off a massive kicker on a cliff's edge, executing a grab in mid-air. The backdrop is a clear blue sky and a vast mountain range. Powdered snow erupts behind him like smoke in the bright sunlight. Drone-following shot, capturing his perfect form in the air and his smooth landing from a side angle. Extreme sports, 4K, high frame rate, GoPro-like perspective.",
+                "go_fast": true,
+                "duration": 6,
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/1b7f3e4493d744cb8936146d5f26d8c6_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1754226817877257117_X5lannpr.jpeg",
+                "prompt": "On a graffiti-covered street basketball court, a group of energetic young dancers are engaged in a breakdancing battle. They wear baggy sportswear and bright sneakers, moving freely to the powerful rhythm, performing impressive floor work and flips. Strong sunlight casts sharp shadows on the ground. The camera follows the dancers' movements with rapid cuts, capturing their explosive power and confident expressions. Dynamic, trendy, youthful energy.",
+                "go_fast": true,
+                "duration": 6,
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/7ee7a62fb53b4a2485c15101b711fbc2_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1754226610245178414_eD740XSP.jpeg",
+                "prompt": "A girl in a white tracksuit is jogging on a coastal road. The soft morning sun illuminates the side of her face as a bead of sweat rolls down her cheek. Waves rhythmically crash onto the beach in the background, with the horizon stretching out where the sea meets the sky. A side-tracking shot captures her light-footed stride and determined expression. Motion blur effect, inspirational mood, fresh colors.",
+                "go_fast": true,
+                "duration": 6,
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/3488746f1a58425b9d512bec2ea1664c_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1754226311224933697_MjTRMIFA.jpeg",
+                "prompt": "A young man in a loose-fitting t-shirt and cargo pants is skillfully skateboarding in a city plaza at dusk. He taps his foot, the board tilts, and he crouches down, executing a perfect ollie to effortlessly clear a set of stairs. After landing smoothly, he glides forward, his body stretching out. He plants one foot on the ground to initiate a sharp turn, carving a graceful arc on the pavement. The surrounding city lights begin to flicker on, illuminating his focused expression and the slight glisten of sweat on his face. Long shot, the camera slowly pans to follow his movement, capturing the dynamic moment as he merges with the urban landscape. Best quality, cinematic, 4K,",
+                "go_fast": true,
+                "duration": 6,
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/c4a03e18771c433fb103fd4473d374ea_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1754227036734162841_wblgd9xu.jpeg",
+                "prompt": "In a clear blue swimming pool, a group of synchronized swimmers are performing an elegant underwater routine. Their bodies move in perfect unison, dancing in the water like mermaids, with formations changing and various poses struck. Sunlight penetrates the water's surface, casting shimmering light and shadow. Shot from an underwater perspective, showcasing their weightlessness and the grace of their movements. Tranquil, dreamy, high synchronicity.  ",
+                "go_fast": true,
+                "duration": 6,
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/a207ae72b1d74c1e84adab1f17fcf96d_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1754226996747906093_P0kU25at.jpeg",
+                "prompt": "A parkour enthusiast leaps between city rooftops. He moves with agility, effortlessly vaulting over obstacles and navigating the urban jungle. At dusk, the sky displays warm hues of orange and purple. The camera follows his run, alternating between a first-person perspective to convey his speed and viewpoint, and a third-person perspective to showcase his fluid movements and the complexity of the surroundings. Adrenaline-pumping, freedom, challenge.",
+                "go_fast": true,
+                "duration": 6,
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/7e6578048de846c3b2f82f7a031d1844_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1754227207126648982_V8nLIEAx.jpeg",
+                "prompt": "In a dimly lit boxing ring, two boxers are intensely facing off. Their eyes are sharp, their bodies slightly swaying as they look for an opening. Sweat glistens on their foreheads. The camera rapidly switches between the two fighters, capturing the moments of their punches, dodges, and powerful expressions. Competitive, tense, a sense of power.",
+                "go_fast": true,
+                "duration": 6,
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/14eed05817d74d39adf615e71fb406f8_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1754227441786624692_NdGCyurn.jpeg",
+                "prompt": "A surfer is riding inside the barrel of a massive, crystal-clear wave. The camera is positioned inside the tube, offering a breathtaking view of the water wall enveloping the surfer. Sunlight filters through the curtain of water, creating dreamlike light effects. Water splashes, the surfer's expression is focused and exhilarated. First-person view (FPV), wide-angle lens, underwater photography texture, realism.",
+                "go_fast": true,
+                "duration": 6,
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/969efd18bc3d456296b09cfb878159b3_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1754835317285659239_NdYUQMIF.jpeg",
+                "prompt": "A vibrant 2D animation of a young skateboarder in a colorful outfit performing tricks through a lively city park. Bold lines and bright hues create an energetic, playful atmosphere as the skateboarder maneuvers around obstacles.",
+                "go_fast": true,
+                "duration": 6,
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/d83d5791efd8476194d4118ce231d0ab_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "image": "https://static.atlascloud.ai/media/images/1754835786952199072_O4iCzuqn.jpeg",
+                "prompt": "A tranquil lake at sunset, a gentle breeze rustles the trees on the shore, the camera slowly pans across the water, the golden light reflects on the ripple, ultra realistic, cinematic, high detail.",
+                "go_fast": true,
+                "duration": 6,
+                "enable_prompt_expansion": true
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/b780109e0b4f4833a1f22e83a49880ec_1.mp4"
+                ]
+            }
+        }
+    ]
+}

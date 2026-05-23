@@ -1,0 +1,26 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "kwaivgi/kling-video-o1/image-to-video",
+                "aspect_ratio": "16:9",
+                "duration": 5,
+                "prompt": "A young woman smiling brightly at the camera in a sunny outdoor setting with a blue sky and soft clouds, filmed in a handheld selfie perspective, her face centered and in sharp focus, arms naturally extended toward the camera, gentle wind moving her hair, natural blinking and subtle breathing, slight head movement, warm soft sunlight illuminating her face, clouds drifting slowly in the background, bright, joyful, and uplifting mood, realistic cinematic style, stable camera.",
+                "image": "https://static.atlascloud.ai/media/images/fc7a34ba8c6a263b9ffa84362ea08ef2.png"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/cf78836895ee40bf9754c43dec3a5061_1.mp4",
+                    "https://static.atlascloud.ai/media/videos/89cd4a20f5b6fdfe49c4a4096624fc53.mp4",
+                    "https://static.atlascloud.ai/media/videos/215659c121e02daee7089facd70bd431.mp4",
+                    "https://static.atlascloud.ai/media/videos/97fd96f5d5ed60715d63399ed568675e.mp4",
+                    "https://static.atlascloud.ai/media/videos/bc83d517a6d37065a9916ab72722bd6d.mp4",
+                    "https://static.atlascloud.ai/media/videos/6fdf9dc9769bf97b7d2a00bb0ef7b76e.mp4",
+                    "https://static.atlascloud.ai/media/videos/357f3dd6e84ff7342f39c56ee1375f17.mp4",
+                    "https://static.atlascloud.ai/media/videos/9998ea4f173189b519a1ec9aa82ca76d.mp4",
+                    "https://static.atlascloud.ai/media/videos/56ab321c3bd098539965de49591e7019.mp4"
+                ]
+            }
+        }
+    ]
+}

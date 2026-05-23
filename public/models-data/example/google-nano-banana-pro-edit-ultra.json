@@ -1,0 +1,185 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1763663642170358426_rcwQxM5q.jpeg"
+                ],
+                "prompt": "Translate the anime subject into cinematic photorealism.  Natural skin texture, accurate facial anatomy, grounded proportions. High-dynamic-range lighting, shallow depth of field, filmic contrast. 35mm lens perspective, subtle grain, live-action production design, true-to-life color grading. Frame as a live-action movie still.",
+                "resolution": "4k",
+                "output_format": "png",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/3b592f24ab7f493596ea5af7fe452469_f42edf23-9276-4d8d-aabf-41c345fe3c80-u2_d5fe06d8-e2a1-478a-82d6-a6654bb5a3a9.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1763664322760849389_wCZVRNJF.jpeg"
+                ],
+                "prompt": "Become a figure style.",
+                "resolution": "4k",
+                "output_format": "png",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/de613eb8611b4caea1b13552aae6d65e_c1c47752-79a0-489f-9ba5-7a2ab61844ab-u2_15a8965b-b1d5-41e1-9f51-f40dac0e4ef0.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1763664731473592790_1yXSPLIE.webp"
+                ],
+                "prompt": "Replace text with AtlasCloud.",
+                "resolution": "4k",
+                "aspect_ratio": "16:9",
+                "output_format": "png",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/b5480592396b43f2b77a737ee37f6b38_6fe3d5ad-7f7c-4e66-b7aa-c1b9fa5097fa-u1_fd4b0ff8-807a-4178-9b38-3598996b14b7.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1763664442951042802_VSQMJGCy.jpeg",
+                    "https://static.atlascloud.ai/media/images/1763664460143852607_kYJZbgsy.jpeg",
+                    "https://static.atlascloud.ai/media/images/1763664468527621728_2EscvJK0.jpeg",
+                    "https://static.atlascloud.ai/media/images/1763664504889659278_KcyFEWZc.jpeg",
+                    "https://static.atlascloud.ai/media/images/1763664513317324937_EgHXarDL.jpeg"
+                ],
+                "prompt": "A medium shot of the 5 characters sitting squeezed together side-by-side on a worn beige fabric sofa and on the floor. They are all facing forwards, watching a vintage, wooden-boxed television set placed on a low wooden table in front of the sofa. The room is dimly lit, with warm light from a window on the left and the glow from the TV illuminating the creatures' faces and fluffy textures. The background is a cozy, slightly cluttered living room with a braided rug, a bookshelf with old books, and rustic kitchen elements in the background. The overall atmosphere is warm, cozy, and amused.",
+                "resolution": "4k",
+                "aspect_ratio": "16:9",
+                "output_format": "png",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/2fba92d488e245d786912424f178ea3e_0f60fe63-28f6-4d63-8acd-fb62ca9b623e-u1_8fdf49e8-6e5b-4361-af44-59e63e4932c9.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1763665396813421431_Y5lP3aek.jpg"
+                ],
+                "prompt": "Create a mythological story comic with Japanese text",
+                "resolution": "4k",
+                "aspect_ratio": "16:9",
+                "output_format": "png",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/bf9f01e7c8804a26aa8dec6cc1aec1f4_90388201-3dc9-4003-bf8e-7378deef6f1d-u1_d8e10a61-3dfa-4ef7-81a1-519ef36af291.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1763666334722028435_QIEBxNJG.jpeg"
+                ],
+                "prompt": "3D modeling design drawing of a room",
+                "resolution": "4k",
+                "aspect_ratio": "16:9",
+                "output_format": "png",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/c311b63d22654812916d03c7e7c9554c_901c17bb-3eae-4970-bc12-6a61d6ae5cf4-u2_8570e955-3ce7-428e-b76a-4ce541463748.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1763666502747473487_O8mW9sLV.jpg"
+                ],
+                "prompt": "Swap the fries for green onions.",
+                "resolution": "4k",
+                "aspect_ratio": "16:9",
+                "output_format": "jpeg",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/cc0a425b959543e5a381a175b553a809_6ed96a0a-75cf-4350-bdba-d7e4090f8968-u1_85252591-f6a5-4393-816d-729081dfdc80.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1763667204106250639_o5CHNUek.jpg"
+                ],
+                "prompt": "Color the comic book",
+                "resolution": "4k",
+                "output_format": "png",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/50b8b0472a8b40098a57a434ba6f70b2_cd172b53-9538-4e59-ae59-5b535024ee48-u1_e9352ac2-ea84-4cbc-be38-7db6c8c401b0.png"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1763668437512688328_wmifa8hd.jpg"
+                ],
+                "prompt": "Have the character raise the broadsword.",
+                "resolution": "4k",
+                "aspect_ratio": "9:16",
+                "output_format": "jpeg",
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/fd21c469cb824e36b7fdcf8827cd2c40_b3c2af78-44a3-4fa8-9244-1aa381bffcc4-u1_835002db-9f1b-4074-8cca-ed5d070490bf.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/2461abf86f0eeb364447688319e7dde2.jpeg"
+                ],
+                "model": "google/nano-banana-pro/edit-ultra",
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "output_format": "png",
+                "resolution": "4k",
+                "prompt": "ransform the original 2D illustration into a soft, high-quality 3D stylized render.\nA cheerful young girl with light pink hair in a side ponytail is walking on fluffy clouds, wearing a pastel raincoat, layered skirt, pink backpack, and glossy rain boots.\nPreserve the original pose, proportions, outfit design, and joyful expression.\nRender in a Pixar / Disney-inspired 3D animation style with smooth geometry, rounded shapes, subtle subsurface scattering on skin, soft fabric shading, and glossy materials on boots.\nBright blue sky background with volumetric clouds, a vivid rainbow arc, floating musical notes, sparkles, and a small white bird flying beside her.\nSoft global illumination, gentle rim light, pastel color palette, dreamy atmosphere, clean 3D cartoon look, high detail, cinematic depth of field.\nCute, uplifting, whimsical mood."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/a1fe4a8ca74a9cb874fdf9f273423a63.png"
+                ]
+            }
+        }
+    ]
+}

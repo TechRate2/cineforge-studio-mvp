@@ -1,0 +1,216 @@
+{
+    "info": {
+        "title": "AtlasCloud API",
+        "version": "1.0.0",
+        "description": "The AtlasCloud API."
+    },
+    "openapi": "3.0.0",
+    "paths": {
+        "/api/v1/model/generateImage": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Input"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "The request status."
+                    }
+                }
+            },
+            "x-api-name": "model_run"
+        },
+        "/api/v1/model/prediction/{request_id}": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "request_id",
+                        "required": true,
+                        "schema": {
+                            "description": "Request ID",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictionResponse"
+                                }
+                            }
+                        },
+                        "description": "Result of the request."
+                    }
+                }
+            },
+            "x-api-name": "model_result"
+        }
+    },
+    "components": {
+        "schemas": {
+            "Input": {
+                "type": "object",
+                "properties": {
+                    "model": {
+                        "type": "string",
+                        "description": "Model name.",
+                        "default": "alibaba/wan-2.7-pro/image-edit",
+                        "enum": [
+                            "alibaba/wan-2.7-pro/image-edit"
+                        ]
+                    },
+                    "prompt": {
+                        "description": "Text instruction used to edit the image. Maximum length is 5000 characters.",
+                        "type": "string"
+                    },
+                    "images": {
+                        "description": "Input images, each provided as a URL or Base64 string. The first image is treated as the primary input; subsequent images serve as references.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "minItems": 1,
+                        "maxItems": 9
+                    },
+                    "size": {
+                        "default": "2K",
+                        "description": "Output image resolution.",
+                        "enum": [
+                            "1K",
+                            "2K"
+                        ],
+                        "type": "string"
+                    },
+                    "n": {
+                        "default": 1,
+                        "minimum": 1,
+                        "maximum": 4,
+                        "description": "Number of images to generate.",
+                        "type": "integer"
+                    },
+                    "thinking_mode": {
+                        "default": true,
+                        "description": "Whether to enable thinking mode for higher-quality image generation.",
+                        "type": "boolean"
+                    },
+                    "seed": {
+                        "default": -1,
+                        "minimum": -1,
+                        "maximum": 2147483647,
+                        "description": "Random seed for image generation. Range: 0 to 2147483647. Use -1 for a random seed.",
+                        "type": "integer"
+                    },
+                    "enable_sync_mode": {
+                        "default": false,
+                        "description": "Whether to wait for generation to finish and return the final result directly in the response.",
+                        "disabled": true,
+                        "type": "boolean"
+                    },
+                    "enable_base64_output": {
+                        "default": false,
+                        "description": "Whether to return the generated image as a Base64 string instead of a URL.",
+                        "disabled": true,
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "model",
+                    "prompt",
+                    "images"
+                ],
+                "x-order-properties": [
+                    "model",
+                    "prompt",
+                    "images",
+                    "size",
+                    "n",
+                    "thinking_mode",
+                    "seed",
+                    "enable_sync_mode",
+                    "enable_base64_output"
+                ]
+            },
+            "PredictionResponse": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "integer"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/PredictionData"
+                    }
+                }
+            },
+            "PredictionData": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Unique ID of the generation task."
+                    },
+                    "model": {
+                        "type": "string",
+                        "description": "Model used for the generation."
+                    },
+                    "outputs": {
+                        "type": "array",
+                        "description": "Generated image results. Each item is an image URL, or a Base64 string when Base64 output is enabled.",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "urls": {
+                        "type": "object",
+                        "properties": {
+                            "get": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "has_nsfw_contents": {
+                        "type": "array",
+                        "items": {
+                            "type": "boolean"
+                        }
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Current task status, such as created, processing, completed, unknown, or failed."
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "error": {
+                        "type": "string",
+                        "description": "Error message returned when the task fails."
+                    }
+                }
+            }
+        }
+    },
+    "servers": [
+        {
+            "url": "https://api.atlascloud.ai"
+        }
+    ]
+}

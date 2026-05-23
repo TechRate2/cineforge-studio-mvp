@@ -1,0 +1,23 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/20260108-6231164f-e04b-48d3-8e1c-071589933412.webp",
+                    "https://static.atlascloud.ai/media/images/20260108-6231164f-e04b-48d3-8e1c-071589933413.webp",
+                    "https://static.atlascloud.ai/media/images/20260108-6231164f-e04b-48d3-8e1c-071589933414.webp"
+                ],
+                "prompt": "The girl in Figure 1 is wearing the black dress shown in Figure 2 and is sitting in the posture shown in Figure 3.",
+                "negative_prompt": "distortion, ugly",
+                "num_images": 2,
+                "seed": -1
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/20260108-85359a57-0a28-4ec5-b8c7-672b36050929.webp",
+                    "https://static.atlascloud.ai/media/images/20260108-85359a57-0a28-4ec5-b8c7-672b36050920.webp"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,19 @@
+{
+    "model": "kwaivgi/kling-video-o3-pro/text-to-video",
+    "examples": [
+        {
+            "inputs": {
+                "model": "kwaivgi/kling-video-o3-pro/text-to-video",
+                "aspect_ratio": "16:9",
+                "duration": 5,
+                "sound": false,
+                "prompt": "A high-tech cube gently drifting in zero gravity within a vast cyber void.\nDynamic holographic grids and flowing data streams animate across its surface.\nVolumetric lighting, floating particles, subtle energy pulses, ultra detailed, cinematic."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/5d0d486a76ebce434c35e5343d4b881e.mp4"
+                ]
+            }
+        }
+    ]
+}

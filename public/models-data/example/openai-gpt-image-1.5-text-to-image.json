@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "output_format": "jpeg",
+                "quality": "medium",
+                "size": "1024x1024",
+                "prompt": "A futuristic cyberpunk мегаполис at night, drenched in neon الضوء and constant rain, inspired by the visual style of Blade Runner. Towering skyscrapers fade into thick атмосферный haze, covered with massive holographic advertisements and flickering LED billboards. The streets below are crowded, reflective with rainwater, glowing with saturated neon colors—cyan, magenta, and amber. A lone figure in a long coat stands under a flickering الضوء sign, partially obscured by drifting steam and المطر. Flying vehicles hover between buildings, casting moving light across the wet surfaces. The atmosphere is dense, moody, and melancholic, with cinematic lighting, volumetric fog, deep shadows, and strong contrast. Ultra-detailed, photorealistic, anamorphic lens, shallow depth of field, film grain, dystopian future, high-end sci-fi concept art.",
+                "model": "openai/gpt-image-1.5/text-to-image"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/463e03fe8635bb393c173d0e97977886.png"
+                ]
+            }
+        }
+    ]
+}

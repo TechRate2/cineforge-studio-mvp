@@ -1,0 +1,21 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "alibaba/wan-2.7/image-to-video",
+                "resolution": "1080P",
+                "duration": 5,
+                "prompt_extend": true,
+                "watermark": false,
+                "seed": -1,
+                "prompt": "A deep canyon split by massive cracks begins to glow as powerful light erupts from within the fissures, beams of radiant energy shooting upward, dust swirling through the air, the camera slowly rising through the canyon, cinematic lighting, epic scale, ultra-realistic.",
+                "image": "https://static.atlascloud.ai/media/images/8e60f8b0048ce22859c1af559d0b208a.png"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/0fb05be152521822ea43c211298178b8.mp4"
+                ]
+            }
+        }
+    ]
+}

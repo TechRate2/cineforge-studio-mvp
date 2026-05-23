@@ -1,0 +1,125 @@
+# SKILL PACK: Food & Beverage (VN)
+# ASMR-friendly, sensory-driven, ưu tiên CLOSE-UP MACRO + SOUND.
+
+id: food_beverage
+name_vn: "Food & Beverage (VN)"
+name_en: "Food & Beverage"
+version: "1.0.0"
+target_market: "VN"
+last_updated: "2026-05-20"
+
+activation:
+  shopee_categories:
+    - "Thực Phẩm"
+    - "Đồ Ăn Vặt"
+    - "Đồ Uống"
+    - "Bánh Kẹo"
+    - "Cà Phê & Trà"
+  product_keywords:
+    - bánh
+    - kẹo
+    - cà phê
+    - trà
+    - sữa
+    - mì
+    - bún
+    - phở
+    - chè
+    - kem
+    - quán
+    - cafe
+    - food
+    - drink
+    - snack
+    - dessert
+    - matcha
+  min_confidence: 0.7
+
+preferred_models:
+  llm_strategist: "deepseek-ai/deepseek-v4-pro"
+  llm_copywriter: "deepseek-ai/deepseek-v4-flash"
+  llm_critic: "deepseek-ai/deepseek-v4-pro"
+  vision: "qwen/qwen3-vl-30b-a3b-instruct"
+
+  video_default: "seedance_2_0_fast"   # macro close-up tốt
+  video_premium: "seedance_2_0"
+  video_budget: "vidu_q3"
+
+  voice_gender: "female"
+  voice_vibe: "foodie_aesthetic"
+
+  persona_filter:
+    gender: "F"
+    age_range: [20, 35]
+    vibes: ["foodie_aesthetic", "millennial_warm", "gen_z_casual"]
+
+recommended_frameworks:
+  - id: "ASMR_SENSORY"
+    when: "Khả năng close-up satisfying (pour, slice, sizzle)"
+    description: "Heavy audio + macro shots, minimal voiceover"
+
+  - id: "RESTAURANT_REVIEW"
+    when: "Quán ăn / cafe review"
+    description: "Vibe shot → menu close-up → taste test → verdict"
+
+  - id: "RECIPE_TUTORIAL"
+    when: "Product cooking/baking"
+    description: "Quick 30s recipe step-by-step"
+
+  - id: "TASTE_TEST_REACTION"
+    when: "Product novelty"
+    description: "First bite reaction + honest verdict"
+
+tone_guide:
+  primary: "Sensory, indulgent, foodie-aesthetic"
+  avoid: "Diet talk (kill mood), 'siêu phẩm', 'tốt nhất'"
+  language_register: "informal warm Gen Z VN + food slang"
+  pronouns_preferred: ["mình", "em"]
+
+  example_natural_phrases:
+    - "Trộm vía ngon quá trời"
+    - "Chảy nước miếng"
+    - "Khó cưỡng"
+    - "Healthy mà ngon"
+    - "Worth từng đồng"
+
+must_include:
+  - "Macro close-up texture/pour/sizzle ít nhất 1 shot"
+  - "Audio SFX bite/pour/sizzle/steam"
+  - "Eating shot (creator ăn)"
+  - "Setting context (cafe vibe, kitchen, picnic)"
+
+forbidden_claims:
+  vi_law_compliance:
+    - "Giảm cân nhanh"
+    - "Detox" # nếu không có chứng nhận
+    - "Trị bệnh"
+    - "Tự nhiên 100%" # mơ hồ
+
+  marketing_red_flags:
+    - "Vị ngon nhất VN" # cần data
+    - "Top 1 quán cafe SG"
+    - "Cooking show celebrity X dùng" # nếu chưa có thật
+
+pacing_defaults:
+  duration_15s:
+    shots: 5      # ASMR cần fast pacing
+  duration_30s:
+    shots: 9
+  duration_60s:
+    shots: 15
+
+best_post_times_vn:
+  weekday: ["11:00 - 13:00", "17:00 - 19:00"]  # lunch + dinner
+  weekend: ["10:00 - 12:00", "18:00 - 21:00"]
+
+viral_signals:
+  high_engagement_triggers:
+    - "ASMR satisfying sound"
+    - "Macro close-up texture"
+    - "Reaction first bite genuine"
+    - "Vietnamese food + Korean/Japanese aesthetic"
+
+  saturated_avoid:
+    - "Mukbang loud chewing — saturated"
+    - "Restaurant vlog đi 5 quán liên tục — cũ"

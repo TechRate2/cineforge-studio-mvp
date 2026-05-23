@@ -1,0 +1,173 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "prompt": "A close-up shot of an old fisherman with a weathered face and a twinkle in his eye, mending his fishing net. The background is a rustic wooden pier at sunrise. Soft golden hour light, photorealistic, 8K.",
+                "duration": "5",
+                "aspect_ratio": "16:9",
+                "guidance_scale": 0.5
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/2aff0c0ef14145e7b92a89dc96fb8426_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "An epic wide shot of a futuristic city on Mars, featuring towering crystal skyscrapers, flying vehicles weaving through the air, and two red suns setting on the horizon. A sense of awe and wonder. Slow panning camera movement, sci-fi concept art style.\n\n",
+                "duration": "5",
+                "aspect_ratio": "16:9",
+                "guidance_scale": 0.5
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/a1314c2e8e6c4d3d90550b48c1eee956_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A majestic crystal dragon is soaring through a bioluminescent forest at night. Its scales shimmer with rainbow colors, leaving a trail of sparkling dust. The color palette is dominated by deep blues and vibrant purples. Fantasy art style, cinematic lighting.\n\n",
+                "duration": "5",
+                "aspect_ratio": "16:9",
+                "guidance_scale": 0.5
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/ba32c4bd88294e05a537bcc7fb9a38d8_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "An extreme close-up of a bee landing on a sunflower. We can see the fine hairs on the bee's body and the texture of the sunflower petals. A gentle breeze makes the sunflower sway slightly. The background is a soft-focus field of sunflowers under a clear blue sky. Hyperrealistic, shallow depth of field, bright daylight, slow motion (120fps).",
+                "duration": "5",
+                "aspect_ratio": "16:9",
+                "guidance_scale": 0.5
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/7ca026d0b1034ce683702368b38f311d_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "An old man sits in a leather armchair by a window, a cup of steaming tea in his hands. He looks out the window with a nostalgic expression as rain streaks down the glass. The room is filled with warm, soft light from a nearby lamp. The focus is on his detailed, wrinkled face. Photorealistic, intimate portrait, moody lighting, sharp focus.",
+                "duration": "5",
+                "aspect_ratio": "16:9",
+                "guidance_scale": 0.5
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/ee93f61cb1604c779516c92ec380ad60_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "An overhead, macro shot of a chef's hands dusting a wooden board with flour. Fresh pasta dough is then rolled out with a wooden rolling pin. Flour particles dance in the air under a single spotlight. The focus is sharp on the texture of the dough and the grain of the wood. Hyperrealistic, food cinematography style, shallow depth of field, warm lighting.",
+                "duration": "5",
+                "aspect_ratio": "16:9",
+                "guidance_scale": 0.5
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/d50f7a5a224142b7aa5e16a2b221562a_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A telephoto lens shot of a majestic snow leopard walking cautiously on a rocky ledge in the Himalayas. Its thick fur is covered with a light dusting of snow. It pauses, turning its head to look directly into the camera, its breath visible in the cold air. The background shows snow-covered peaks and a pale blue sky. National Geographic documentary style, photorealistic, extremely detailed.",
+                "duration": "5",
+                "aspect_ratio": "16:9",
+                "guidance_scale": 0.5
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/60a646bd34f14b4f95686f1a6bdcfaec_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A lone samurai in a small wooden boat navigating a stormy sea, in the ukiyo-e style of Hokusai's \"The Great Wave\". A giant, serpentine water dragon with glowing eyes rises from the stylized, swirling waves. The sky is a flat, pale yellow. Japanese woodblock print style, dramatic, mythical.\n\n",
+                "duration": "5",
+                "aspect_ratio": "16:9",
+                "guidance_scale": 0.5
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/486fbeb3d5b6479f94f277ed4ffc4700_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A chaotic food fight in a kitchen, rendered in a vibrant claymation style. A clay figure of a chef ducks as a pie flies over his head in slow motion, splattering against the wall. We can see fingerprints and tool marks on the clay characters. Playful, stop-motion animation, tactile textures.\n\n",
+                "duration": "5",
+                "aspect_ratio": "16:9",
+                "guidance_scale": 0.5
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/08c24d3698b7413381b4eaaf678405f4_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A POV shot from a person riding a steam-powered monorail through a bustling steampunk city. Below, crowds in Victorian attire walk past intricate brass automatons. Giant clockwork gears turn slowly between skyscrapers adorned with copper pipes and billowing smoke. Sepia tone, highly detailed, industrial atmosphere.\n\n",
+                "duration": "5",
+                "aspect_ratio": "16:9",
+                "guidance_scale": 0.5
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/67d2eb42066a448c97915b20f46a72db_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A beautiful woman in elegant Tang Dynasty attire plays a pipa under a blooming cherry blossom tree in a traditional Chinese courtyard. Petals gently fall around her. A stone table nearby holds a set of delicate teaware. The scene is shot with a soft, diffused light, creating a poetic and serene mood. Chinese painting style (Guohua), historical realism, tranquil.",
+                "duration": "5",
+                "aspect_ratio": "16:9",
+                "guidance_scale": 0.5
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/548c6d0b91ab4a7e9953fb929e950058_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A surreal, dreamlike scene where a giant, antique clock face melts over a desert of black sand, in the style of Salvador Dali. A lone figure in a flowing red cloak walks towards a doorway that opens into a star-filled galaxy. The atmosphere is silent and mysterious. Oil painting style, symbolic, high contrast.\n\n",
+                "duration": "5",
+                "aspect_ratio": "16:9",
+                "guidance_scale": 0.5
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/159a4da474eb4b41a8052932c2f68567_1.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "prompt": "A cozy, cluttered kitchen in the Ghibli anime style. A young girl with short brown hair stands on a stool, carefully pouring milk into a bowl of flour. Sunlight streams through a window, illuminating dust motes dancing in the air. A fat, fluffy cat is sleeping on the warm windowsill. Hand-drawn animation style, warm and nostalgic, detailed background.",
+                "duration": "5",
+                "aspect_ratio": "16:9",
+                "guidance_scale": 0.5
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/84dd4289594d4b3fb514af55df3a2381_1.mp4"
+                ]
+            }
+        }
+    ]
+}

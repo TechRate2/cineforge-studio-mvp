@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "alibaba/wan-2.2-spicy/video-extend",
+                "duration": 5,
+                "resolution": "480p",
+                "seed": -1,
+                "prompt": "Suddenly, a spaceship flew in.",
+                "video_url": "https://static.atlascloud.ai/media/videos/5321fefea8b1c2d595908683ff8bb637.mp4"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/adf88755fd434b24307ae1adcab1863c.mp4",
+                    "https://static.atlascloud.ai/media/videos/a0e718e716136f741c2eef449a0ff1dc.mp4",
+                    "https://static.atlascloud.ai/media/videos/cf962d939fd8e703992a0f1d21e2a98f.mp4",
+                    "https://static.atlascloud.ai/media/videos/efc5079965c673ff0786092c7239c694.mp4"
+                ]
+            }
+        }
+    ]
+}

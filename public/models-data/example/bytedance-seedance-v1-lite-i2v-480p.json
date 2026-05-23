@@ -1,0 +1,20 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-v1-lite-i2v-480p",
+                "seed": 1312728392,
+                "prompt": "A young woman jump roping smoothly, continuous rhythmic motion, natural body bounce and arm swing, hair and ponytail flowing with movement, rope rotating evenly, confident smile, energetic and positive mood, realistic sports motion, stable camera, slight cinematic motion blur, natural daylight, high realism, smooth animation, consistent character appearance, no distortion, no extra limbs.",
+                "duration": 5,
+                "camera_fixed": false,
+                "aspect_ratio": "16:9",
+                "image": "https://static.atlascloud.ai/media/images/31c8dceff6f6f5de1d2bd837afa67791.png"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/8ad425f88fd5485cab5a737d8060c809_1.mp4"
+                ]
+            }
+        }
+    ]
+}

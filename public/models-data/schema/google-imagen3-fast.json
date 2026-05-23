@@ -1,0 +1,210 @@
+{
+  "info": {
+    "title": "AtlasCloud API",
+    "version": "1.0.0",
+    "description": "The AtlasCloud API."
+  },
+  "paths": {
+    "/api/v1/model/generateImage": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "The request status."
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Input"
+              }
+            }
+          },
+          "required": true
+        }
+      },
+      "x-api-name": "model_run"
+    },
+    "/api/v1/model/prediction/{request_id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "Result of the request."
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            },
+            "required": true
+          }
+        ]
+      },
+      "x-api-name": "model_result"
+    }
+  },
+  "openapi": "3.0.0",
+  "servers": [
+    {
+      "url": "https://api.atlascloud.ai"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Input": {
+        "seed": {
+          "type": "integer",
+          "title": "Seed"
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "prompt"
+        ],
+        "properties": {
+          "seed": {
+            "type": "integer",
+            "description": "The random seed to use for the generation."
+          },
+          "model": {
+            "type": "string",
+            "description": "model name",
+            "default": "google/imagen3-fast"
+          },
+          "prompt": {
+            "type": "string",
+            "default": "A serene landscape with mountains reflected in a crystal clear lake at sunset",
+            "description": "The positive prompt for image generation."
+          },
+          "num_images": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 4,
+            "minimum": 1,
+            "description": "The number of images to generate."
+          },
+          "aspect_ratio": {
+            "enum": [
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4"
+            ],
+            "type": "string",
+            "default": "1:1",
+            "description": "The aspect ratio of the generated image.",
+            "x-ui-component": "select"
+          },
+          "resolution": {
+            "default": "1k",
+            "description": "The resolution of the output image.",
+            "enum": [
+              "1k"
+            ],
+            "type": "string"
+          },
+          "negative_prompt": {
+            "type": "string",
+            "default": "",
+            "description": "The negative prompt for image generation."
+          },
+          "enable_prompt_expansion": {
+            "default": false,
+            "description": "If set to true, the prompt optimizer will be enabled.",
+            "type": "boolean"
+          },
+          "enable_base64_output": {
+            "type": "boolean",
+            "default": false,
+            "disabled": true,
+            "description": "If enabled, the output will be encoded into a BASE64 string instead of a URL. This property is only available through the API."
+          },
+          "enable_sync_mode": {
+            "default": false,
+            "description": "If set to true, the function will wait for the result to be generated and uploaded before returning the response. It allows you to get the result directly in the response. This property is only available through the API.",
+            "disabled": true,
+            "type": "boolean"
+          }
+        },
+        "x-order-properties": [
+          "model",
+          "prompt",
+          "negative_prompt",
+          "enable_prompt_expansion",
+          "aspect_ratio",
+          "resolution",
+          "num_images",
+          "seed",
+          "enable_base64_output",
+          "enable_sync_mode"
+        ]
+      },
+      "PredictionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the prediction, the ID of the prediction to get."
+          },
+          "urls": {
+            "type": "object",
+            "description": "Object containing related API endpoints."
+          },
+          "model": {
+            "type": "string",
+            "description": "Model ID used for the prediction."
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the task: created, processing, completed, or failed."
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of URLs to the generated content (empty when status is not completed)."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO timestamp of when the request was created (e.g., “2023-04-01T12:34:56.789Z”)."
+          },
+          "has_nsfw_contents": {
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            },
+            "description": "Array of boolean values indicating NSFW detection for each output."
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "in": "header",
+        "name": "Authorization",
+        "type": "apiKey"
+      }
+    }
+  }
+}

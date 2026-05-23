@@ -1,0 +1,20 @@
+{
+    "model": "kwaivgi/kling-video-o3-std/image-to-video",
+    "examples": [
+        {
+            "inputs": {
+                "model": "kwaivgi/kling-video-o3-std/image-to-video",
+                "duration": 5,
+                "generate_audio": false,
+                "image": "https://static.atlascloud.ai/media/images/02406760dea9b50f3e28462bb5a7d556.png",
+                "prompt": "A futuristic tech cube slowly floating up and down in a dark digital space.\nThe surface emits subtle blue light lines and animated circuit patterns.\nSoft ambient glow, high contrast lighting, smooth seamless loop, ultra clean composition, 4K.",
+                "end_image": "https://static.atlascloud.ai/media/images/f66b17cde2257fe39e21327f169e2fcf.png"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/c6205da88a43a4ce44125fd23ab3c869.mp4"
+                ]
+            }
+        }
+    ]
+}

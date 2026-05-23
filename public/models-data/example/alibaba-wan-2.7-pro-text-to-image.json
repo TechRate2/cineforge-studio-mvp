@@ -1,0 +1,23 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "alibaba/wan-2.7-pro/text-to-image",
+                "size": "2K",
+                "n": 1,
+                "watermark": false,
+                "thinking_mode": true,
+                "enable_sequential": false,
+                "seed": -1,
+                "enable_sync_mode": false,
+                "enable_base64_output": false,
+                "prompt": "A vast open prairie under a wide blue sky, rolling grasslands moving with the wind, golden sunlight casting long shadows, wildflowers scattered across the field, distant hills on the horizon, cinematic landscape, ultra-realistic, atmospheric perspective, 4K"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/a5f1981b988ddbe0ef4b8c36692d49b4.png"
+                ]
+            }
+        }
+    ]
+}

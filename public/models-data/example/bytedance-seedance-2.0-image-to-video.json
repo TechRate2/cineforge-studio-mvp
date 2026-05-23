@@ -1,0 +1,22 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-2.0/image-to-video",
+                "prompt": "A sleek futuristic spaceship slowly orbiting a gigantic planet, the planet’s glowing atmosphere and clouds visible from space, starfield and nebula in the background, smooth orbital movement, cinematic sci-fi scene, epic scale, volumetric lighting, ultra-realistic, 4K, slow camera tracking.",
+                "duration": 5,
+                "resolution": "720p",
+                "ratio": "adaptive",
+                "generate_audio": true,
+                "watermark": false,
+                "return_last_frame": false,
+                "image": "https://static.atlascloud.ai/media/images/454eee7f1a05a0bf276afe2e056200ba.png"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/022762758e26c2c62abbf8947211ee15.mp4"
+                ]
+            }
+        }
+    ]
+}

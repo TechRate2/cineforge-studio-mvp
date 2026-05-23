@@ -1,0 +1,84 @@
+# HOOKS BANK — Tech & Gadget VN
+
+hooks:
+  - id: tech_spec_vs_reality
+    type: curiosity_gap
+    fits: [SPEC_TEST_DEMO]
+    target_emotion: "skeptical curiosity"
+    trending_score: 8
+    template: "Spec trên paper: {claim} — Reality sau {N} ngày test: {result}"
+    examples:
+      - "Spec ghi 24h battery — Reality sau 7 ngày test: chỉ 19h"
+      - "Hãng claim 'noise cancel 99%' — Test trong subway thì..."
+
+  - id: tech_dupe_premium
+    type: controversial
+    fits: [COMPARISON_DUPE]
+    target_emotion: "value shock"
+    trending_score: 9
+    template: "{Product giá thấp} vs {Product giá cao} — sau khi test 7 ngày"
+    examples:
+      - "Tai nghe 500k vs AirPods Pro 5tr — sau khi test 7 ngày"
+      - "Smartwatch 800k vs Apple Watch 9tr — kết quả gây sốc"
+
+  - id: tech_one_day_with
+    type: relatable_emotion
+    fits: [DAILY_USE_NARRATIVE]
+    target_emotion: "aspiration"
+    trending_score: 7
+    template: "Một ngày của developer với {gadget} — review honest"
+    examples:
+      - "Một ngày của freelancer với keyboard 800k này"
+      - "Tai nghe này dùng được 8h văn phòng — đáng tiền?"
+
+  - id: tech_stop_buying_x
+    type: controversial
+    fits: [COMPARISON_DUPE]
+    target_emotion: "hot take"
+    trending_score: 9
+    template: "Stop mua {brand cao cấp}, đây là alternative bằng 1/{N}"
+    examples:
+      - "Stop mua AirPods, đây là alternative bằng 1/10 chất lượng 85%"
+      - "Stop tin lời quảng cáo Samsung — Xiaomi rẻ hơn gấp đôi mà..."
+
+  - id: tech_unboxing_first_impression
+    type: satisfying_visual_proof
+    fits: [FIRST_IMPRESSION_UNBOXING]
+    target_emotion: "excitement"
+    trending_score: 7
+    template: "Vừa mở box {product} — first impression sau 60 giây"
+    examples:
+      - "Vừa mở box smartwatch 1.5tr này — first impression"
+      - "Vừa unbox tai nghe gaming RGB 800k — hết hồn"
+
+  - id: tech_dev_recommendation
+    type: authority
+    fits: [SPEC_TEST_DEMO, DAILY_USE_NARRATIVE]
+    target_emotion: "expert trust"
+    trending_score: 8
+    template: "Là developer {N} năm, đây là {gadget} duy nhất mình giữ"
+    examples:
+      - "Là dev 8 năm, đây là bàn phím duy nhất mình giữ"
+      - "Lập trình viên 5 năm — đây là setup tối ưu cost"
+
+  - id: tech_problem_solving
+    type: relatable_emotion
+    fits: [DAILY_USE_NARRATIVE]
+    target_emotion: "relief"
+    trending_score: 7
+    template: "{Pain point dev/gamer/creator} — đây là gadget giải quyết"
+    examples:
+      - "Tay đau khi gõ phím 8h/ngày — đây là bàn phím ergonomic"
+      - "Mắt mỏi sau Zoom 6h — đây là filter giải quyết"
+
+scoring_weights:
+  trending_alignment: 0.20
+  pattern_interrupt: 0.30  # tech audience scroll nhanh, hook visual mạnh
+  relatability: 0.15
+  authenticity: 0.25  # tech crowd dị ứng shill ads
+  cta_setup: 0.10
+
+ranker_strategy:
+  variants_to_generate: 5
+  top_n_keep: 3
+  diversity_constraint: true

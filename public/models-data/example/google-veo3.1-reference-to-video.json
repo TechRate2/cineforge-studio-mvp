@@ -1,0 +1,21 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/e9f6e0504582fe6490cc6c580935a2d6.jpeg"
+                ],
+                "resolution": "1080p",
+                "generate_audio": true,
+                "prompt": "A car slowly moves forward along the road, the camera tracking smoothly beside it, soft natural lighting reflecting off the body, cinematic atmosphere, gentle motion, ultra-realistic scene.",
+                "model": "google/veo3.1/reference-to-video"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/6a8046faf64e48f79585bfbc95bea9a8_1.mp4",
+                    "https://static.atlascloud.ai/media/videos/28afb0dadfe9994c4ae3bdedce5950b1.mp4"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,21 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedance-v1-lite-i2v-1080p",
+                "seed": -1,
+                "prompt": "A high-performance racing car speeding along a professional racetrack, captured at extreme speed.\n\nThe car hugs the asphalt tightly through sharp corners, tires gripping the track as sparks and heat distortion appear subtly near the ground.\n\nMotion blur streaks across the background while the racing car remains sharply in focus, emphasizing velocity and precision.\n\nDynamic camera work with low-angle tracking shots, side panning, and brief close-ups of spinning wheels and aerodynamic details.\n\nModern racetrack environment with safety barriers, blurred grandstands, and dramatic lighting.\n\nHigh-contrast color palette with bold reds, blacks, and metallic tones, intense and adrenaline-filled atmosphere.\n\nCinematic motorsport film style, hyper-realistic visuals, ultra-detailed textures, realistic reflections.\n\nHigh resolution, smooth motion, professional color grading, commercial-quality video.\n\nNo text, no logos, no watermarks.",
+                "duration": 5,
+                "camera_fixed": false,
+                "aspect_ratio": "16:9",
+                "image": "https://static.atlascloud.ai/media/images/ea343ee4c7d866119eb1ac8b7ff8136e.jpg"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/fc16158d0b7cdd7c33aa540b0360b4a5.mp4",
+                    "https://static.atlascloud.ai/media/videos/60608033d40d5b501d4fda9a1f51a01e.mp4"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,16 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "minimax/hailuo-2.3/t2v-pro",
+                "enable_prompt_expansion": true,
+                "prompt": "Interior shot of a cluttered, dimly lit detective's office. Sunlight (or moonlight) filtering through dusty window blinds creating strong horizontal shadow patterns (chiaroscuro). Thick cigarette smoke swirling in the air. Retro-futuristic computers with glowing CRT monitors. A lone character in a trench coat looking out the window. Cinematic atmosphere, melancholic mood, grainy film texture."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/3143d382be836d99bff823aa89a9310b.mp4"
+                ]
+            }
+        }
+    ]
+}

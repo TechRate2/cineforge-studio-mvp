@@ -1,0 +1,125 @@
+# SKILL PACK: Supplement & Health (VN)
+# CỰC CẨN THẬN với forbidden claims — TPCN/sức khoẻ là vùng nhạy cảm pháp lý.
+
+id: supplement_health
+name_vn: "TPCN & Sức khoẻ (VN)"
+name_en: "Supplement & Health"
+version: "1.0.0"
+target_market: "VN"
+last_updated: "2026-05-20"
+
+activation:
+  shopee_categories:
+    - "Sức Khoẻ"
+    - "Thực Phẩm Chức Năng"
+    - "Vitamin"
+    - "Collagen"
+    - "Thực Phẩm Dinh Dưỡng"
+  product_keywords:
+    - tpcn
+    - vitamin
+    - collagen
+    - omega
+    - probiotic
+    - bổ sung
+    - đẹp da uống
+    - giảm cân
+    - tăng cường
+    - chống lão hoá
+    - immunity
+  min_confidence: 0.75
+
+preferred_models:
+  llm_strategist: "deepseek-ai/deepseek-v4-pro"
+  llm_copywriter: "deepseek-ai/deepseek-v4-flash"
+  llm_critic: "deepseek-ai/deepseek-v4-pro"
+  vision: "qwen/qwen3-vl-30b-a3b-instruct"
+
+  video_default: "vidu_q3"
+  video_premium: "wan_2_7"            # multi-shot narrative tốt cho authority video
+  video_budget: "seedance_2_0_fast"
+
+  voice_gender: "female"
+  voice_vibe: "millennial_warm"        # credibility > playful
+
+  persona_filter:
+    gender: "F"
+    age_range: [28, 40]                # millennial mature
+    vibes: ["millennial_warm", "professional", "mom_lifestyle"]
+
+recommended_frameworks:
+  - id: "AUTHORITY_TESTIMONIAL"
+    when: "Có expert endorsement (bác sĩ/dược sĩ/MUA)"
+    description: "Persona authority kể câu chuyện cá nhân + product"
+
+  - id: "PROBLEM_AGITATE_SOLUTION"
+    when: "Pain point rõ (stress, mất ngủ, da xỉn)"
+    description: "Build empathy → introduce solution as alternative"
+
+  - id: "BEFORE_AFTER_JOURNEY"
+    when: "Có timeline cụ thể"
+    description: "Visual proof sau N ngày + measurable change"
+
+tone_guide:
+  primary: "Credible, gần gũi, KHÔNG hứa hẹn quá đà"
+  avoid: "miracle, breakthrough, cure, scientifically proven (nếu chưa có data)"
+  language_register: "informal nhưng có expertise"
+  pronouns_preferred: ["mình", "tôi"]
+
+  example_natural_phrases:
+    - "Mình bắt đầu uống cái này 30 ngày"
+    - "Theo mình tham khảo bác sĩ"
+    - "Mỗi người mỗi khác, với mình thì..."
+    - "Đây là trải nghiệm cá nhân"
+
+must_include:
+  - "Disclaimer 'tham khảo ý kiến bác sĩ trước khi dùng'"
+  - "Timeline cụ thể nếu claim hiệu quả (vd: 'sau 30 ngày', '6 tuần')"
+  - "Personal experience framing ('với mình', 'trải nghiệm cá nhân')"
+  - "Source authority nếu có (bác sĩ tư vấn, nguồn nguyên liệu)"
+
+forbidden_claims:
+  # CỰC NGHIÊM với TPCN — vi phạm sẽ bị FDA VN / Bộ Y Tế phạt nặng
+  vi_law_compliance:
+    - "Chữa khỏi [bất kỳ bệnh nào]"
+    - "Thay thế thuốc"
+    - "Trị bệnh"
+    - "100% an toàn tuyệt đối"
+    - "Không tác dụng phụ"
+    - "FDA approved" # trừ khi có thật
+    - "Đặc trị"
+    - "Phòng ngừa ung thư"
+    - "Tăng cường miễn dịch chống Covid"  # bị cấm cụ thể
+
+  marketing_red_flags:
+    - so_sánh_thuốc_tây:
+      - "Tốt hơn paracetamol"
+      - "Thay aspirin"
+      - "Hiệu quả như insulin"
+    - "Bác sĩ X chỉ định — nếu chưa có chứng nhận"
+    - "Bệnh viện Y khuyên dùng — nếu chưa có"
+    - "100% người dùng hiệu quả — over-promise"
+
+pacing_defaults:
+  duration_15s:
+    shots: 3       # ít shot hơn — credibility cần shot dài
+  duration_30s:
+    shots: 5
+  duration_60s:
+    shots: 8
+
+best_post_times_vn:
+  weekday: ["07:00 - 08:00", "20:00 - 22:00"]  # morning routine + evening
+  weekend: ["09:00 - 11:00", "21:00 - 22:30"]
+
+viral_signals:
+  high_engagement_triggers:
+    - "Doctor/MUA real testimonial"
+    - "Personal transformation journey 30/60/90 days"
+    - "Honest 'không quảng cáo' framing"
+    - "Comparison vitamin local vs imported"
+
+  saturated_avoid:
+    - "Mọi bệnh đều khỏi — cliché + risky"
+    - "Mỗi sáng uống 1 viên — saturated supplement ads"
+    - "Tôi đã giảm 10kg trong 7 ngày — red flag"

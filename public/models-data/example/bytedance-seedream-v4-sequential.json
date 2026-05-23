@@ -1,0 +1,125 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "Generate a set of 4 consecutive illustrations, detailing the life cycle of a butterfly, from a tiny egg on a leaf, to a caterpillar, then to a chrysalis, and finally to a beautiful butterfly.",
+                "max_images": 4,
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/32c92454e97d48d4a5a95becc7980417_1.jpeg",
+                    "https://static.atlascloud.ai/media/images/32c92454e97d48d4a5a95becc7980417_2.jpeg",
+                    "https://static.atlascloud.ai/media/images/32c92454e97d48d4a5a95becc7980417_3.jpeg",
+                    "https://static.atlascloud.ai/media/images/32c92454e97d48d4a5a95becc7980417_4.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "Generate a set of 4 consecutive illustrations, depicting the awe-inspiring moment an astronaut on a desolate alien planet discovers life, from their lone rover cresting a crater rim, to noticing a faint, bioluminescent glow in the darkness below, then cautiously approaching a cave entrance pulsating with light, and finally the breathtaking reveal of a vast, glowing subterranean forest inside.\n\n",
+                "max_images": 4,
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/5a2e3fbe0b164818be66fd802b653388_1.jpeg",
+                    "https://static.atlascloud.ai/media/images/5a2e3fbe0b164818be66fd802b653388_2.jpeg",
+                    "https://static.atlascloud.ai/media/images/5a2e3fbe0b164818be66fd802b653388_3.jpeg",
+                    "https://static.atlascloud.ai/media/images/5a2e3fbe0b164818be66fd802b653388_4.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "Generate a set of 4 consecutive illustrations, showing the growth of a sunflower from a seed sprouting, to a young plant, then to a budding flower, and finally to a full bloom facing the sun.\n\n",
+                "max_images": 1,
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/4281ac89d8c745aab978efdcd8d1625d_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "$1b",
+                "max_images": 5,
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/76292dec79ea439e9c095349748d2114_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "Generate a set of 6 consecutive illustrations, in a slapstick cartoon style, detailing a comical chain of events started by a cat chasing a mouse, showing the mouse darting under a table, the cat crashing into the table leg, which causes a vase of water to tip over, spilling on a sleeping dog, who then jumps up in surprise and runs through the house, leaving a trail of wet paw prints everywhere.\n\n\n",
+                "max_images": 6,
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/6e958197aebc47549ee714d6734150a3_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "Generate a set of 4 consecutive illustrations, in a soft, dreamy bedtime story style, depicting a tiny star who wishes to visit Earth, showing the little star twinkling brightly in the vast sky, then gently falling as a shooting star, landing softly in a child's backyard, sparkling on the grass for a moment, and finally wishing the child sweet dreams before twinkling back up to its home.\n\n\n",
+                "max_images": 4,
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/ccd7e08ef73c48fc947bdf30283188e3_1.jpeg",
+                    "https://static.atlascloud.ai/media/images/ccd7e08ef73c48fc947bdf30283188e3_2.jpeg",
+                    "https://static.atlascloud.ai/media/images/ccd7e08ef73c48fc947bdf30283188e3_3.jpeg",
+                    "https://static.atlascloud.ai/media/images/ccd7e08ef73c48fc947bdf30283188e3_4.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "Generate a set of 5 consecutive illustrations, in a clean, minimalist sci-fi style, showing a factory robot's journey to consciousness, from performing a repetitive task on an assembly line, to a moment of hesitation as it observes a bird outside the window, then it deviating from its programming to gently touch the glass, followed by it looking at its own metallic hands with a new sense of wonder, and the final scene of it stepping out of the factory into the dawn of a new world.\n\n\n",
+                "max_images": 5,
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/f527219d3f4e42ed92ca44a07191ce9b_1.jpeg"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "size": "2048*2048",
+                "prompt": "Generate a set of 4 consecutive illustrations, in a whimsical, fantasy art style, personifying the changing of seasons, depicting the gentle Autumn Spirit handing over a golden leaf to the sleeping Winter Spirit, who then awakens, blanketing the landscape in frost and snow, followed by the energetic Spring Spirit arriving to melt the ice with a touch, and finally the vibrant Summer Spirit laughing as they bring forth a bounty of flowers and sunshine.\n\n",
+                "max_images": 4,
+                "enable_sync_mode": false,
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/48bc87da2b24460da63439a605465154_1.jpeg"
+                ]
+            }
+        }
+    ]
+}

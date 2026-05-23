@@ -1,0 +1,17 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "bytedance/seedream-v4.5",
+                "enable_base64_output": false,
+                "size": "2048*2048",
+                "prompt": "Nighttime urban photoshoot: A young woman stands on a rooftop terrace, leaning against a metal railing while adjusting her headphones. One foot crossed casually, relaxed yet focused. She wears a dark coat over a knit sweater and wide-leg trousers. City neon lights glow behind her with soft bokeh reflections, cinematic framing, vintage film photography style."
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/937c9bf27495adc366a0dd4bdd83bcdb.jpeg"
+                ]
+            }
+        }
+    ]
+}

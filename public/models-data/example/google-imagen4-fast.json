@@ -1,0 +1,19 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "model": "google/imagen4-fast",
+                "prompt": "A  ant lifts a tiny barbell in a miniature gym, showing off its impressive strength against the backdrop of small dumbbells and workout equipment.",
+                "num_images": 1,
+                "aspect_ratio": "16:9",
+                "negative_prompt": "",
+                "enable_base64_output": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/63e92c9786135af6f961b100c407eeff.png"
+                ]
+            }
+        }
+    ]
+}

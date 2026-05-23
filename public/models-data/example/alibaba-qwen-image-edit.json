@@ -1,0 +1,64 @@
+{
+	"examples": [
+		{
+			"inputs": {
+				"images": [
+					"https://static.atlascloud.ai/media/images/20260108-7b2bc876-93e1-48d6-8f50-1745231c0301.webp"
+				],
+				"prompt": "Generate an image that matches the depth map, following this description: a dilapidated red bicycle parked on a muddy path, with a dense primeval forest in the background.",
+				"num_images": 1,
+				"seed": -1
+			},
+			"outputs": {
+				"outputs": [
+					"https://static.atlascloud.ai/media/images/20260108-90d599d4-d315-4ff4-938b-427f1f35cb32.webp"
+				]
+			}
+		},
+		{
+			"inputs": {
+				"images": [
+					"https://static.atlascloud.ai/media/images/20260108-7b2bc876-93e1-48d6-8f50-1745231c0303.webp"
+				],
+				"prompt": "Replace the word \"HEALTH INSURANCE\" in the letter block with \"明天会更好\".",
+				"num_images": 1,
+				"seed": -1
+			},
+			"outputs": {
+				"outputs": [
+					"https://static.atlascloud.ai/media/images/20260108-90d599d4-d315-4ff4-938b-427f1f35cb34.webp"
+				]
+			}
+		},
+		{
+			"inputs": {
+				"images": [
+					"https://static.atlascloud.ai/media/images/20260108-7b2bc876-93e1-48d6-8f50-1745231c0305.webp"
+				],
+				"prompt": "Replace the polka dot shirt with a light blue shirt.",
+				"num_images": 1,
+				"seed": -1
+			},
+			"outputs": {
+				"outputs": [
+					"https://static.atlascloud.ai/media/images/20260108-90d599d4-d315-4ff4-938b-427f1f35cb36.webp"
+				]
+			}
+		},
+		{
+			"inputs": {
+				"images": [
+					"https://static.atlascloud.ai/media/images/20260108-7b2bc876-93e1-48d6-8f50-1745231c0307.webp"
+				],
+				"prompt": "Change the background in the image to Antarctica.",
+				"num_images": 1,
+				"seed": -1
+			},
+			"outputs": {
+				"outputs": [
+					"https://static.atlascloud.ai/media/images/20260108-90d599d4-d315-4ff4-938b-427f1f35cb38.webp"
+				]
+			}
+		}
+	]
+}

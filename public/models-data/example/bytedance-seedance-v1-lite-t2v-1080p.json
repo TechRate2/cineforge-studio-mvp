@@ -1,0 +1,19 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "seed": -1,
+                "model": "bytedance/seedance-v1-lite-t2v-1080p",
+                "prompt": "A cute cat and a friendly dog walking side by side along a lively city street, as if casually shopping together.\n\nModern urban environment with small boutiques, cafés, and storefronts, soft afternoon sunlight illuminating the scene.\n\nThe cat walks confidently on the sidewalk, occasionally looking around curiously, while the dog happily matches the pace, relaxed and cheerful.\n\nSubtle pedestrian movement in the background, slow cinematic camera tracking from the front, smooth motion and natural pacing.\n\nWarm and clean color palette, soft shadows, gentle highlights, cozy and heartwarming atmosphere.\n\nContemporary lifestyle video style, cinematic realism with a slightly whimsical tone.\n\nShallow depth of field, smooth stabilization, high resolution, professional color grading.\n\nNo text, no logos, no watermarks.",
+                "duration": 5,
+                "aspect_ratio": "16:9",
+                "camera_fixed": false
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/5e1c404ea442c800c3d09c880451c3b3.mp4"
+                ]
+            }
+        }
+    ]
+}

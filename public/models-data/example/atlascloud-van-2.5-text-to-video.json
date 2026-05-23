@@ -1,0 +1,109 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "seed": 1261673204,
+                "size": "1280*720",
+                "prompt": "A confident woman with vibrant-colored braids, performing a high-energy hip-hop dance routine in the middle of a bustling intersection like Shibuya Crossing. She's wearing stylish, baggy streetwear. The crowd around her is a motion blur, making her the sharp focus of the scene. Neon lights from the surrounding buildings reflect off the wet pavement. The camera uses dynamic, low-angle shots and quick cuts synchronized to the beat of a powerful trap song. Energetic, urban, rebellious.\n\n",
+                "duration": 5,
+                "enable_prompt_expansion": false,
+                "model": "atlascloud/van-2.5/text-to-video"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/e35a8d4de7924d70881c3887f86caf19_c6432a22-c63c-4747-94af-fc5659006adb-u1_657c296f-b065-4e52-b36c-92f0da7a76ef.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 852110953,
+                "size": "1280*720",
+                "prompt": "In a vast, gothic library lit only by a single green banker's lamp, a handsome, mysterious man with sharp cheekbones and glasses is intently reading an ancient, leather-bound book. He absently runs a hand through his dark, wavy hair. Shadows play across his face, obscuring his expression just enough to create intrigue. A close-up shot focuses on his long fingers tracing the old script on the page. The atmosphere is silent, intellectual, and slightly melancholic. \"Dark Academia\" aesthetic.\n\n",
+                "duration": 5,
+                "enable_prompt_expansion": false,
+                "model": "atlascloud/van-2.5/text-to-video"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/7ee316395fec44c688a4d5463acba83c_94397a22-f0d6-454e-8f16-4da9984b871a-u1_4be2c866-14bd-4b58-b842-ba19bf2716a8.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 808753407,
+                "size": "1280*720",
+                "prompt": "Studio Ghibli-inspired anime style. A young girl with a straw hat lies peacefully in a sun-dappled magical forest, surrounded by friendly, glowing forest spirits (Kodama). A gentle breeze rustles the leaves of the giant, ancient trees. The air is filled with sparkling dust motes, illuminated by shafts of sunlight. The art style is soft, with a hand-painted watercolor texture. The scene feels serene, magical, and heartwarming.\n\n",
+                "duration": 5,
+                "enable_prompt_expansion": false,
+                "model": "atlascloud/van-2.5/text-to-video"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/450fc63ca6b94fab9b0a6c5848fa8d33_c611b8ca-2494-46db-8c8d-8a06de229cfa-u1_43aab816-f4ef-41df-a275-5ac22550f831.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 493788246,
+                "size": "1280*720",
+                "prompt": "A vibrant and joyful woman with curly dark hair and a colorful ruffled dress, dancing an energetic Salsa with a partner in the middle of a lively street festival in Havana, Cuba. The air is warm and filled with confetti. The street is crowded with smiling people, and a live band is playing enthusiastically in the background. The lighting comes from strings of festive lights hung between colonial-style buildings. The camera spins with the dancers, capturing the dizzying, joyful motion and the genuine smiles on their faces. High energy, cinematic, warm colors.\n\n",
+                "duration": 5,
+                "enable_prompt_expansion": false,
+                "model": "atlascloud/van-2.5/text-to-video"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/65a9e6c51c1146d48ce85bf0fc2defeb_0fca3455-dcd3-4555-9d99-8978b1975a5f-u2_68a11f1c-0af1-4905-bd71-e0d61548992e.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 804198333,
+                "size": "1280*720",
+                "prompt": "A ruggedly handsome man with a muscular build, intricate tattoos on his arms, and a defiant look in his eyes. Style: Gritty, grainy black and white film style; raw and powerful. Wardrobe: A tight, worn-out white t-shirt under a scuffed black leather jacket and ripped denim jeans. Setting: A deserted highway at sunset, with a vintage Harley-Davidson motorcycle parked beside him. Action: He leans against his motorcycle, pulls a cigarette from his pocket, lights it, takes a long drag, and slowly exhales smoke. He gazes toward the distant horizon, his expression resolute and free. Shot: A low-angle shot looking up, emphasizing his commanding presence. Lighting: The setting sun acts as a backlight, outlining his figure in gold. The mood is one of freedom, rebellion, and a touch of loneliness. Voice-over (Optional): (Sound of a motorcycle engine revving, followed by the sound of the wind.)",
+                "duration": 5,
+                "enable_prompt_expansion": false,
+                "model": "atlascloud/van-2.5/text-to-video"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/eae350812698467d81471db2466a2926_4c107c53-002f-4d5c-81c2-edf575d22e13-u2_299d67a2-831e-406d-923d-e007158587df.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 448212077,
+                "size": "1280*720",
+                "prompt": "A young woman, with tears welling up in her eyes, her voice trembling but firm as she says \"I love you\", close-up shot, romantic sunset in the background, soft lighting, cinematic.",
+                "duration": 5,
+                "enable_prompt_expansion": false,
+                "model": "atlascloud/van-2.5/text-to-video"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/2ce1c30857d34066b5ce3299b0ab9290_edd78bf8-bfd9-4772-bae0-6ceb3d0b3beb-u2_6c31ab43-d99a-4e3f-9895-fd299bf66d6e.mp4"
+                ]
+            }
+        },
+        {
+            "inputs": {
+                "seed": 1048648065,
+                "size": "1280*720",
+                "prompt": "In the style of a 1920s black and white silent film, a dramatic actress in vintage clothing at a train station. Her expressions are exaggerated and theatrical as she tearfully mouths a goodbye to her lover. The scene then cuts to an art deco title card that reads: \"My Dearest, I must go. Do not forget me.\" The image has film grain and scratches, accompanied by a piano score.\n\n\n\n\n",
+                "duration": 5,
+                "enable_prompt_expansion": false,
+                "model": "atlascloud/van-2.5/text-to-video"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/videos/58f2f9d78e4b423eaa0f180f0fa6538f_67c4e091-86a8-4b64-a5ab-3049c9231d2a-u2_c813e5a7-5b45-49a6-aa20-8e6e318a65e4.mp4"
+                ]
+            }
+        }
+    ]
+}

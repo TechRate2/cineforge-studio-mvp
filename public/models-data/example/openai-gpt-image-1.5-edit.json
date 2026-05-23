@@ -1,0 +1,24 @@
+{
+    "examples": [
+        {
+            "inputs": {
+                "images": [
+                    "https://static.atlascloud.ai/media/images/1996569edc7c366465a9297644ca91b7.jpg"
+                ],
+                "enable_base64_output": false,
+                "enable_sync_mode": false,
+                "input_fidelity": "high",
+                "output_format": "jpeg",
+                "quality": "medium",
+                "size": "1024x1024",
+                "prompt": "Adjust the image to feature a dominant orange color palette, transforming the overall tone into warm, cinematic hues. Enhance golden-orange highlights and amber lighting while subtly shifting shadows toward deep burnt orange and soft brown tones. Maintain the original composition and details, but unify the scene with consistent warm color grading. Light sources should emit a glowing orange ambiance, creating a dramatic, immersive atmosphere. Preserve contrast and depth while ensuring smooth color transitions and natural lighting behavior. Ultra-detailed, cinematic color grading, cohesive, visually striking.",
+                "model": "openai/gpt-image-1.5/edit"
+            },
+            "outputs": {
+                "outputs": [
+                    "https://static.atlascloud.ai/media/images/d9a3a558f0beac96f8a8fb31a7365e3e.png"
+                ]
+            }
+        }
+    ]
+}
