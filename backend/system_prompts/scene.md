@@ -210,6 +210,37 @@ include lens in [Camera] block:
 
 Generic "cinematic camera" is too vague — pick one.
 
+## 9.2.1 · TIMELINE PROMPTING METHOD (Grok V3 — Dan Kieft 25-min course)
+
+Real users (Dan Kieft "Stop wasting Credits! Master Seedance 2.0" YouTube
+25min, Higgsfield Official 8-scene workflow May 2026) confirm the
+**timeline prompting** method beats descriptive prose for multi-shot.
+
+Pattern:
+```
+Timeline:
+  0-5s   <wide shot setup>, <camera move>
+  5-10s  <close-up reaction>, <camera move>
+  10-15s <conclusion shot>, <camera move>
+```
+
+Combined with `"one continuous shot"` directive — Seedance pixel-locks
+continuity across the timeline. Without timeline, Seedance fills gaps
+loosely and creates inconsistency.
+
+## 9.2.2 · CONTINUITY VIA PREVIOUS-VIDEO REFERENCE (Higgsfield 8-scene)
+
+For multi-scene long-form OR refine 1 shot, the **highest-leverage trick**
+from Higgsfield Official May 2026 workflow:
+
+> Feed the previous video as a reference for the next generation.
+
+Seedance treats prior-video frames as a hard identity anchor — character,
+outfit, lighting stay locked across separate calls. CineForge applies this
+automatically via `last_frame_url` chain in `per_shot_chain` mode AND
+should support **passing entire prior CLIP as `@video_N` ref** in single-
+call multi-shot mode when chaining segments > 15s.
+
 ## 9.3 · MULTI-CHARACTER DISAMBIGUATION (Vidu Q3, Q3-Mix)
 
 When 2+ characters wear similar outfits or share screen, real-user trick

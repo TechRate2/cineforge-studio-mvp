@@ -202,10 +202,15 @@ def build_seedance_2_multi_shot(
     )
     static_block = "\n".join(static_parts)
 
+    # V4.7 — append "one continuous shot" directive (Dan Kieft 25min YouTube
+    # May 2026 confirms this phrase pixel-locks continuity across the
+    # timeline). Seedance treats it as a hard cut-merge instruction.
     prompt = (
         f"[STYLE & MOOD]\n{style_block}\n\n"
         f"[DYNAMIC DESCRIPTION]\n{dynamic_block}\n\n"
-        f"[STATIC DESCRIPTION]\n{static_block}"
+        f"[STATIC DESCRIPTION]\n{static_block}\n\n"
+        f"One continuous shot with hard cuts between timeline markers. "
+        f"Maintain exact face, outfit, lighting, and color grade across all cuts."
     )
 
     negative = continuity_manager.build_negative_prompt(bible)
