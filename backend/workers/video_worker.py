@@ -331,6 +331,7 @@ async def render_plan(
             "poll_interval_s": 5,
             "timeout_s": 900,
         }
+        atlas_kwargs["on_submit"] = lambda pid: _track_prediction(jobs_store, job_id, pid)
         single_result = await asyncio.to_thread(atlas_client.generate_video, **atlas_kwargs)
         clip_url = single_result.get("video_url")
         if not clip_url:
@@ -345,6 +346,7 @@ async def render_plan(
             "render_mode": "single_call_multi_shot",
             "video_url": clip_url,
             "last_frame_url": None,
+            "prediction_id": single_result.get("prediction_id"),
             "duration_s": spec.total_duration_s,
             "shot_timing": spec.shot_timing,  # for downstream audio_timeline
         }]
@@ -387,6 +389,7 @@ async def render_plan(
             "poll_interval_s": 5,
             "timeout_s": 900,
         }
+        atlas_kwargs["on_submit"] = lambda pid: _track_prediction(jobs_store, job_id, pid)
         single_result = await asyncio.to_thread(atlas_client.generate_video, **atlas_kwargs)
         clip_url = single_result.get("video_url")
         if not clip_url:
@@ -401,6 +404,7 @@ async def render_plan(
             "render_mode": "single_call_time_coded",
             "video_url": clip_url,
             "last_frame_url": None,
+            "prediction_id": single_result.get("prediction_id"),
             "duration_s": spec.total_duration_s,
             "shot_timing": spec.shot_timing,
         }]
@@ -502,6 +506,10 @@ async def render_plan(
         kwargs = job.to_atlas_kwargs()
         kwargs["poll_interval_s"] = 5
         kwargs["timeout_s"] = 600
+        kwargs["on_submit"] = lambda pid: _track_prediction(jobs_store, job_id, pid)
+
+        # V5.1 — bail BEFORE firing a new vendor call if user cancelled mid-loop.
+        _check_cancelled(jobs_store, job_id)
 
         logger.info(
             f"[VideoWorker V3] {job_id} shot {shot.shot_id} ({i + 1}/{total_shots}) "
@@ -526,6 +534,7 @@ async def render_plan(
             "render_mode": job.render_mode,
             "video_url": clip_url,
             "last_frame_url": produced_last_frame,
+            "prediction_id": result.get("prediction_id"),
             "duration_s": job.duration_s,
             "chained_from": psid if will_chain else None,
         })
@@ -722,6 +731,8 @@ async def render_single_shot(
         f"[VideoWorker V3] refine {job_id} {shot.shot_id} mode={scene_job.render_mode} "
         f"model={scene_job.model_key} dur={scene_job.duration_s}s"
     )
+    kwargs["on_submit"] = lambda pid: _track_prediction(jobs_store, job_id, pid)
+    _check_cancelled(jobs_store, job_id)
     result = await asyncio.to_thread(atlas_client.generate_video, **kwargs)
     clip_url = result.get("video_url")
     if not clip_url:
@@ -774,6 +785,34 @@ def _update_job(store: Optional[dict], job_id: str, **fields: Any) -> None:
     if job_id not in store:
         store[job_id] = {}
     store[job_id].update(fields)
+
+
+def _track_prediction(store: Optional[dict], job_id: str, prediction_id: str) -> None:
+    """V5.1 — Register a vendor prediction_id while it's in-flight so /cancel
+    can call atlas_client.cancel_prediction() on it. Also stores the most
+    recent one as `current_prediction_id` for quick lookup."""
+    if store is None or job_id not in store:
+        return
+    rec = store[job_id]
+    pred_list = rec.setdefault("prediction_ids", [])
+    if prediction_id and prediction_id not in pred_list:
+        pred_list.append(prediction_id)
+    rec["current_prediction_id"] = prediction_id
+
+
+class JobCancelledError(RuntimeError):
+    """V5.1 — raised when the worker detects status='cancelled' between shots
+    so the outer `_run()` task exits cleanly without marking as failed."""
+
+
+def _check_cancelled(store: Optional[dict], job_id: str) -> None:
+    """V5.1 — peek at jobs_store status flag, raise JobCancelledError if user
+    has cancelled. Called between shots in the chain loop so we don't fire
+    additional vendor calls after a cancel."""
+    if store is None or job_id not in store:
+        return
+    if store[job_id].get("status") == "cancelled":
+        raise JobCancelledError(f"Job {job_id} cancelled by user")
 
 
 async def _download_file(url: str, dest: Path, timeout_s: float = 120.0) -> None:

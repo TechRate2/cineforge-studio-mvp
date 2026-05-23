@@ -13,7 +13,7 @@ Base URL: https://api.atlascloud.ai/api/v1
 import time
 import httpx
 from pathlib import Path
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 from loguru import logger
 
 from core.config import settings
@@ -171,6 +171,7 @@ class AtlasCloudClient:
         return_last_frame: Optional[bool] = None,
         poll_interval_s: int = 5,
         timeout_s: int = 600,
+        on_submit: Optional[Callable[[str], None]] = None,
     ) -> dict:
         """Submit video job + poll until done.
 
@@ -183,6 +184,11 @@ class AtlasCloudClient:
                 for slow tiers — Vidu Q3-Mix 1080p 16s ≈ 8-12min, 1440p-SR
                 ≈ 10-15min. Recommended: 900s for ≥1080p OR ≥12s, 1200s for
                 1440p-SR. Job rate-limit may push higher on busy days.
+            on_submit: V5.1 — callback invoked with prediction_id immediately
+                after vendor submit (BEFORE poll). Lets the worker register the
+                ID with the jobs_store so /cancel can call cancel_prediction()
+                while the render is still in-flight (without this hook the ID
+                only surfaces when poll completes — too late to cancel).
         """
         # Sprint3 B8: warn when caller picks default timeout for a slow tier
         try:
@@ -224,6 +230,11 @@ class AtlasCloudClient:
         submit_path = spec.get("submit_path", "/model/generateVideo")
         poll_path = spec.get("poll_path", "/model/prediction")
         prediction_id = self._submit_video_job(payload, submit_path=submit_path)
+        if on_submit is not None:
+            try:
+                on_submit(prediction_id)
+            except Exception as e:
+                logger.warning(f"[AtlasCloud] on_submit callback raised (non-fatal): {e}")
         result = self._poll_prediction(
             prediction_id, poll_interval_s, timeout_s, poll_path=poll_path,
         )

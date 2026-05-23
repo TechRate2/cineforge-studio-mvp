@@ -5,6 +5,9 @@ export interface CancelResponse {
   job_id: string;
   status: 'cancelled' | string;
   message?: string;
+  /** V5.1 — vendor-side prediction cancel count (best-effort kill of AtlasCloud predictions). */
+  vendor_cancelled_count?: number;
+  vendor_total_predictions?: number;
 }
 
 export function useJobCancel() {

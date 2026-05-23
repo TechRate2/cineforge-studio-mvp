@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useState } from 'react';
+import { toast } from 'sonner';
 import type { LucideIcon } from 'lucide-react';
 import { Upload, X, User, Package, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { uploadMediaToR2 } from '@/lib/studio/upload-media';
@@ -31,23 +32,35 @@ export function ReferenceZones({ value, onChange, maxRefs = 9 }: Props) {
   async function handleFiles(zoneKey: 'character' | 'product' | 'storyboard', files: FileList | null) {
     if (!files || files.length === 0) return;
     const list = Array.from(files);
+
+    // V5.1 — hard cap BEFORE upload so we don't waste R2 bandwidth on rejects
+    if (zoneKey !== 'storyboard') {
+      const remaining = Math.max(0, maxRefs - value.images.length);
+      if (remaining === 0) {
+        toast.error(`Đã đạt limit ${maxRefs} reference cho model này. Xóa ảnh cũ trước khi upload.`);
+        return;
+      }
+      if (list.length > remaining) {
+        toast.warning(`Chỉ upload ${remaining}/${list.length} ảnh — model giới hạn ${maxRefs} reference.`);
+        list.length = remaining;
+      }
+    }
+
     setUploading((u) => ({ ...u, [zoneKey]: true }));
-    // V5 — Upload to R2 first (returns public URL); falls back to data: base64 on
-    // failure so flow never breaks. Request payload 5-10× lighter vs inline base64.
     const urls = await Promise.all(list.map((f) => uploadMediaToR2(f)));
     setUploading((u) => ({ ...u, [zoneKey]: false }));
     const role = ZONES.find((z) => z.key === zoneKey)!.role;
     if (zoneKey === 'storyboard') {
       onChange({ ...value, storyboardImages: [...value.storyboardImages, ...urls] });
+      toast.success(`Đã upload ${urls.length} ảnh storyboard`);
       return;
     }
-    const remaining = Math.max(0, maxRefs - value.images.length);
-    const slice = urls.slice(0, remaining);
     onChange({
       ...value,
-      images: [...value.images, ...slice],
-      roles: [...value.roles, ...slice.map(() => role)],
+      images: [...value.images, ...urls],
+      roles: [...value.roles, ...urls.map(() => role)],
     });
+    toast.success(`Đã upload ${urls.length} ảnh ${role?.replace('_', ' ') ?? ''}`);
   }
 
   function removeAt(zoneKey: string, idx: number) {
@@ -79,6 +92,9 @@ export function ReferenceZones({ value, onChange, maxRefs = 9 }: Props) {
       {ZONES.map((zone) => {
         const Icon = zone.icon;
         const items = imagesForZone(zone.key);
+        // V5.1 — per-zone capacity (storyboard unlimited; others share maxRefs across roles)
+        const totalUsed = value.images.length;
+        const atLimit = zone.key !== 'storyboard' && totalUsed >= maxRefs;
         return (
           <div key={zone.key} className="surface-2 rounded-card p-4">
             <div className="flex items-center justify-between mb-3">
@@ -88,7 +104,9 @@ export function ReferenceZones({ value, onChange, maxRefs = 9 }: Props) {
                 </div>
                 <div className="text-sm font-semibold">{zone.label}</div>
               </div>
-              <span className="chip">{items.length}</span>
+              <span className={`chip ${atLimit ? 'text-accent-orange border-accent-orange/40' : ''}`}>
+                {zone.key === 'storyboard' ? items.length : `${totalUsed}/${maxRefs}`}
+              </span>
             </div>
             <p className="text-[11px] text-text-subtle mb-3 leading-snug">{zone.hint}</p>
 
@@ -120,14 +138,17 @@ export function ReferenceZones({ value, onChange, maxRefs = 9 }: Props) {
             />
             <button
               onClick={() => fileInputs.current[zone.key]?.click()}
-              disabled={uploading[zone.key]}
+              disabled={uploading[zone.key] || atLimit}
+              title={atLimit ? `Đã đạt limit ${maxRefs} ref. Xóa ảnh cũ để upload thêm.` : undefined}
               className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-md
                          border border-dashed border-hairline-strong hover:border-accent-magenta/50
                          text-xs text-text-muted hover:text-text transition
-                         disabled:opacity-60 disabled:cursor-wait"
+                         disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-hairline-strong"
             >
               {uploading[zone.key] ? (
                 <><Loader2 size={13} className="animate-spin" /> Uploading...</>
+              ) : atLimit ? (
+                <>Đã đầy {maxRefs}/{maxRefs}</>
               ) : (
                 <><Upload size={13} /> Upload</>
               )}

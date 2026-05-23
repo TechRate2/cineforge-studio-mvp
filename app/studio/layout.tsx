@@ -1,3 +1,4 @@
+import { Toaster } from 'sonner';
 import { StudioRail } from '@/components/studio/StudioRail';
 import { StudioTopbar } from '@/components/studio/StudioTopbar';
 import { AnnouncementBar } from '@/components/studio/AnnouncementBar';
@@ -13,6 +14,17 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
           <main className="flex-1 min-h-0 overflow-y-auto">{children}</main>
         </div>
       </div>
+      <Toaster
+        position="bottom-right"
+        theme="dark"
+        toastOptions={{
+          style: {
+            background: 'rgba(20,20,30,0.95)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: 'rgb(240,240,250)',
+          },
+        }}
+      />
     </div>
   );
 }

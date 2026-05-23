@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { PromptCardV2 } from '@/components/studio/PromptCardV2';
 import { ReferenceZones, type ReferenceZonesValue } from '@/components/studio/ReferenceZones';
 import { ContextInjection, type ContextValue } from '@/components/studio/ContextInjection';
@@ -8,6 +9,7 @@ import { JobResultModal } from '@/components/studio/JobResultModal';
 import { ModelShowcase } from '@/components/studio/ModelShowcase';
 import { Drawer } from '@/components/ui/Modal';
 import { useDirectorPlan, generateFromPlan, DIRECTOR_STAGE_LABELS_VN } from '@/lib/studio/use-director-plan';
+import { usePersistedJob } from '@/lib/studio/use-persisted-job';
 import { getModelConfig } from '@/lib/studio/model-config';
 import type { VideoModel, AspectRatio, AudioMode } from '@/lib/types/backend';
 import { AlertCircle, Loader2 } from 'lucide-react';
@@ -47,13 +49,32 @@ export default function StudioPage() {
 
   // Open modal when plan ready
   useEffect(() => {
-    if (plan) setShowPlanModal(true);
+    if (plan) {
+      setShowPlanModal(true);
+      toast.success(`Plan ready — ${plan.shot_list.length} shots, điểm ${plan.evaluation.overall_score.toFixed(1)}/10`);
+    }
   }, [plan]);
 
-  // Render job flow
-  const [jobId, setJobId] = useState<string | null>(null);
+  // V5.1 — toast on plan error (was silent console.error before)
+  useEffect(() => {
+    if (error) {
+      toast.error(`Plan failed: ${error}`, { duration: 8000 });
+    }
+  }, [error]);
+
+  // Render job flow — V5.1 persist jobId across refresh
+  const { jobId, setJobId } = usePersistedJob();
   const [isRendering, setIsRendering] = useState(false);
   const [showJobModal, setShowJobModal] = useState(false);
+
+  // V5.1 — resume polling on mount if we have a stashed jobId
+  useEffect(() => {
+    if (jobId && !showJobModal) {
+      setShowJobModal(true);
+      toast.info('Đang resume job đã render từ session trước', { duration: 4000 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // V4 Sprint1 Task #7 — master board URL (set when user gens master board in PlanModal)
   const [masterBoardUrl, setMasterBoardUrl] = useState<string | null>(null);
   // Topview-style: references live in a drawer instead of always-visible 3-zone
@@ -98,9 +119,10 @@ export default function StudioPage() {
       setJobId(res.job_id);
       setShowPlanModal(false);
       setShowJobModal(true);
+      toast.success(`Job đã queue — ước tính $${res.estimated_cost_usd?.toFixed(2) ?? '?'}, ${res.estimated_duration_s}s render`);
     } catch (e) {
-      // surface error via existing error state from hook? simplest: alert
-      // For demo, log:
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(`Render failed: ${msg}`, { duration: 8000 });
       console.error(e);
     } finally {
       setIsRendering(false);

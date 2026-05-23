@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fetchDirectorJob } from './use-director-plan';
 
 export interface DirectorJobStatus {
@@ -14,20 +14,37 @@ export interface DirectorJobStatus {
   cost_actual_usd?: number;
 }
 
+/** V5.1 — job stuck timeout (15 min). When exceeded, polling stops and
+ *  `timedOut` becomes true so the UI can prompt the user to check History
+ *  or manually cancel. Render rarely exceeds 5 min on healthy AtlasCloud. */
+const STUCK_TIMEOUT_MS = 15 * 60 * 1000;
+
 export function useDirectorJobPoll(jobId: string | null, intervalMs: number = 2500) {
   const [job, setJob] = useState<DirectorJobStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
+  const startedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!jobId) {
       setJob(null);
+      setTimedOut(false);
+      startedAtRef.current = null;
       return;
     }
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    startedAtRef.current = Date.now();
+    setTimedOut(false);
 
     const tick = async () => {
       if (!alive) return;
+      // V5.1 — abort polling if job has been alive past stuck threshold
+      const elapsed = Date.now() - (startedAtRef.current ?? Date.now());
+      if (elapsed > STUCK_TIMEOUT_MS) {
+        setTimedOut(true);
+        return;
+      }
       try {
         const res = await fetchDirectorJob(jobId);
         if (!alive) return;
@@ -51,5 +68,5 @@ export function useDirectorJobPoll(jobId: string | null, intervalMs: number = 25
     };
   }, [jobId, intervalMs]);
 
-  return { job, error };
+  return { job, error, timedOut };
 }

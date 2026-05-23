@@ -82,6 +82,15 @@ export function PromptCardV2({
   const durations = cfg.duration_discrete
     ?? DURATION_OPTIONS_DEFAULT.filter((d) => d <= cfg.max_duration_s);
 
+  // V5.1 — Vidu Q3 has a vendor-side prompt cap (~1000 chars) and the backend
+  // silently truncates anything past it. Warn the user in the brief area when
+  // they're getting close so they don't lose intent.
+  const isViduModel = model === 'vidu_q3' || model === 'vidu_q3_mix';
+  const PROMPT_SOFT_LIMIT = 1000;
+  const briefLength = brief.length;
+  const briefOverLimit = isViduModel && briefLength > PROMPT_SOFT_LIMIT;
+  const briefNearLimit = isViduModel && briefLength > PROMPT_SOFT_LIMIT * 0.85;
+
   return (
     // AUDIT FIX: overflow-hidden + backdrop-blur creates a stacking context
     // that clips native <select> dropdown popup on some Chromium combos.
@@ -136,22 +145,37 @@ export function PromptCardV2({
           )}
         </button>
 
-        <textarea
-          ref={taRef}
-          value={brief}
-          onChange={(e) => onBrief(e.target.value)}
-          rows={3}
-          disabled={disabled}
-          className="field-bare resize-none flex-1 text-[14px] leading-relaxed min-h-[68px]"
-          placeholder={
-            'Plan any-length videos with AI assistant and references.\n'
-            + 'Upload 1-12 reference images or videos and @mention to create interactions. '
-            + 'Example: Use @Image 1 as the first frame, @Image 2 as the last frame, and have them dance like the moves in @Video 1.'
-          }
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !disabled) onSubmit();
-          }}
-        />
+        <div className="flex-1 flex flex-col min-w-0">
+          <textarea
+            ref={taRef}
+            value={brief}
+            onChange={(e) => onBrief(e.target.value)}
+            rows={3}
+            disabled={disabled}
+            className="field-bare resize-none flex-1 text-[14px] leading-relaxed min-h-[68px]"
+            placeholder={
+              'Plan any-length videos with AI assistant and references.\n'
+              + 'Upload 1-12 reference images or videos and @mention to create interactions. '
+              + 'Example: Use @Image 1 as the first frame, @Image 2 as the last frame, and have them dance like the moves in @Video 1.'
+            }
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !disabled) onSubmit();
+            }}
+          />
+          {/* V5.1 — Vidu Q3 / Q3-Mix prompt cap warning */}
+          {isViduModel && briefNearLimit && (
+            <div className={`mt-1.5 text-[11px] flex items-center gap-1 ${
+              briefOverLimit ? 'text-accent-orange' : 'text-accent-yellow'
+            }`}>
+              <span className="font-mono">{briefLength}/{PROMPT_SOFT_LIMIT}</span>
+              <span>
+                {briefOverLimit
+                  ? `· Vidu sẽ truncate brief — rút gọn dưới ${PROMPT_SOFT_LIMIT} chars`
+                  : `· Gần Vidu prompt limit ${PROMPT_SOFT_LIMIT} chars`}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Settings inline footer (Topview pattern) */}

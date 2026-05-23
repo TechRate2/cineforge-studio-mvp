@@ -17,6 +17,7 @@ import httpx
 from loguru import logger
 
 from core.config import settings
+from vendors._retry import llm_retry
 
 
 TaskType = Literal["analyzer", "generator", "vision", "premium"]
@@ -102,6 +103,7 @@ class LLMRouter:
         # Anthropic direct
         return self._call_claude(system_prompt, user_message, few_shot_examples, max_tokens)
 
+    @llm_retry(max_attempts=3)
     def complete_with_image(
         self,
         system_prompt: str,
@@ -111,7 +113,13 @@ class LLMRouter:
         model: Optional[str] = None,
         max_tokens: int = 4096,
     ) -> str:
-        """Vision call. Prefer Qwen3-VL trên AtlasCloud (rẻ 5×), fallback Claude direct."""
+        """Vision call. Prefer Qwen3-VL trên AtlasCloud (rẻ 5×), fallback Claude direct.
+
+        V5.1 — wrapped in llm_retry: previously a single 429/5xx on the vision
+        scan would fail the entire Director plan. Now retries 3× with exp
+        backoff (2-8s) before propagating, so transient AtlasCloud rate limits
+        don't break the whole flow.
+        """
         provider, model_id = self._resolve_model(task, model)
 
         if provider == "atlascloud" and self._atlas:

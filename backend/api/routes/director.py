@@ -762,6 +762,10 @@ async def generate_video(
                 cost_gate_threshold=request.cost_gate_threshold,
                 master_board_url=request.master_board_url,
             )
+        except video_worker.JobCancelledError:
+            # V5.1 — user cancelled mid-render; status already set by /cancel route
+            logger.info(f"[/director/generate] job {job_id} cancelled gracefully")
+            await asyncio.to_thread(video_worker.cleanup_failed_job, job_id)
         except Exception as e:
             logger.exception(f"[/director/generate] job {job_id} failed")
             _JOBS_STORE[job_id].update(status="failed", error_message=_redact_error(e))
@@ -865,6 +869,9 @@ async def plan_and_render(request: PlanAndRenderRequest):
                 jobs_store=_JOBS_STORE,
                 use_llm_scene_gen=request.use_llm_scene_gen,
             )
+        except video_worker.JobCancelledError:
+            logger.info(f"[/director/plan-and-render] job {job_id} cancelled gracefully")
+            await asyncio.to_thread(video_worker.cleanup_failed_job, job_id)
         except Exception as e:
             logger.exception(f"[/director/plan-and-render] job {job_id} failed")
             _JOBS_STORE[job_id].update(status="failed", error_message=_redact_error(e))
@@ -1008,6 +1015,9 @@ async def refine_shot(request: RefineRequest):
                 use_llm_scene_gen=request.use_llm_scene_gen,
             )
             _JOBS_STORE[job_id].update(refine_result=result)
+        except video_worker.JobCancelledError:
+            logger.info(f"[/director/refine] {job_id} cancelled gracefully")
+            await asyncio.to_thread(video_worker.cleanup_failed_job, job_id)
         except Exception as e:
             logger.exception(f"[/director/refine] {job_id} failed")
             _JOBS_STORE[job_id].update(status="failed", error_message=_redact_error(e))
@@ -1035,10 +1045,57 @@ async def get_job(job_id: str):
 
 @router.post("/jobs/{job_id}/cancel")
 async def cancel_job(job_id: str):
+    """V5.1 — Set cancelled flag AND kill any in-flight AtlasCloud predictions.
+
+    Without the vendor-side cancel call, AtlasCloud keeps rendering after the
+    user clicks Hủy → the user still gets billed for $1-5 per cancelled job.
+    We now look up `current_prediction_id` (latest submitted, possibly still
+    running) and the full `prediction_ids` history (in case earlier shots are
+    still queued). Cancel is best-effort: vendor returns no-op on already-done
+    predictions, which is safe.
+    """
     if job_id not in _JOBS_STORE:
         raise HTTPException(404, "job not found")
-    _JOBS_STORE[job_id].update(status="cancelled")
-    return {"job_id": job_id, "status": "cancelled"}
+
+    rec = _JOBS_STORE[job_id]
+    rec.update(status="cancelled")
+
+    # Best-effort vendor-side kill (idempotent — already-done predictions no-op)
+    pred_ids: list[str] = []
+    current = rec.get("current_prediction_id")
+    if current:
+        pred_ids.append(current)
+    history = rec.get("prediction_ids") or []
+    for pid in history:
+        if pid and pid not in pred_ids:
+            pred_ids.append(pid)
+
+    cancelled_count = 0
+    if pred_ids:
+        from vendors.atlascloud import atlas_client
+        if atlas_client is not None:
+            async def _kill_one(pid: str) -> bool:
+                try:
+                    await asyncio.to_thread(atlas_client.cancel_prediction, pid)
+                    return True
+                except Exception as e:
+                    logger.warning(f"[/cancel] {job_id} cancel_prediction({pid}) fail: {e}")
+                    return False
+            results = await asyncio.gather(*(_kill_one(pid) for pid in pred_ids))
+            cancelled_count = sum(1 for r in results if r)
+        else:
+            logger.warning(f"[/cancel] {job_id} atlas_client=None — flag-only cancel")
+
+    logger.info(
+        f"[/cancel] {job_id} cancelled — vendor predictions killed "
+        f"{cancelled_count}/{len(pred_ids)}"
+    )
+    return {
+        "job_id": job_id,
+        "status": "cancelled",
+        "vendor_cancelled_count": cancelled_count,
+        "vendor_total_predictions": len(pred_ids),
+    }
 
 
 # ============================================================

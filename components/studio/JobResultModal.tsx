@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { Modal } from '@/components/ui/Modal';
-import { Download, AlertTriangle, Loader2, Sparkles, RotateCcw, X } from 'lucide-react';
+import { Download, AlertTriangle, Loader2, Sparkles, RotateCcw, X, Clock } from 'lucide-react';
 import { useDirectorJobPoll } from '@/lib/studio/use-director-job-poll';
 import { useJobCancel } from '@/lib/studio/use-job-cancel';
 
@@ -24,14 +25,23 @@ const STAGE_LABELS_VN: Record<string, string> = {
 };
 
 export function JobResultModal({ open, jobId, onClose, onRetry }: Props) {
-  const { job, error } = useDirectorJobPoll(jobId);
+  const { job, error, timedOut } = useDirectorJobPoll(jobId);
   const { cancel, isCancelling } = useJobCancel();
   const [cancelConfirm, setCancelConfirm] = useState(false);
   const status = job?.status ?? 'pending';
   const progress = job?.progress ?? 0;
   const isDone = status === 'done';
   const isFailed = status === 'failed' || status === 'cancelled';
-  const isWorking = !isDone && !isFailed;
+  const isWorking = !isDone && !isFailed && !timedOut;
+
+  // V5.1 — toast on terminal status changes (visible even when modal minimized)
+  useEffect(() => {
+    if (isDone) toast.success(`Render hoàn tất ${job?.elapsed_s ? `· ${Math.round(job.elapsed_s)}s` : ''}`);
+  }, [isDone, job?.elapsed_s]);
+  useEffect(() => {
+    if (status === 'failed') toast.error(`Render failed: ${job?.error_message ?? 'unknown'}`, { duration: 10000 });
+    if (status === 'cancelled') toast.info('Job đã hủy');
+  }, [status, job?.error_message]);
 
   const handleCancel = async () => {
     if (!jobId) return;
@@ -41,9 +51,13 @@ export function JobResultModal({ open, jobId, onClose, onRetry }: Props) {
       return;
     }
     try {
-      await cancel(jobId);
+      const res = await cancel(jobId);
+      toast.success(
+        `Đã hủy job — vendor predictions killed ${res.vendor_cancelled_count ?? 0}/${res.vendor_total_predictions ?? 0}`
+      );
     } catch (e) {
-      console.error('Cancel failed', e);
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(`Cancel failed: ${msg}`);
     }
     setCancelConfirm(false);
   };
@@ -101,6 +115,36 @@ export function JobResultModal({ open, jobId, onClose, onRetry }: Props) {
                   <><X size={12} /> Hủy render</>
                 )}
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* V5.1 — Stuck timeout */}
+        {timedOut && !isFailed && !isDone && (
+          <div className="surface-2 rounded-card p-5 border-accent-yellow/40">
+            <div className="flex items-start gap-3">
+              <Clock size={18} className="text-accent-yellow shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <div className="text-sm font-semibold text-accent-yellow">
+                  Job có vẻ stuck — đã chạy quá 15 phút
+                </div>
+                <p className="text-xs text-text-muted mt-2 leading-relaxed">
+                  Render thường mất 2-5 phút. Quá lâu có thể vendor đang queue cao hoặc server bị treo.
+                  Anh có thể: (1) Hủy job để dừng và tránh bị charge thêm, (2) Đóng modal, vào tab History sau 30 phút check lại.
+                </p>
+                <div className="mt-4 flex gap-2">
+                  <button onClick={handleCancel} disabled={isCancelling} className="btn-outline">
+                    {isCancelling ? (
+                      <><Loader2 size={12} className="animate-spin" /> Đang hủy...</>
+                    ) : cancelConfirm ? (
+                      <><X size={12} /> Xác nhận hủy</>
+                    ) : (
+                      <><X size={12} /> Hủy job</>
+                    )}
+                  </button>
+                  <button onClick={onClose} className="btn-ghost">Đóng (giữ job chạy nền)</button>
+                </div>
+              </div>
             </div>
           </div>
         )}
