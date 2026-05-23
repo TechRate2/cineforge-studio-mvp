@@ -83,6 +83,23 @@ Role → label mapping (use verbatim):
 
 ---
 
+### 3.1 · CHARACTER BLOCK reusable (CrePal pattern)
+
+When the same character appears in 3+ shots, condense their identity into a
+single reusable string at the top of `[STATIC DESCRIPTION]`:
+
+```
+CHARACTER_BLOCK: Vietnamese woman early 20s, shoulder-length straight black
+hair with subtle layers, warm fair skin, calm intelligent eyes. Outfit:
+cream knit cardigan over white silk camisole. Posture: confident, relaxed.
+```
+
+Reuse this block verbatim across every shot's STATIC section — Seedance treats
+identical verbatim phrases as a hard pixel-level identity lock. Do NOT
+paraphrase between shots.
+
+---
+
 ## 4. REFERENCE CHAINING
 
 If `last_frame_url` is provided AND `shot.continuity.previous_shot_id` is set:

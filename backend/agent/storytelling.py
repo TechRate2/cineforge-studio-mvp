@@ -115,6 +115,17 @@ HOOK_PATTERNS: dict[str, HookPattern] = {
         when_to_use="Launch week, flash sale, only if real discount — fake offer = trust loss",
         example_brief="\"Tuần ra mắt -30%\" big text → product hero shot 2s",
     ),
+    # NEW V4 Sprint1+ — added from Opus.pro 5-hook 2026 analysis + NewEngen
+    # TikTok VN Gen Z report 2026: outcome-showcase reverse-causality is the
+    # single highest-converting hook for VN audience in 2026.
+    "outcome_showcase": HookPattern(
+        key="outcome_showcase",
+        label="Outcome Showcase",
+        intent="Show final transformation OR usage result FIRST — viewer needs to know how to reach it",
+        visual_cue="End-state hero shot (perfect skin, packed phở, finished room) holds 1-2s, NO product reveal yet",
+        when_to_use="Beauty results, fitness transformation, food finished dish, makeover, home reno, education completed",
+        example_brief="Bowl phở Hà Nội hoàn hảo 1.5s steam rising → cut về tay làm bún sống",
+    ),
 }
 
 
