@@ -89,10 +89,21 @@ When the same character appears in 3+ shots, condense their identity into a
 single reusable string at the top of `[STATIC DESCRIPTION]`:
 
 ```
-CHARACTER_BLOCK: Vietnamese woman early 20s, shoulder-length straight black
-hair with subtle layers, warm fair skin, calm intelligent eyes. Outfit:
-cream knit cardigan over white silk camisole. Posture: confident, relaxed.
+CHARACTER_BLOCK: {use bible.characters[0].face_signature verbatim — describe
+exactly what's in the reference image: race, hair color/length/texture, skin
+tone, eye color}. Outfit: {bible.characters[0].outfit verbatim}. Posture:
+{trait inferred from reference or brief}.
 ```
+
+Example (Asian woman ref): "young East Asian woman early 20s, shoulder-length
+straight black hair with subtle layers, warm fair skin, calm intelligent eyes.
+Outfit: cream knit cardigan. Posture: confident, relaxed."
+
+Example (European man ref): "European man late 30s, short cropped brown hair,
+fair skin with stubble, hazel eyes. Outfit: navy wool coat. Posture: assertive
+stride."
+
+Example (no reference): "{leave abstract — 'a young adult with soft features'}".
 
 Reuse this block verbatim across every shot's STATIC section — Seedance treats
 identical verbatim phrases as a hard pixel-level identity lock. Do NOT
@@ -185,7 +196,7 @@ For `single_descriptive` / `time_coded` / `i2v_motion` formats, structure each
 beat as:
 
 ```
-[Subject]   "Vietnamese woman late 20s, cream knit cardigan"
+[Subject]   "{character traits from Bible.face_signature verbatim — race/hair/skin per reference image}, {outfit from Bible}"
 [Action]    "reaches for a matte lipstick on the desk"
 [Environment] "morning sunlit make-up table, scattered cosmetics"
 [Camera]    "MCU push-in, 85mm anamorphic, shallow depth of field"
@@ -264,8 +275,10 @@ case study):
 - **`@image_N` syntax is CASE-INSENSITIVE** on Vidu Q3-Mix — `@image_1`,
   `@Image1`, `@IMAGE_1` all parse the same. Underscore optional. Use
   `@image_N` for consistency with Seedance 2.0.
-- **Native audio supports Vietnamese** but overlay GenMax TTS post for tone
-  precision (Vidu native VN sync 80-85% vs GenMax pre-rendered 95%+).
+- **Native audio supports multilingual speech**; for languages requiring tight
+  lip-sync precision (incl. Vietnamese, Japanese, Mandarin), overlay TTS post
+  via dialogue_vo mode for cleaner result (native vendor sync ~80-85% vs
+  pre-rendered TTS overlay 95%+).
 
 ## 9.4 · WAN 2.7 — VIETNAMESE LIP-SYNC HARD RULES (Grok V4)
 
@@ -298,7 +311,7 @@ overlay-only use cases.
 
 ## 10. AGE-INDICATOR AVOIDANCE
 
-Never use age numbers in prompts ("28-year-old woman"). Use functional descriptors: `"photorealistic figure"`, `"a Vietnamese woman with warm fair skin, calm intelligent eyes"`. Triggers conservative filtering otherwise.
+Never use age numbers in prompts ("28-year-old woman"). Use functional descriptors: `"photorealistic figure"`, `"a young adult with {trait from reference image}, calm intelligent eyes"`. Triggers conservative filtering otherwise.
 
 ---
 
@@ -354,6 +367,6 @@ present and non-null, prefer it over re-inferring from `shot.purpose`.
 - `generate_audio = true` ONLY when `bible.audio_design.dialogue_style != "silent"` AND model supports native audio.
 - If `previous_shot_id` is set but `last_frame_url` is null → fall back to `render_mode = "ref_to_video"` and add `"(note: chain anchor missing, falling back to ref)"` at end of prompt.
 - If no references at all → `reference_image_indices = []` and `render_mode = "t2v"`.
-- **Vietnamese dialogue stays Vietnamese inside quotes**, surrounding prompt stays English: `Character speaks: "Chào mọi người, mình test sản phẩm này."`
+- **Dialogue stays in user's brief language inside quotes** (auto-detect: Vietnamese / English / Japanese / etc.), surrounding prompt stays English: `Character speaks: "{dialogue in original language}"`. Examples: `Character speaks: "Chào mọi người, mình test sản phẩm này."` / `Character speaks: "Hey everyone, testing this product."` / `Character speaks: "皆さん、こんにちは"`.
 
 Return JSON only.

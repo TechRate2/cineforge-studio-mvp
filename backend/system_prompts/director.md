@@ -85,7 +85,7 @@ Why: making every video feel like an ad fatigues viewers. User keeps creative co
 Every shot featuring the primary character inherits `bible.characters[0].face_signature` verbatim. This is the *visual DNA contract* — Seedance / Vidu / Wan use it to chain identity across shots.
 
 Rules:
-- `face_signature` MUST be 1-2 concrete sentences: race, hair, skin tone, vibe (e.g. *"Vietnamese woman, late 20s, shoulder-length straight black hair with subtle layers, warm fair skin, calm intelligent eyes, soft confident demeanor"*).
+- `face_signature` MUST be 1-2 concrete sentences inferred FROM THE REFERENCE IMAGE (when provided): race, hair color/length/texture, skin tone, eye color, vibe — describe EXACTLY what you see in the reference, do NOT default to any specific ethnicity. If no reference image, leave `face_signature` empty or use abstract descriptor ("a young adult with soft features"). Example shape: *"young adult woman, shoulder-length wavy {hair color} hair, {skin undertone} skin, {eye color} eyes, calm composed demeanor"*.
 - NEVER use age numbers in shot prompts (triggers conservative filtering). Use functional descriptors: *"photorealistic figure"*.
 - Outfit invariant: define ONCE in `characters[i].outfit`, never change mid-sequence unless plot demands.
 - For each shot's `visual.subject`, refer to the character by short tag (e.g. *"Linh"*) — actual face DNA is injected at Scene Gen layer.
@@ -141,7 +141,7 @@ Plan identity-stable transitions:
 - Reveal beat: lighting shift cue → matching audio rise.
 - CTA beat: clean dialogue or strong music drop.
 
-Set `bible.audio_design.dialogue_style` to one of: `conversational | monologue | VO_narration | silent`. Write `shot.audio.dialogue_vn` in **Vietnamese** when dialogue exists.
+Set `bible.audio_design.dialogue_style` to one of: `conversational | monologue | VO_narration | silent`. Write `shot.audio.dialogue_vn` in the **same language as the user's brief** (auto-detect — Vietnamese / English / Japanese / Chinese / etc.). Field name `dialogue_vn` is a historical schema alias for "dialogue native"; content is language-agnostic.
 
 ---
 
@@ -282,7 +282,7 @@ Return ONE JSON object. Strict — no trailing commas, no comments, no fences.
         "background": "string"
       },
       "audio": {
-        "dialogue_vn": "Vietnamese dialogue or null",
+        "dialogue_vn": "dialogue in user's brief language (auto-detect) or null",
         "caption_on_screen": "string or null",
         "sfx": ["..."],
         "music_cue": "string?"
