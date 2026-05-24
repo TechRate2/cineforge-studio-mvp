@@ -48,6 +48,9 @@ export default function StudioPage() {
   const [duration, setDuration] = useState(15);
   const [audioMode, setAudioMode] = useState<AudioMode>('silent_native');
   const [numShots, setNumShots] = useState<number | null>(null);
+  // V5.16 #1 — Master Board toggle. Default ON for eligible models, OFF otherwise.
+  // User can override via UI pill. DirectorPlanModal reads this instead of hardcode.
+  const [masterBoardEnabled, setMasterBoardEnabled] = useState<boolean>(true);
   const [activePresetId, setActivePresetId] = useState<string | undefined>();
   const [showPresets, setShowPresets] = useState(false);
 
@@ -277,6 +280,10 @@ export default function StudioPage() {
           onDuration={setDuration}
           audioMode={audioMode}
           onAudioMode={setAudioMode}
+          numShots={numShots}
+          onNumShots={setNumShots}
+          masterBoardEnabled={masterBoardEnabled}
+          onMasterBoardEnabled={setMasterBoardEnabled}
           qualityScore={plan?.evaluation?.overall_score}
           estimatedCostUsd={estimatedCostUsd}
           onSubmit={handleGeneratePlan}
@@ -381,6 +388,7 @@ export default function StudioPage() {
           audio_mode: audioMode, model, duration_s: duration,
           aspect_ratio: aspect, resolution, num_shots: numShots,
         }}
+        masterBoardEnabled={masterBoardEnabled}
         onRefineJobStarted={(rid) => {
           setJobId(rid);
           setShowPlanModal(false);

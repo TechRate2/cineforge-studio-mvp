@@ -37,6 +37,14 @@ interface Props {
   audioMode: AudioMode;
   onAudioMode: (a: AudioMode) => void;
 
+  // V5.16 #2 — Number of shots picker (Auto = let Director decide, 1-5 = override)
+  numShots: number | null;
+  onNumShots: (n: number | null) => void;
+
+  // V5.16 #1 — Master Storyboard Board toggle (auto $0.04 identity anchor)
+  masterBoardEnabled: boolean;
+  onMasterBoardEnabled: (v: boolean) => void;
+
   // Quality estimate (0-10) — shown as chip like Topview's 7.5 score
   qualityScore?: number;
 
@@ -63,6 +71,24 @@ const AUDIO_LABELS: Record<AudioMode, string> = {
   asmr_macro: 'ASMR',
 };
 
+// V5.16 — Models eligible for Master Storyboard Board ($0.04 9-panel anchor).
+// Synced with backend scene_generation_agent.py `is_seedance_ref_for_board` check
+// and DirectorPlanModal's auto-trigger condition.
+const MASTER_BOARD_MODELS = new Set<VideoModel>(['auto', 'seedance_2_0', 'seedance_2_0_fast']);
+
+// V5.16 — Max shots per model (vendor hard limit). Used by numShots picker.
+// auto/seedance_2_0/seedance_2_0_fast → 6 (Strategy A cap), seedance_1_5_pro → 4
+// (Strategy B cap), vidu_q3/vidu_q3_mix/wan_2_7 → 5 (per-shot chain practical cap).
+const MAX_SHOTS_PER_MODEL: Record<VideoModel, number> = {
+  auto: 6,
+  seedance_2_0: 6,
+  seedance_2_0_fast: 6,
+  seedance_1_5_pro: 4,
+  vidu_q3: 5,
+  vidu_q3_mix: 5,
+  wan_2_7: 5,
+};
+
 export function PromptCardV2({
   brief, onBrief,
   referenceCount, onOpenReferences,
@@ -71,6 +97,8 @@ export function PromptCardV2({
   resolution, onResolution,
   duration, onDuration,
   audioMode, onAudioMode,
+  numShots, onNumShots,
+  masterBoardEnabled, onMasterBoardEnabled,
   qualityScore,
   estimatedCostUsd,
   onSubmit,
@@ -86,6 +114,11 @@ export function PromptCardV2({
 
   // V5.7 — dynamic aspect dropdown from current model. Wan 2.7 i2v returns [].
   const aspectOptions = cfg.aspect_ratio_options ?? ['9:16', '16:9', '1:1'];
+
+  // V5.16 — derived: is current model eligible for Master Board?
+  const masterBoardEligible = MASTER_BOARD_MODELS.has(model);
+  const maxShots = MAX_SHOTS_PER_MODEL[model] ?? 5;
+  const numShotsOptions = Array.from({ length: maxShots }, (_, i) => i + 1);
 
   // V5.1 — Vidu Q3 has a vendor-side prompt cap (~1000 chars) and the backend
   // silently truncates anything past it. Warn the user in the brief area when
@@ -242,6 +275,44 @@ export function PromptCardV2({
             ))}
           </select>
         </SettingPill>
+
+        {/* V5.16 #2 — Number of shots picker. Auto = let Director decide. */}
+        <SettingPill icon={ChevronDown} label="shots">
+          <select
+            value={numShots ?? ''}
+            onChange={(e) => onNumShots(e.target.value ? Number(e.target.value) : null)}
+            className="bg-transparent outline-none text-xs font-medium pr-1"
+            title="Số cảnh trong video. Auto = AI tự quyết. Max cap theo model."
+          >
+            <option value="">Auto</option>
+            {numShotsOptions.map((n) => (
+              <option key={n} value={n}>{n} cảnh</option>
+            ))}
+          </select>
+        </SettingPill>
+
+        {/* V5.16 #1 — Master Storyboard Board toggle. Disabled for models that
+            don't support multi-ref (Wan i2v, Seedance 1.5 Pro). $0.04 surcharge. */}
+        <button
+          onClick={() => masterBoardEligible && onMasterBoardEnabled(!masterBoardEnabled)}
+          disabled={!masterBoardEligible}
+          title={
+            masterBoardEligible
+              ? `${masterBoardEnabled ? 'Tắt' : 'Bật'} Master Board (identity anchor $0.04). Lock nhân vật giữa các cảnh.`
+              : `${model} chỉ nhận 1 ảnh ref — Master Board không apply.`
+          }
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill border text-xs font-medium transition ${
+            !masterBoardEligible
+              ? 'border-hairline bg-surface-2/30 text-text-subtle/50 cursor-not-allowed'
+              : masterBoardEnabled
+                ? 'border-accent-magenta/40 bg-accent-magenta/10 text-accent-magenta'
+                : 'border-hairline bg-surface-2/60 hover:bg-surface-3 text-text-muted'
+          }`}
+        >
+          <span className="text-[10px] text-text-subtle">board</span>
+          <span>{masterBoardEnabled && masterBoardEligible ? '✓ ON' : 'OFF'}</span>
+          <span className="text-[10px] text-text-subtle">+$0.04</span>
+        </button>
 
         <div className="flex-1" />
 

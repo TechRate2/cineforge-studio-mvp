@@ -412,8 +412,18 @@ def generate_scene(
     #   - i2v_chain on non-Vidu models (chain frame is the SINGLE image input,
     #     master_board would displace it) → exclude Seedance/Wan i2v chain
     #   - single-ref models (max_references==1) — board displaces primary
+    #
+    # V5.16 P1#4 — For Seedance 2.0 ref / Fast ref, PREPEND master board as
+    # ref[0] (drama-director-skill + AtlasCloud Drama Workflow pattern). The
+    # 9-panel board becomes "primary visual DNA" — Seedance ref weights earlier
+    # entries higher in identity anchoring. Vidu Q3 keeps APPEND behavior
+    # because Vidu binds positionally and primary character MUST stay at
+    # images[0] for correct identity slot mapping.
     _max_refs = _model_spec_for_max_refs(model_key)
     is_vidu_for_board = model_key.startswith("vidu_q3")
+    is_seedance_ref_for_board = model_key in (
+        "seedance_2_0_ref", "seedance_2_0_fast_ref",
+    )
     chain_blocks_board = is_chain and not is_vidu_for_board
     if (
         master_board_url
@@ -422,20 +432,34 @@ def generate_scene(
         and master_board_url not in ref_urls
         and len(ref_urls) < _max_refs
     ):
-        # Append at the END so prepended character/product refs keep their
-        # array-index meaning (important for Vidu Q3 which binds positionally).
-        ref_urls.append(master_board_url)
-        # Build a synthetic ReferenceAsset entry so the LLM can role-tag it
-        bound_refs_filtered.append(ReferenceAsset(
+        board_asset = ReferenceAsset(
             index=len(reference_images),  # synthetic index past real refs
             url=master_board_url,
             role="style_reference",
             apply_to_shots=[shot.shot_id],
-            notes="Master storyboard board — global style + character DNA anchor",
-        ))
-        logger.debug(
-            f"[SceneGen] {shot.shot_id} appended master_board → {len(ref_urls)} refs total"
+            notes=(
+                "MASTER BOARD — primary visual DNA anchor "
+                "(match character/outfit/lighting EXACTLY across shots)"
+                if is_seedance_ref_for_board
+                else "Master storyboard board — global style + character DNA anchor"
+            ),
         )
+        if is_seedance_ref_for_board:
+            # PREPEND at ref[0] — Seedance treats earlier refs as stronger
+            # identity anchors. Board canvas locks character DNA across shots.
+            ref_urls.insert(0, master_board_url)
+            bound_refs_filtered.insert(0, board_asset)
+            logger.debug(
+                f"[SceneGen] {shot.shot_id} PREPENDED master_board at ref[0] "
+                f"(Seedance ref pattern) → {len(ref_urls)} refs total"
+            )
+        else:
+            # APPEND — Vidu Q3 keeps char at images[0] for positional binding
+            ref_urls.append(master_board_url)
+            bound_refs_filtered.append(board_asset)
+            logger.debug(
+                f"[SceneGen] {shot.shot_id} appended master_board → {len(ref_urls)} refs total"
+            )
 
     render_mode: RenderMode = (
         "i2v_chain" if is_chain

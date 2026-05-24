@@ -46,6 +46,27 @@ from core import director_history
 
 
 # ============================================================
+# V5.16 Fix#3 — Centralize render cost rates (was duplicated in 2 places).
+# Source: verified against backend/agent/model_specs.py:cost_per_second_usd
+# (2026-05-20). Update here when AtlasCloud changes pricing.
+# ============================================================
+RENDER_COST_PER_SECOND_USD: dict[str, float] = {
+    "vidu_q3": 0.042,
+    "vidu_q3_mix": 0.106,
+    "wan_2_7": 0.10,
+    "seedance_1_5_pro": 0.047,
+    "seedance_2_0": 0.096,
+    "seedance_2_0_fast": 0.076,
+}
+_DEFAULT_RATE_USD = 0.096
+
+
+def get_render_cost_rate(user_model: str) -> float:
+    """Return $/s render rate for a user_model. Falls back to Seedance 2.0 rate."""
+    return RENDER_COST_PER_SECOND_USD.get(user_model, _DEFAULT_RATE_USD)
+
+
+# ============================================================
 # Model routing — user model choice → AtlasCloud keys for ref / i2v
 # ============================================================
 USER_MODEL_TO_ATLAS_REF: dict[str, str] = {
@@ -133,14 +154,9 @@ async def render_plan(
         # Sprint2 M12 — re-compute cost estimate against the ACTUAL picked model
         # (plan.cost_estimate was built using the original user_model 'auto'
         # placeholder $0.060/s heuristic — could be off-by-2x for premium models).
-        _PER_S = {
-            "vidu_q3": 0.042, "vidu_q3_mix": 0.106,
-            "wan_2_7": 0.10,
-            "seedance_1_5_pro": 0.047,
-            "seedance_2_0": 0.096, "seedance_2_0_fast": 0.076,
-        }.get(picked, 0.096)
+        rate = get_render_cost_rate(picked)
         total_dur = sum(s.duration_s for s in shots)
-        new_render_cost = round(_PER_S * total_dur, 3)
+        new_render_cost = round(rate * total_dur, 3)
         old_render_cost = plan.cost_estimate.render_cost_usd
         plan.cost_estimate.render_cost_usd = new_render_cost
         plan.cost_estimate.total_cost_usd = round(
@@ -182,14 +198,9 @@ async def render_plan(
         # downstream poller sees the actual billed cost (snapped duration
         # × per-second rate). Without this, plan.cost_estimate keeps the
         # pre-snap render_cost which over-quotes by up to 2× on Wan 2.7.
-        _PER_S = {
-            "vidu_q3": 0.042, "vidu_q3_mix": 0.106,
-            "wan_2_7": 0.10,
-            "seedance_1_5_pro": 0.047,
-            "seedance_2_0": 0.096, "seedance_2_0_fast": 0.076,
-        }.get(user_model, 0.096)
+        rate = get_render_cost_rate(user_model)
         snapped_total_dur = sum(s.duration_s for s in plan.shot_list)
-        new_render_cost = round(_PER_S * snapped_total_dur, 3)
+        new_render_cost = round(rate * snapped_total_dur, 3)
         plan.cost_estimate.render_cost_usd = new_render_cost
         plan.cost_estimate.total_cost_usd = round(
             plan.cost_estimate.plan_cost_usd
@@ -201,7 +212,7 @@ async def render_plan(
         logger.info(
             f"[VideoWorker L1] {job_id} snap → cost recomputed: "
             f"render ${new_render_cost} (total ${plan.cost_estimate.total_cost_usd}) "
-            f"for {snapped_total_dur}s @ ${_PER_S}/s"
+            f"for {snapped_total_dur}s @ ${rate}/s"
         )
 
     # V4 Sprint1 Task F — Auto pre-render dialogue TTS per-shot when:

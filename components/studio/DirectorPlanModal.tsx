@@ -18,6 +18,9 @@ interface Props {
   storytellingIssues?: StorytellingIssue[];
   referenceImages?: string[];
   settings?: Record<string, unknown>;
+  /** V5.16 #1 — user toggle from PromptCardV2. When false, auto-trigger skips
+   *  Master Board generation regardless of model eligibility. */
+  masterBoardEnabled?: boolean;
   onRefineJobStarted?: (jobId: string) => void;
   /** V4 Sprint1 Task #7 — notify parent when master board URL changes so it can
    *  be passed to /generate as a global style ref for every shot. */
@@ -50,6 +53,7 @@ export function DirectorPlanModal({
   storytellingIssues = [],
   referenceImages = [],
   settings = {},
+  masterBoardEnabled = true,
   onRefineJobStarted,
   onMasterBoardChange,
   onPlanRevised,
@@ -73,24 +77,26 @@ export function DirectorPlanModal({
   const masterGenerate = master.generate;
   useEffect(() => {
     if (!open || !plan) return;
+    // V5.16 #1 — respect user toggle from PromptCardV2 (was hardcoded eligibility set)
+    if (!masterBoardEnabled) return;
     if (!MASTER_BOARD_ELIGIBLE_MODELS.has(planModel)) return;
     if (plan.shot_list.length < MASTER_BOARD_MIN_SHOTS) return;
     if (masterBoardPlanId === plan.plan_id) return;
     if (masterIsLoading || masterError) return;
     void masterGenerate(plan);
-  }, [open, plan, planModel, masterBoardPlanId, masterIsLoading, masterError, masterGenerate]);
+  }, [open, plan, planModel, masterBoardEnabled, masterBoardPlanId, masterIsLoading, masterError, masterGenerate]);
 
   // V5.15.2 C1+C3 — Bubble board URL up to parent ONLY when:
   //   - board's plan_id matches the CURRENT plan (no stale board from revise)
   //   - current model is eligible for Master Board injection
+  //   - user has NOT toggled it off (V5.16 #1)
   // Otherwise emit null → parent clears masterBoardUrl → /generate skips stale ref.
-  // Single source-of-truth check prevents Seedance→Vidu switch sending a stale
-  // ultra-wide board into a single-ref pipeline.
   useEffect(() => {
     const planMatch = !!plan && masterBoardPlanId === plan.plan_id;
     const modelEligible = MASTER_BOARD_ELIGIBLE_MODELS.has(planModel);
-    onMasterBoardChange?.(planMatch && modelEligible ? (masterBoardUrl ?? null) : null);
-  }, [plan?.plan_id, masterBoardPlanId, masterBoardUrl, planModel, onMasterBoardChange]);
+    const allowed = planMatch && modelEligible && masterBoardEnabled;
+    onMasterBoardChange?.(allowed ? (masterBoardUrl ?? null) : null);
+  }, [plan?.plan_id, masterBoardPlanId, masterBoardUrl, planModel, masterBoardEnabled, onMasterBoardChange]);
 
   const handleRevise = async () => {
     if (!plan || !reviseText.trim()) return;
