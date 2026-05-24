@@ -665,6 +665,20 @@ async def generate_video(
     Sprint2 M11 — Idempotency-Key support (Stripe pattern). When the client
     sends `Idempotency-Key: <uuid>` header, the same key+body combo replays
     the original response for 24h. Prevents double-render on browser retry.
+
+    V5.15.5 L3 — Idempotency scope note: the body hash includes every field
+    of GenerateRequest, including `master_board_url` and the full `plan`
+    (with shot.duration_s). Two consequences worth knowing:
+      1. **Master Board regen**: if the user generates a new board between
+         retries (different board_url), the body hash differs and the second
+         /generate call returns 409 Conflict. Workaround: rotate the
+         Idempotency-Key after each board regen.
+      2. **Wan 2.7 duration snap**: the worker mutates shot.duration_s via
+         continuity_manager.snap_discrete_durations() AFTER /generate accepts
+         the body. A retry with the same key returns the cached response,
+         which may reflect the snapped durations (different from what the
+         client originally sent). This is intentional — replay surfaces the
+         actual state of record, not the original request payload.
     """
     # Sprint2 M11 — Idempotency check (replay cached response if key+body match)
     if idempotency_key:

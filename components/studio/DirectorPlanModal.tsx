@@ -31,6 +31,17 @@ type Tab = 'bible' | 'shots' | 'board' | 'eval';
 // V5.15.1 Sprint 1A — models that benefit from Master Board global style anchor.
 // Seedance 2.0/Fast accept multi-ref images and pin identity across panels.
 // Vidu/Wan use single-ref or i2v chain → Master Board not applicable.
+//
+// V5.15.5 L2 NOTE on `auto`: when user picks "auto", the backend resolves the
+// final model at render time via pick_model_for_plan(). The board may end up:
+//   - Seedance 2.0/Fast (most common) → full benefit, board as global anchor
+//   - Vidu Q3                          → board appended at slot 4 (still helps)
+//   - Wan 2.7 i2v / Seedance 1.5 Pro   → max_refs=1, board skipped server-side
+//                                        ($0.04 paid but not anchored — minor)
+// Trade-off accepted: we still auto-fire for "auto" so the most common case
+// (Seedance) gets the benefit; the worst case wastes $0.04 on a board that
+// scene_generation_agent.py skips. Architectural fix would require backend
+// to resolve "auto" at plan time and surface the picked model to FE.
 const MASTER_BOARD_ELIGIBLE_MODELS = new Set(['auto', 'seedance_2_0', 'seedance_2_0_fast']);
 const MASTER_BOARD_MIN_SHOTS = 2;
 

@@ -178,6 +178,31 @@ async def render_plan(
         logger.warning(f"[VideoWorker B1] {job_id} {w}")
     if snap_warnings:
         shots = plan.shot_list  # refresh local reference after mutation
+        # V5.15.5 L1 — Recompute cost_estimate so director_history and any
+        # downstream poller sees the actual billed cost (snapped duration
+        # × per-second rate). Without this, plan.cost_estimate keeps the
+        # pre-snap render_cost which over-quotes by up to 2× on Wan 2.7.
+        _PER_S = {
+            "vidu_q3": 0.042, "vidu_q3_mix": 0.106,
+            "wan_2_7": 0.10,
+            "seedance_1_5_pro": 0.047,
+            "seedance_2_0": 0.096, "seedance_2_0_fast": 0.076,
+        }.get(user_model, 0.096)
+        snapped_total_dur = sum(s.duration_s for s in plan.shot_list)
+        new_render_cost = round(_PER_S * snapped_total_dur, 3)
+        plan.cost_estimate.render_cost_usd = new_render_cost
+        plan.cost_estimate.total_cost_usd = round(
+            plan.cost_estimate.plan_cost_usd
+            + plan.cost_estimate.storyboard_gen_cost_usd
+            + new_render_cost
+            + plan.cost_estimate.audio_cost_usd,
+            3,
+        )
+        logger.info(
+            f"[VideoWorker L1] {job_id} snap → cost recomputed: "
+            f"render ${new_render_cost} (total ${plan.cost_estimate.total_cost_usd}) "
+            f"for {snapped_total_dur}s @ ${_PER_S}/s"
+        )
 
     # V4 Sprint1 Task F — Auto pre-render dialogue TTS per-shot when:
     #   audio_plan.mode == "dialogue_vo" AND no driven_audio_urls/voice_audio_url yet
