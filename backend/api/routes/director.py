@@ -70,7 +70,7 @@ def _validate_reference_images(images: list[str]) -> list[str]:
 from agent.director_agent import director
 from agent.schemas import DirectorPlan, ContinuityBible, Shot, StoryboardFrame
 from agent import continuity_manager
-from api.schemas import ProductInput, VideoSettings
+from api.schemas import ProductInput, VideoSettings, AudioPlan
 from workers import video_worker, reassemble_worker
 from core import director_history
 
@@ -192,9 +192,13 @@ class GenerateRequest(BaseModel):
         return _validate_reference_images(v)
 
     settings: VideoSettings
-    audio_plan: Optional[dict] = Field(
+    # V5.15.7 H2 — strict Pydantic schema. Was Optional[dict] (untyped) which
+    # accepted typos like "dialogue_v0" silently → worker treated as no-mode →
+    # silent render. AudioPlan enforces enum mode + URL field types with
+    # extra="forbid" so typo keys 422.
+    audio_plan: Optional[AudioPlan] = Field(
         None,
-        description="{mode, voice_audio_url, sfx_audio_url, caption_text_vn, bgm_path}",
+        description="Audio overlay plan. See AudioPlan schema for field semantics.",
     )
     use_llm_scene_gen: bool = Field(
         True,
@@ -230,7 +234,7 @@ class PlanAndRenderRequest(BaseModel):
     clients can use a single polling path.
     """
     plan_request: PlanRequest
-    audio_plan: Optional[dict] = None
+    audio_plan: Optional[AudioPlan] = None
     use_llm_scene_gen: bool = True
 
 
@@ -586,18 +590,53 @@ async def gen_master_storyboard(request: MasterBoardRequest) -> MasterBoardRespo
         )
     spec = IMAGE_MODEL_SPECS[model_key]
 
+    # V5.15.7 H3 — Pre-validate per-model payload contract BEFORE calling
+    # build_image_payload so 400s surface with actionable messages instead
+    # of leaking ValueError text. Two payload contracts:
+    #   - "size" models (Seedream v4.5): expect a "WxH" string like "6240*2656"
+    #   - "aspect_ratio" models (Nano Banana): expect ratio + resolution enum
+    uses_size_contract = bool(spec.get("size"))
+    if uses_size_contract:
+        if not (isinstance(size, str) and ("*" in size or "x" in size.lower())):
+            raise HTTPException(
+                400,
+                f"image_model '{model_key}' requires WxH size string; "
+                f"board_size_for_aspect returned '{size}' for aspect "
+                f"'{plan.continuity_bible.aspect_ratio}'. This is a server bug — "
+                f"file a ticket.",
+            )
+    else:
+        ar_options = (spec.get("aspect_ratio") or {}).get("options") or []
+        if not ar_options:
+            raise HTTPException(
+                500,
+                f"image_model '{model_key}' has no aspect_ratio.options in spec — "
+                f"misconfigured. File a ticket.",
+            )
+
     # Build per-model payload — Seedream uses `size`, Nano Banana uses
     # aspect_ratio+resolution. board_size_for_aspect returns Seedream-style
     # "WxH" — for Nano Banana we fall back to 4K + matching aspect.
     try:
-        if spec.get("size"):
+        if uses_size_contract:
+            logger.info(
+                f"[master_board] {plan.plan_id} model={model_key} size={size} (size contract)"
+            )
             payload = build_image_payload(
                 model_key=model_key, prompt=prompt, size=size, n=1,
             )
         else:
-            ar = plan.continuity_bible.aspect_ratio
-            if ar not in (spec.get("aspect_ratio", {}) or {}).get("options", []):
-                ar = "16:9"
+            ar_options = (spec.get("aspect_ratio") or {}).get("options") or []
+            requested_ar = plan.continuity_bible.aspect_ratio
+            ar = requested_ar if requested_ar in ar_options else "16:9"
+            if ar != requested_ar:
+                logger.info(
+                    f"[master_board] {plan.plan_id} aspect '{requested_ar}' not in "
+                    f"{ar_options} for {model_key} — fallback to '16:9'"
+                )
+            logger.info(
+                f"[master_board] {plan.plan_id} model={model_key} ar={ar} res=4k (aspect contract)"
+            )
             payload = build_image_payload(
                 model_key=model_key, prompt=prompt,
                 aspect_ratio=ar, resolution="4k",
@@ -760,6 +799,12 @@ async def generate_video(
         )
 
     sanitized_plan = continuity_manager.sanitize_plan(request.plan)
+    # V5.15.7 H2 — worker uses dict.get() on audio_plan; convert AudioPlan
+    # model to dict here so worker stays unchanged.
+    audio_plan_dict = (
+        request.audio_plan.model_dump(exclude_none=True)
+        if request.audio_plan is not None else None
+    )
 
     async def _run():
         try:
@@ -769,7 +814,7 @@ async def generate_video(
                 reference_images=request.reference_images,
                 user_model=request.settings.model,
                 resolution=request.settings.resolution,
-                audio_plan=request.audio_plan,
+                audio_plan=audio_plan_dict,
                 jobs_store=_JOBS_STORE,
                 use_llm_scene_gen=request.use_llm_scene_gen,
                 cost_gate_mode=request.cost_gate_mode,
@@ -879,7 +924,10 @@ async def plan_and_render(request: PlanAndRenderRequest):
                 reference_images=pr.reference_images,
                 user_model=pr.settings.model,
                 resolution=pr.settings.resolution,
-                audio_plan=request.audio_plan,
+                audio_plan=(
+                    request.audio_plan.model_dump(exclude_none=True)
+                    if request.audio_plan is not None else None
+                ),
                 jobs_store=_JOBS_STORE,
                 use_llm_scene_gen=request.use_llm_scene_gen,
             )
@@ -1130,7 +1178,7 @@ class ReassembleRequest(BaseModel):
     clip_urls_in_order: list[str] = Field(..., min_length=1, max_length=30)
     aspect_ratio: str = "9:16"
     resolution: str = "720p"
-    audio_plan: Optional[dict] = None
+    audio_plan: Optional[AudioPlan] = None
 
 
 @router.post("/reassemble")
@@ -1164,7 +1212,10 @@ async def reassemble_timeline(request: ReassembleRequest):
                 aspect_ratio=request.aspect_ratio,
                 resolution=request.resolution,
                 color_grading=color_grading,
-                audio_plan=request.audio_plan,
+                audio_plan=(
+                    request.audio_plan.model_dump(exclude_none=True)
+                    if request.audio_plan is not None else None
+                ),
                 jobs_store=_JOBS_STORE,
             )
         except Exception as e:

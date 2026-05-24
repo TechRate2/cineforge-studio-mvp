@@ -4,7 +4,53 @@ from datetime import datetime
 from typing import Optional, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+
+# ============================================
+# AUDIO PLAN — V5.15.7 H2 strict schema (was: Optional[dict])
+# ============================================
+
+class AudioPlan(BaseModel):
+    """Strict schema for the audio_plan body field on /generate + /plan-and-render.
+
+    Previously `Optional[dict]` accepting any shape — Pydantic now rejects
+    typos (e.g. "dialogue_v0" with zero, mode as number) at 400 instead of
+    letting them slip through to the worker which would treat them as
+    "no audio mode" and silently render a silent shot.
+
+    Semantics:
+      - mode=None or omitted          → no dialogue track; worker leaves
+                                        audio plan alone (legacy behavior).
+      - mode="silent_native"          → vendor's native ambient/music only.
+      - mode="dialogue_vo"            → worker auto-pre-renders TTS from
+                                        shot.audio.dialogue_vn IF
+                                        voice_audio_url AND driven_audio_urls
+                                        are both empty.
+      - mode="asmr_macro"             → SFX-driven (e.g. food close-ups).
+
+    `driven_audio_urls`: per-shot TTS map (V5.2 — Wan 2.7 lip-sync path).
+    Worker sets this after auto-TTS; clients usually leave it None.
+    """
+    model_config = ConfigDict(extra="forbid")  # reject typo keys with 422
+
+    mode: Optional[Literal["silent_native", "dialogue_vo", "asmr_macro"]] = None
+    voice_audio_url: Optional[str] = Field(
+        None,
+        max_length=2000,
+        description="Single voiceover URL applied to whole video (legacy single-track path).",
+    )
+    sfx_audio_url: Optional[str] = Field(None, max_length=2000)
+    caption_text_vn: Optional[str] = Field(None, max_length=1000)
+    bgm_path: Optional[str] = Field(
+        None, max_length=500,
+        description="Local path on the server to a BGM track to mix at low volume.",
+    )
+    driven_audio_urls: Optional[dict[str, str]] = Field(
+        None,
+        description="Per-shot TTS URLs {shot_id: https_url}. Set by worker after auto-TTS; "
+                    "clients usually omit. Each value must be a URL string ≤ 2000 chars.",
+    )
 
 
 # ============================================
