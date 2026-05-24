@@ -162,27 +162,50 @@ class DirectorAgent:
         # ===== Stage A: ref role classification =====
         # Prefer user-supplied role hints (from the 3-zone uploader in Studio V4)
         # — skips an LLM vision call. Fall back to vision pass when hints absent.
+        # V5.14 — vision scan ALWAYS runs when refs uploaded (not just for role
+        # classification). Vision extracts visual_description per ref so Director
+        # Agent can ground face_signature / outfit / product description in actual
+        # image content, NOT invent from text brief alone. User-tagged role hints
+        # are merged in (skip LLM role classification but keep visual extraction).
         ref_hints: list[dict] = []
         if reference_images:
+            await _emit("vision", "running", message="Scanning reference images")
+            try:
+                vision_hints = await asyncio.to_thread(
+                    self._vision_scan_refs, reference_images,
+                )
+            except Exception as e:
+                logger.warning(f"[DirectorAgent] vision scan fail (continuing): {e}")
+                vision_hints = []
+
+            # Merge user-tagged role hints (overrides LLM role guess) but KEEP
+            # vision's visual_description so Director sees actual image content.
             if reference_role_hints and any(h for h in reference_role_hints):
-                ref_hints = [
-                    {"index": i, "role": (reference_role_hints[i] or "unknown")
-                                          if i < len(reference_role_hints) else "unknown",
-                     "notes": "user-tagged"}
-                    for i in range(len(reference_images))
-                ]
-                await _emit("vision", "done", classified=len(ref_hints), source="user_tagged")
-                logger.info(f"[DirectorAgent] using {len(ref_hints)} user-tagged role hints — skip vision scan")
+                hint_by_idx = {h.get("index", i): h for i, h in enumerate(vision_hints)}
+                merged: list[dict] = []
+                for i in range(len(reference_images)):
+                    v = hint_by_idx.get(i, {})
+                    user_role = (
+                        reference_role_hints[i] if i < len(reference_role_hints)
+                        else None
+                    ) or v.get("role") or "unknown"
+                    merged.append({
+                        "index": i,
+                        "role": user_role,                          # user wins
+                        "visual_description": v.get("visual_description", ""),
+                        "notes": "user-tagged role + vision details",
+                    })
+                ref_hints = merged
+                await _emit("vision", "done",
+                            classified=len(ref_hints), source="user_tagged+vision")
+                logger.info(
+                    f"[DirectorAgent] {len(ref_hints)} refs: user role tags + "
+                    f"vision visual_descriptions"
+                )
             else:
-                await _emit("vision", "running", message="Scanning reference images")
-                try:
-                    ref_hints = await asyncio.to_thread(
-                        self._vision_scan_refs, reference_images,
-                    )
-                except Exception as e:
-                    logger.warning(f"[DirectorAgent] vision scan fail (continuing): {e}")
-                    ref_hints = []
-                await _emit("vision", "done", classified=len(ref_hints), source="vision_llm")
+                ref_hints = vision_hints
+                await _emit("vision", "done",
+                            classified=len(ref_hints), source="vision_llm")
 
         # ===== Stage B: Build prompt context for Director LLM =====
         await _emit("director", "running", message="Director composing plan")
@@ -595,16 +618,28 @@ class DirectorAgent:
         if not reference_images:
             return []
 
+        # V5.14 — vision now extracts CONCRETE visual_description per image so
+        # Director Agent can write Bible.characters[].face_signature based on
+        # actual image content, NOT invent from text brief alone.
         system = (
-            "You classify uploaded reference images for a video shoot. For each image, "
-            "decide one role: character_anchor | secondary_character | product_hero | "
-            "product_detail | style_reference | environment | brand_asset | unknown. "
-            "Reply ONLY with a JSON array of objects: [{\"index\":0,\"role\":\"...\",\"notes\":\"...\"}]. "
+            "You analyze uploaded reference images for a video shoot. For EACH image: "
+            "(1) classify ONE role: character_anchor | secondary_character | "
+            "product_hero | product_detail | style_reference | environment | "
+            "brand_asset | unknown. "
+            "(2) write a CONCRETE visual_description (2-4 sentences) describing "
+            "EXACTLY what you see — for characters: race/ethnicity, hair "
+            "color/length/style, skin tone, eye color, makeup, expression, outfit; "
+            "for products: type, color, material, packaging design, logo, hero "
+            "feature; for style refs: mood, color palette, lighting, composition. "
+            "DESCRIBE EXACTLY WHAT IS IN THE IMAGE. Do NOT default to any "
+            "ethnicity, do NOT invent details not visible. "
+            "Reply ONLY with a JSON array of objects: "
+            '[{"index":0,"role":"...","visual_description":"...","notes":"..."}]. '
             "No prose."
         )
         user = (
-            f"Classify these {len(reference_images)} images (indices 0..{len(reference_images)-1}). "
-            "Return JSON array."
+            f"Analyze these {len(reference_images)} images "
+            f"(indices 0..{len(reference_images)-1}). Return JSON array."
         )
 
         try:
@@ -613,7 +648,7 @@ class DirectorAgent:
                 user_message=user,
                 image_urls=reference_images[:12],
                 task="vision",
-                max_tokens=800,
+                max_tokens=2400,  # V5.14 — increased for visual_description per ref
             )
         except Exception as e:
             logger.warning(f"[DirectorAgent] vision call fail: {e}")
