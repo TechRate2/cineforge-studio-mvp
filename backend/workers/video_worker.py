@@ -168,6 +168,17 @@ async def render_plan(
 
     ref_key_default, i2v_key_default = _resolve_models(user_model)
 
+    # V5.15.4 B1 — Snap shot durations to the model's discrete options BEFORE
+    # TTS pre-render so audio length matches the duration the vendor will
+    # actually render. Without this, Wan 2.7 plans with non-discrete shots
+    # (e.g. 7s) end up with 7s TTS + 5s video → mouth motion mis-syncs and
+    # dialogue clips. Idempotent for models with continuous durations.
+    snap_warnings = continuity_manager.snap_discrete_durations(plan, user_model)
+    for w in snap_warnings:
+        logger.warning(f"[VideoWorker B1] {job_id} {w}")
+    if snap_warnings:
+        shots = plan.shot_list  # refresh local reference after mutation
+
     # V4 Sprint1 Task F — Auto pre-render dialogue TTS per-shot when:
     #   audio_plan.mode == "dialogue_vo" AND no driven_audio_urls/voice_audio_url yet
     # Wan 2.7 i2v will auto-receive the per-shot URL via shot.audio.dialogue_vn

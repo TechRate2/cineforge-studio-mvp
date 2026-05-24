@@ -228,6 +228,41 @@ def normalize_timeline(shots: list[Shot]) -> list[Shot]:
     return shots
 
 
+def snap_discrete_durations(plan: DirectorPlan, user_model: str) -> list[str]:
+    """V5.15.4 B1 — Snap shot durations to model's discrete options BEFORE TTS
+    renders and BEFORE vendor submits.
+
+    Required for Wan 2.7 (discrete [5, 10]s): without this, TTS is rendered at
+    the original requested duration (e.g. 7s) while `model_specs.build_payload`
+    snaps the vendor request to 5s → vendor returns 5s video but driven audio
+    is 7s → mouth motion mis-syncs and last 2s of dialogue clips.
+
+    Mutates `plan` in-place. Re-normalizes timeline. Returns human-readable
+    warnings for each snap so the caller can log them. Idempotent (already-
+    aligned durations are no-ops).
+    """
+    from agent.model_capabilities import capabilities_for
+    cap = capabilities_for(user_model)
+    warnings: list[str] = []
+    if not cap.duration_discrete:
+        return warnings
+    for s in plan.shot_list:
+        if s.duration_s in cap.duration_discrete:
+            continue
+        snapped = min(cap.duration_discrete, key=lambda v: abs(v - s.duration_s))
+        warnings.append(
+            f"{s.shot_id}: duration_s {s.duration_s}s → {snapped}s "
+            f"(model {user_model} discrete {cap.duration_discrete})"
+        )
+        s.duration_s = snapped
+    if warnings:
+        normalize_timeline(plan.shot_list)
+        plan.continuity_bible.duration_s = int(
+            sum(s.duration_s for s in plan.shot_list)
+        )
+    return warnings
+
+
 def find_character(bible: ContinuityBible, char_id: str) -> Optional[Character]:
     for c in bible.characters:
         if c.id == char_id:
