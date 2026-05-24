@@ -306,13 +306,18 @@ async def render_plan(
             model_key=ref_key_default,
             resolution=resolution,
         )
-        # Master Board → append as extra style ref (consistent with per-shot path)
-        if (
-            master_board_url
-            and master_board_url not in spec.reference_image_urls
-            and len(spec.reference_image_urls) < 9  # Seedance 2.0 max
-        ):
-            spec.reference_image_urls.append(master_board_url)
+        # Master Board → append as extra style ref (consistent with per-shot path).
+        # V5.15.2 M1 — log warning when board is skipped due to ref cap so user
+        # operators can see why their $0.04 board gen didn't anchor the render.
+        if master_board_url and master_board_url not in spec.reference_image_urls:
+            if len(spec.reference_image_urls) < 9:  # Seedance 2.0 max
+                spec.reference_image_urls.append(master_board_url)
+            else:
+                logger.warning(
+                    f"[VideoWorker] {job_id} master_board skipped — ref cap "
+                    f"reached ({len(spec.reference_image_urls)}/9). Board $0.04 paid "
+                    f"but not anchored — reduce user refs to free a slot."
+                )
 
         logger.info(
             f"[VideoWorker V4.5] single-call render: {ref_key_default} "

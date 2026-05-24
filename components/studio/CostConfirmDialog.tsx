@@ -25,7 +25,12 @@ export function CostConfirmDialog({
   open, estimatedCostUsd, estimatedDurationS, shotCount, modelName,
   onConfirm, onCancel, isLoading, masterBoardCostUsd = 0,
 }: Props) {
-  const isExpensive = estimatedCostUsd >= 3.0;
+  // V5.15.2 C2 — Grand total includes Master Board cost so what user sees in
+  // header/Total/button matches the actual wallet deduction. Master board is
+  // billed out-of-band via /storyboard/master, so plan.cost_estimate doesn't
+  // include it — we add it here for accurate disclosure.
+  const grandTotalUsd = estimatedCostUsd + masterBoardCostUsd;
+  const isExpensive = grandTotalUsd >= 3.0;
   return (
     <Modal open={open} onClose={onCancel} maxWidth="max-w-md" showClose={false}>
       <div className="p-6">
@@ -40,8 +45,8 @@ export function CostConfirmDialog({
           Confirm chi phí render
         </h2>
         <p className="text-sm text-text-muted leading-relaxed mb-5">
-          Render này sẽ tiêu tốn <b className="text-accent-magenta">${estimatedCostUsd.toFixed(2)}</b>{' '}
-          (≈ {Math.round(estimatedCostUsd * 24500).toLocaleString('vi-VN')}đ) từ wallet AtlasCloud của anh.
+          Render này sẽ tiêu tốn <b className="text-accent-magenta">${grandTotalUsd.toFixed(2)}</b>{' '}
+          (≈ {Math.round(grandTotalUsd * 24500).toLocaleString('vi-VN')}đ) từ wallet AtlasCloud của anh.
           Cancel giữa chừng vẫn bị charge phần vendor đã render.
         </p>
 
@@ -55,18 +60,24 @@ export function CostConfirmDialog({
             <span>{estimatedDurationS}s · {shotCount} shot{shotCount > 1 ? 's' : ''}</span>
           </div>
           {masterBoardCostUsd > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="text-text-muted flex items-center gap-1.5">
-                Master Board
-                <span className="text-[10px] text-text-subtle">(identity lock)</span>
-              </span>
-              <span className="text-xs">${masterBoardCostUsd.toFixed(2)}</span>
-            </div>
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-text-muted">Render</span>
+                <span className="text-xs">${estimatedCostUsd.toFixed(2)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-text-muted flex items-center gap-1.5">
+                  Master Board
+                  <span className="text-[10px] text-text-subtle">(identity lock)</span>
+                </span>
+                <span className="text-xs">${masterBoardCostUsd.toFixed(2)}</span>
+              </div>
+            </>
           )}
           <div className="flex items-center justify-between pt-2 border-t border-hairline">
             <span className="text-text-muted">Total</span>
             <span className="text-lg font-bold text-accent-magenta">
-              ${estimatedCostUsd.toFixed(2)}
+              ${grandTotalUsd.toFixed(2)}
             </span>
           </div>
         </div>
@@ -77,7 +88,7 @@ export function CostConfirmDialog({
           </button>
           <button onClick={onConfirm} disabled={isLoading} className="btn-cta">
             <Sparkles size={14} />
-            Xác nhận render · ${estimatedCostUsd.toFixed(2)}
+            Xác nhận render · ${grandTotalUsd.toFixed(2)}
           </button>
         </div>
       </div>

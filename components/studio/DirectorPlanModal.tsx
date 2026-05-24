@@ -50,17 +50,13 @@ export function DirectorPlanModal({
   const [showRevise, setShowRevise] = useState(false);
   const [reviseText, setReviseText] = useState('');
 
-  // Bubble master board URL up — parent passes to /generate for global style ref
-  useEffect(() => {
-    onMasterBoardChange?.(master.board?.board_url ?? null);
-  }, [master.board?.board_url, onMasterBoardChange]);
-
   // V5.15.1 Sprint 1A — auto-trigger Master Board for Seedance 2.0/Fast.
   // Fires once per plan_id; user can still Regen manually in the Board tab.
   // Skip when board already gen'd for this plan, or in-flight, or errored
   // (errored = user retries manually — avoid retry loop).
   const planModel = typeof settings.model === 'string' ? settings.model : '';
   const masterBoardPlanId = master.board?.plan_id;
+  const masterBoardUrl = master.board?.board_url;
   const masterIsLoading = master.isLoading;
   const masterError = master.error;
   const masterGenerate = master.generate;
@@ -72,6 +68,18 @@ export function DirectorPlanModal({
     if (masterIsLoading || masterError) return;
     void masterGenerate(plan);
   }, [open, plan, planModel, masterBoardPlanId, masterIsLoading, masterError, masterGenerate]);
+
+  // V5.15.2 C1+C3 — Bubble board URL up to parent ONLY when:
+  //   - board's plan_id matches the CURRENT plan (no stale board from revise)
+  //   - current model is eligible for Master Board injection
+  // Otherwise emit null → parent clears masterBoardUrl → /generate skips stale ref.
+  // Single source-of-truth check prevents Seedance→Vidu switch sending a stale
+  // ultra-wide board into a single-ref pipeline.
+  useEffect(() => {
+    const planMatch = !!plan && masterBoardPlanId === plan.plan_id;
+    const modelEligible = MASTER_BOARD_ELIGIBLE_MODELS.has(planModel);
+    onMasterBoardChange?.(planMatch && modelEligible ? (masterBoardUrl ?? null) : null);
+  }, [plan?.plan_id, masterBoardPlanId, masterBoardUrl, planModel, onMasterBoardChange]);
 
   const handleRevise = async () => {
     if (!plan || !reviseText.trim()) return;

@@ -200,10 +200,14 @@ export default function StudioPage() {
     });
   };
 
-  // V5.2 — Approve gated by cost confirm dialog when ≥ threshold
+  // V5.2 — Approve gated by cost confirm dialog when ≥ threshold.
+  // V5.15.2 M2 — include Master Board $0.04 so threshold comparison reflects
+  // the actual wallet deduction (prevents skip-dialog on $1.47+$0.04=$1.51).
   const handleApproveClick = () => {
     if (!plan) return;
-    if (plan.cost_estimate.total_cost_usd >= COST_CONFIRM_THRESHOLD_USD) {
+    const masterBoardCost = masterBoardUrl ? 0.04 : 0;
+    const grandTotal = plan.cost_estimate.total_cost_usd + masterBoardCost;
+    if (grandTotal >= COST_CONFIRM_THRESHOLD_USD) {
       setShowCostConfirm(true);
     } else {
       void handleApproveAndRender();
