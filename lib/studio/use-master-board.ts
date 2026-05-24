@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DirectorPlan } from './use-director-plan';
 
 export interface MasterBoardResponse {
@@ -15,8 +15,18 @@ export function useMasterBoard() {
   const [board, setBoard] = useState<MasterBoardResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // V5.15.2 M3 — Abort in-flight request when generate() is fired again or
+  // component unmounts. Prevents 2 racing fetches (user revises mid-gen) from
+  // overwriting each other in random order, and stops setState-on-unmounted
+  // warnings during teardown.
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   const generate = useCallback(async (plan: DirectorPlan, imageModel?: string) => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     setIsLoading(true);
     setError(null);
     try {
@@ -27,24 +37,33 @@ export function useMasterBoard() {
           plan,
           image_model: imageModel ?? 'bytedance/seedream-v4.5',
         }),
+        signal: ctrl.signal,
       });
       if (!res.ok) {
         const err = await res.text().catch(() => `HTTP ${res.status}`);
         throw new Error(err.slice(0, 200));
       }
       const data = (await res.json()) as MasterBoardResponse;
+      if (ctrl.signal.aborted) return data;
       setBoard(data);
       return data;
     } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        throw e;
+      }
+      if (ctrl.signal.aborted) throw e;
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
       throw e;
     } finally {
-      setIsLoading(false);
+      if (!ctrl.signal.aborted) setIsLoading(false);
+      if (abortRef.current === ctrl) abortRef.current = null;
     }
   }, []);
 
   const reset = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
     setBoard(null);
     setError(null);
     setIsLoading(false);
