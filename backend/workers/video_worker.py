@@ -420,7 +420,15 @@ async def render_plan(
             resolution=resolution,
         )
         # Seedance 1.5 Pro i2v takes single `image` ref — DO NOT append board
-        # (would overflow max_refs=1 and likely break the call)
+        # (would overflow max_refs=1 and likely break the call).
+        # V5.15.6 — log when caller passed a master_board_url so they can see
+        # the $0.04 board paid but not anchored on this strategy.
+        if master_board_url:
+            logger.info(
+                f"[VideoWorker B] {job_id} master_board_url present but skipped — "
+                f"Seedance 1.5 Pro time-coded uses single i2v anchor only "
+                f"(board $0.04 paid, not anchored). Consider Seedance 2.0 for board benefit."
+            )
         atlas_kwargs = {
             "model_key": ref_key_default,
             "prompt": spec.prompt,

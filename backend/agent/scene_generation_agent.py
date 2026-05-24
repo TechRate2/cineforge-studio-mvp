@@ -185,10 +185,21 @@ class SceneRenderJob:
                 # Vidu has no `image` singular field — append to images array
                 # (last position so primary character anchor stays at index 0
                 # for Vidu's array-order binding).
+                #
+                # V5.15.6 BUG#1 fix — reserve 1 slot of the 4-cap for the chain
+                # anchor. Previously: `chain_refs[:4]` after appending pushed
+                # last_frame to index 4, then [:4] DROPPED it → chain broken,
+                # identity drifts on shot 2+ when user uploaded 4 refs. Now:
+                # trim user refs to first 3 priority slots (bound_refs is sorted
+                # character→product→style by continuity_manager), then append
+                # chain anchor → guaranteed [:4] = [char, product, top style,
+                # chain_anchor]. Character at index 0 stays locked.
                 chain_refs = list(self.reference_image_urls or [])
+                if len(chain_refs) >= 4:
+                    chain_refs = chain_refs[:3]
                 if self.chain_input_url not in chain_refs:
                     chain_refs.append(self.chain_input_url)
-                kwargs["images"] = chain_refs[:4]  # Vidu max 4
+                kwargs["images"] = chain_refs[:4]
             else:
                 # Seedance i2v / Wan i2v / Seedance 1.5 Pro — chain via `image`
                 kwargs["image"] = self.chain_input_url
@@ -536,7 +547,15 @@ def generate_scene(
 
     # Wan-style driven audio: only attach when the model needs it.
     # Other models ignore this field; build_payload also drops it via spec check.
+    # V5.15.6 — log when caller supplied a driven_audio_url for a non-driven
+    # model so operators see why their TTS WAV didn't end up at the vendor.
     attached_audio_url = driven_audio_url if _audio_cap == "driven" else None
+    if driven_audio_url and _audio_cap != "driven":
+        logger.warning(
+            f"[SceneGen] {shot.shot_id} driven_audio_url supplied but model "
+            f"{model_key} audio_capability={_audio_cap} — URL dropped. "
+            f"Audio will rely on model's native audio gen (if any)."
+        )
 
     # Sprint5 C1 — Only carry reference_video_urls when the model can act on
     # them; passing them on other models is wasted bytes and a footgun for the
