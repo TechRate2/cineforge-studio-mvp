@@ -397,6 +397,7 @@ export default function StudioPage() {
           onConfirm={handleApproveAndRender}
           onCancel={() => setShowCostConfirm(false)}
           isLoading={isRendering}
+          masterBoardCostUsd={masterBoardUrl ? 0.04 : 0}
         />
       )}
 

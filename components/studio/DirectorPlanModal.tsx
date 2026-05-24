@@ -28,6 +28,12 @@ interface Props {
 
 type Tab = 'bible' | 'shots' | 'board' | 'eval';
 
+// V5.15.1 Sprint 1A — models that benefit from Master Board global style anchor.
+// Seedance 2.0/Fast accept multi-ref images and pin identity across panels.
+// Vidu/Wan use single-ref or i2v chain → Master Board not applicable.
+const MASTER_BOARD_ELIGIBLE_MODELS = new Set(['auto', 'seedance_2_0', 'seedance_2_0_fast']);
+const MASTER_BOARD_MIN_SHOTS = 2;
+
 export function DirectorPlanModal({
   open, onClose, plan, onApprove, isRendering,
   storytellingIssues = [],
@@ -48,6 +54,24 @@ export function DirectorPlanModal({
   useEffect(() => {
     onMasterBoardChange?.(master.board?.board_url ?? null);
   }, [master.board?.board_url, onMasterBoardChange]);
+
+  // V5.15.1 Sprint 1A — auto-trigger Master Board for Seedance 2.0/Fast.
+  // Fires once per plan_id; user can still Regen manually in the Board tab.
+  // Skip when board already gen'd for this plan, or in-flight, or errored
+  // (errored = user retries manually — avoid retry loop).
+  const planModel = typeof settings.model === 'string' ? settings.model : '';
+  const masterBoardPlanId = master.board?.plan_id;
+  const masterIsLoading = master.isLoading;
+  const masterError = master.error;
+  const masterGenerate = master.generate;
+  useEffect(() => {
+    if (!open || !plan) return;
+    if (!MASTER_BOARD_ELIGIBLE_MODELS.has(planModel)) return;
+    if (plan.shot_list.length < MASTER_BOARD_MIN_SHOTS) return;
+    if (masterBoardPlanId === plan.plan_id) return;
+    if (masterIsLoading || masterError) return;
+    void masterGenerate(plan);
+  }, [open, plan, planModel, masterBoardPlanId, masterIsLoading, masterError, masterGenerate]);
 
   const handleRevise = async () => {
     if (!plan || !reviseText.trim()) return;

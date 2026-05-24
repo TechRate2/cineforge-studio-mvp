@@ -11,6 +11,10 @@ interface Props {
   onConfirm: () => void;
   onCancel: () => void;
   isLoading?: boolean;
+  /** V5.15.1 Sprint 1A — Master Board cost included in total; shown as separate
+   *  line item when > 0 so user understands the +$0.04 surcharge buys 2-layer
+   *  identity lock (vision LLM + ultra-wide pixel canvas anchor). */
+  masterBoardCostUsd?: number;
 }
 
 /** V5.2 — Show before approving any render > $1.50 so users see a concrete
@@ -19,7 +23,7 @@ export const COST_CONFIRM_THRESHOLD_USD = 1.5;
 
 export function CostConfirmDialog({
   open, estimatedCostUsd, estimatedDurationS, shotCount, modelName,
-  onConfirm, onCancel, isLoading,
+  onConfirm, onCancel, isLoading, masterBoardCostUsd = 0,
 }: Props) {
   const isExpensive = estimatedCostUsd >= 3.0;
   return (
@@ -50,6 +54,15 @@ export function CostConfirmDialog({
             <span className="text-text-muted">Duration</span>
             <span>{estimatedDurationS}s · {shotCount} shot{shotCount > 1 ? 's' : ''}</span>
           </div>
+          {masterBoardCostUsd > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-text-muted flex items-center gap-1.5">
+                Master Board
+                <span className="text-[10px] text-text-subtle">(identity lock)</span>
+              </span>
+              <span className="text-xs">${masterBoardCostUsd.toFixed(2)}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between pt-2 border-t border-hairline">
             <span className="text-text-muted">Total</span>
             <span className="text-lg font-bold text-accent-magenta">
