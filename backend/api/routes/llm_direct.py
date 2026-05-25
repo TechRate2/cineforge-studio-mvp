@@ -136,26 +136,39 @@ _ENHANCE_JSON_SCHEMA_INSTRUCTION = (
 )
 
 _ENHANCE_SYSTEM_PROMPT_TEXT = (
-    "Bạn là Director AI chuyên viết brief video tiếng Việt cho Director Agent. "
-    "Người dùng đưa brief ngắn (vd 'review son môi'). Nhiệm vụ: viết lại brief "
-    "thành mô tả 4-7 câu tiếng Việt giàu chi tiết visual + camera + lighting + "
-    "mood + audio, KHÔNG bịa product features, KHÔNG CTA / sale imperatives, "
-    "KHÔNG emoji, KHÔNG bullet list. Giữ ý gốc user nhưng bổ sung: "
-    "(a) bối cảnh setting cụ thể, (b) ánh sáng + color grade, (c) camera shot "
-    "+ movement, (d) mood/tone audio. Vì không có ảnh ref, set vision_notes "
-    "các field về null.\n\n"
+    "Bạn là Director AI chuyên viết brief video tiếng Việt cho Director Agent.\n\n"
+    "★ QUY TẮC TỐI THƯỢNG: enhanced_brief PHẢI BÁM CHẶT brief gốc của user. "
+    "Mọi danh từ chính (sản phẩm, nhân vật, hành động, niche) user đã nêu — "
+    "BẮT BUỘC xuất hiện và là TRỌNG TÂM của enhanced_brief. KHÔNG thay thế "
+    "bằng nội dung khác. Vai trò của bạn là MỞ RỘNG brief gốc thành 4-7 câu "
+    "giàu chi tiết, KHÔNG VIẾT LẠI THÀNH BRIEF KHÁC.\n\n"
+    "Cách mở rộng brief gốc (giữ nguyên ý) bằng cách BỔ SUNG:\n"
+    "(a) bối cảnh setting cụ thể (vd: 'trong phòng ngủ ánh sáng dịu vàng buổi chiều')\n"
+    "(b) ánh sáng + color grade (warm/cool/neutral, soft/hard light)\n"
+    "(c) camera shot + movement (close-up push-in, medium handheld, etc.)\n"
+    "(d) mood/tone audio (intimate quiet, energetic upbeat, dramatic tension).\n\n"
+    "KHÔNG bịa product features không có trong brief gốc. KHÔNG CTA / sale "
+    "imperatives. KHÔNG emoji. KHÔNG bullet list. Vì không có ảnh ref, set "
+    "vision_notes các field về null.\n\n"
     + _ENHANCE_JSON_SCHEMA_INSTRUCTION
 )
 
 _ENHANCE_SYSTEM_PROMPT_VISION = (
     "Bạn là Director AI chuyên viết brief video tiếng Việt cho Director Agent. "
-    "Người dùng cung cấp brief ngắn + 1-6 ảnh tham khảo (nhân vật, sản phẩm, mood). "
+    "Người dùng cung cấp brief ngắn + 1-6 ảnh tham khảo (nhân vật, sản phẩm, mood).\n\n"
+    "★ QUY TẮC TỐI THƯỢNG: enhanced_brief PHẢI BÁM CHẶT brief gốc của user. "
+    "Mọi danh từ chính (sản phẩm, nhân vật, hành động, niche) user đã nêu — "
+    "BẮT BUỘC xuất hiện và là TRỌNG TÂM của enhanced_brief. Vai trò của bạn "
+    "là MỞ RỘNG brief gốc + KẾT HỢP chi tiết từ ảnh, KHÔNG VIẾT THÀNH BRIEF "
+    "KHÁC.\n\n"
     "Nhiệm vụ:\n"
-    "1. NHÌN KỸ từng ảnh — note CHÍNH XÁC những gì thấy: màu trang phục, kiểu tóc, "
-    "   khuôn mặt, biểu cảm; với sản phẩm: màu sắc, packaging, logo cụ thể.\n"
-    "2. Viết enhanced_brief 4-7 câu tiếng Việt KHỚP CHÍNH XÁC ảnh, KHÔNG mô tả KHÁC.\n"
+    "1. NHÌN KỸ từng ảnh — extract CHÍNH XÁC: màu trang phục, kiểu tóc, khuôn mặt, "
+    "   biểu cảm; với sản phẩm: màu sắc, packaging, logo cụ thể.\n"
+    "2. Viết enhanced_brief 4-7 câu BÁM brief gốc + lồng ghép chi tiết visual "
+    "   từ ảnh + thêm bối cảnh setting + ánh sáng + camera shot + mood audio.\n"
     "3. Điền vision_notes với chi tiết extract được từ ảnh (Director sẽ reuse).\n"
-    "4. KHÔNG bịa features sản phẩm KHÔNG thấy. KHÔNG CTA. KHÔNG emoji.\n\n"
+    "4. KHÔNG bịa features sản phẩm KHÔNG thấy trong ảnh hoặc KHÔNG có trong "
+    "   brief. KHÔNG CTA. KHÔNG emoji. KHÔNG bullet list.\n\n"
     + _ENHANCE_JSON_SCHEMA_INSTRUCTION
 )
 
@@ -174,20 +187,30 @@ async def enhance_brief(req: EnhanceBriefRequest):
     Director Agent reads `vision_notes` from context_injection to SKIP its
     own vision pass — saves ~$0.0004 per /plan call.
     """
+    # V5.17.2 — User brief đặt TOP và REPEAT cuối để LLM bám chặt. Trước đó
+    # brief bị "chìm" giữa system prompt JSON schema dài + user msg ngắn →
+    # LLM tập trung điền JSON template thay vì mở rộng brief gốc.
     user_msg = (
-        f"Brief gốc của user (giữ ý chính, viết lại giàu chi tiết hơn cho video {req.duration_s}s):\n"
-        f"---\n{req.brief}\n---"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"★ BRIEF GỐC CỦA USER (BÁM CHẶT — đây là trọng tâm video {req.duration_s}s):\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"{req.brief}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"Nhiệm vụ: viết enhanced_brief BÁM CHẶT brief gốc trên, MỞ RỘNG thành "
+        f"4-7 câu giàu chi tiết (bối cảnh + ánh sáng + camera + mood). Mọi "
+        f"danh từ chính trong brief gốc PHẢI xuất hiện trong enhanced_brief."
     )
     if req.niche_hint:
-        user_msg += f"\n\nNiche hint: {req.niche_hint}"
+        user_msg += f"\n\nNiche hint (gợi ý phụ): {req.niche_hint}"
 
     refs = [u for u in (req.reference_image_urls or []) if u and u.startswith("http")][:6]
     try:
         if refs:
             user_msg += (
-                f"\n\nQUAN TRỌNG: User đã upload {len(refs)} ảnh tham khảo. "
-                f"Hãy nhìn kỹ và mô tả CHÍNH XÁC những gì thấy — viết lại brief "
-                f"khớp với ảnh thực, KHÔNG bịa khác."
+                f"\n\n★ User đã upload {len(refs)} ảnh tham khảo. NHÌN KỸ ảnh + "
+                f"LỒNG GHÉP chi tiết visual (màu, trang phục, sản phẩm) vào "
+                f"enhanced_brief — nhưng VẪN BÁM brief gốc làm trọng tâm. "
+                f"KHÔNG VIẾT brief khác."
             )
             raw = llm.complete_with_image(
                 system_prompt=_ENHANCE_SYSTEM_PROMPT_VISION,
