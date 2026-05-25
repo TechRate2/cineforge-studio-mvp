@@ -11,6 +11,40 @@ export interface MasterBoardResponse {
   elapsed_s: number;
 }
 
+// V5.17.4 — Preview prompt without generating (~10ms, no charge).
+export interface MasterBoardPromptPreview {
+  plan_id: string;
+  prompt: string;
+  size: string;
+  suggested_models: Array<{
+    key: string;
+    name: string;
+    endpoint: string;
+    cost_usd: number;
+    supports_refs: boolean;
+    variant: string;
+  }>;
+}
+
+export async function fetchMasterBoardPromptPreview(
+  plan: DirectorPlan,
+  referenceImages?: string[],
+): Promise<MasterBoardPromptPreview> {
+  const res = await fetch('/api/v1/director/storyboard/master/preview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      plan,
+      reference_images: (referenceImages ?? []).filter((u) => u && u.startsWith('http')).slice(0, 10),
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => `HTTP ${res.status}`);
+    throw new Error(err.slice(0, 200));
+  }
+  return (await res.json()) as MasterBoardPromptPreview;
+}
+
 export function useMasterBoard() {
   const [board, setBoard] = useState<MasterBoardResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,5 +111,24 @@ export function useMasterBoard() {
     setIsLoading(false);
   }, []);
 
-  return { board, isLoading, error, generate, reset };
+  // V5.17.4 — Set board manually from user-uploaded URL (skip BE generation).
+  // Use case: user gen storyboard on GPT-Image/Midjourney, downloads, then
+  // uploads via /upload-media. Returned URL becomes the master board ref[0]
+  // for Seedance render — same identity-lock benefit, $0 vendor charge.
+  const setBoardFromUpload = useCallback((planId: string, boardUrl: string) => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setError(null);
+    setIsLoading(false);
+    setBoard({
+      plan_id: planId,
+      board_url: boardUrl,
+      prompt: '',
+      size: 'user-uploaded',
+      cost_usd: 0,
+      elapsed_s: 0,
+    });
+  }, []);
+
+  return { board, isLoading, error, generate, reset, setBoardFromUpload };
 }

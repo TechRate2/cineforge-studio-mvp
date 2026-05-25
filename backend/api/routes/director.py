@@ -561,6 +561,70 @@ async def gen_storyboard(request: StoryboardRequest):
 
 
 # ============================================================
+# POST /storyboard/master/preview — V5.17.4 prompt preview (no LLM call)
+# ============================================================
+class MasterBoardPromptPreview(BaseModel):
+    """V5.17.4 — Return the EXACT prompt that /storyboard/master would send to
+    the image model, WITHOUT actually generating. Enables users to:
+      - Review/copy the prompt before paying $0.04
+      - Paste into external tools (ChatGPT, Midjourney, etc.) if they have
+        better image gen subscriptions
+      - Make an informed Upload-vs-Generate decision
+    Fast (~10ms, no vendor call, no charge).
+    """
+    plan_id: str
+    prompt: str
+    size: str
+    suggested_models: list[dict]  # [{key, name, cost_usd, supports_refs}]
+
+
+@router.post("/storyboard/master/preview", response_model=MasterBoardPromptPreview)
+async def preview_master_storyboard_prompt(request: MasterBoardRequest) -> MasterBoardPromptPreview:
+    """V5.17.4 — Return prompt + suggested models WITHOUT generating image.
+
+    User can copy prompt to external tool (GPT-Image, MJ, etc.) and upload
+    result back via /upload-media. Or click Generate to use AtlasCloud
+    vendor (current flow).
+    """
+    from agent.image_specs import IMAGE_MODEL_SPECS
+    from agent.storyboard_board import (
+        build_master_board_prompt, board_size_for_aspect,
+    )
+    plan = request.plan
+    prompt = build_master_board_prompt(plan)
+    size = board_size_for_aspect(plan.continuity_bible.aspect_ratio)
+
+    user_refs_present = bool(request.reference_images)
+    # Surface available models with cost + whether they support refs
+    suggested = []
+    for key, spec in IMAGE_MODEL_SPECS.items():
+        if not spec.get("available", True):
+            continue
+        supports_refs = bool(spec.get("images_field"))
+        # If user has refs uploaded, only suggest edit variants
+        if user_refs_present and not supports_refs:
+            continue
+        # If user has NO refs, only suggest t2i variants (edit needs refs)
+        if not user_refs_present and supports_refs:
+            continue
+        suggested.append({
+            "key": key,
+            "name": spec.get("name_vn", key),
+            "endpoint": spec.get("endpoint"),
+            "cost_usd": spec.get("cost_per_image_usd", 0.0),
+            "supports_refs": supports_refs,
+            "variant": spec.get("variant", "text-to-image"),
+        })
+
+    return MasterBoardPromptPreview(
+        plan_id=plan.plan_id,
+        prompt=prompt,
+        size=size,
+        suggested_models=suggested,
+    )
+
+
+# ============================================================
 # POST /storyboard/master — V4 Sprint1 single-image director board
 # ============================================================
 @router.post("/storyboard/master", response_model=MasterBoardResponse)

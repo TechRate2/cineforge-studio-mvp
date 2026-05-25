@@ -1,10 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { Check, AlertTriangle, Film, BookText, Gauge, Loader2, Sparkles, LayoutGrid, RotateCcw, Download, MessageSquarePlus, X } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Check, AlertTriangle, Film, BookText, Gauge, Loader2, Sparkles, LayoutGrid, RotateCcw, Download, MessageSquarePlus, X, Copy, Upload } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import type { LucideIcon } from 'lucide-react';
 import type { DirectorPlan, Shot, StorytellingIssue } from '@/lib/studio/use-director-plan';
-import { useMasterBoard } from '@/lib/studio/use-master-board';
+import { useMasterBoard, fetchMasterBoardPromptPreview, type MasterBoardPromptPreview } from '@/lib/studio/use-master-board';
 import { useRefineShot } from '@/lib/studio/use-refine-shot';
 import { useRevisePlan } from '@/lib/studio/use-revise-plan';
 import {
@@ -56,10 +56,12 @@ export function DirectorPlanModal({
   const [showRevise, setShowRevise] = useState(false);
   const [reviseText, setReviseText] = useState('');
 
-  // V5.15.1 Sprint 1A — auto-trigger Master Board for Seedance 2.0/Fast.
-  // Fires once per plan_id; user can still Regen manually in the Board tab.
-  // Skip when board already gen'd for this plan, or in-flight, or errored
-  // (errored = user retries manually — avoid retry loop).
+  // V5.17.4 — Master Board NO LONGER auto-fires. User must explicitly click
+  // Generate / Upload in the Board tab. Auto-fire was wasting $0.04 when:
+  //   - user just wanted to preview plan, not gen board
+  //   - user planned to upload board from external tool (GPT/MJ)
+  //   - user toggled board ON for cost gate but didn't actually want gen
+  // Pattern: show prompt + 3 actions (Copy, Upload, Generate) in BoardView.
   const planModel = typeof settings.model === 'string' ? settings.model : '';
   const masterBoardPlanId = master.board?.plan_id;
   const masterBoardUrl = master.board?.board_url;
@@ -67,17 +69,6 @@ export function DirectorPlanModal({
   const masterError = master.error;
   const masterGenerate = master.generate;
   const masterReset = master.reset;
-  useEffect(() => {
-    if (!open || !plan) return;
-    // V5.16 #1 — respect user toggle from PromptCardV2 (was hardcoded eligibility set)
-    if (!masterBoardEnabled) return;
-    if (!isMasterBoardEligible(planModel)) return;
-    if (plan.shot_list.length < MASTER_BOARD_MIN_SHOTS) return;
-    if (masterBoardPlanId === plan.plan_id) return;
-    if (masterIsLoading || masterError) return;
-    // V5.17.3 — pass user refs so BE auto-switches to EDIT variant
-    void masterGenerate(plan, undefined, referenceImages);
-  }, [open, plan, planModel, masterBoardEnabled, masterBoardPlanId, masterIsLoading, masterError, masterGenerate]);
 
   // V5.16.3 F2 — Abort in-flight Master Board fetch when user toggles OFF
   // mid-loading. Without this, $0.04 board completes silently after toggle
@@ -166,7 +157,10 @@ export function DirectorPlanModal({
                 board={master.board}
                 isLoading={master.isLoading}
                 error={master.error}
-                onGen={() => master.generate(plan, undefined, referenceImages)}
+                referenceImages={referenceImages}
+                onGen={(modelEndpoint) => master.generate(plan, modelEndpoint, referenceImages)}
+                onUploaded={(url) => master.setBoardFromUpload(plan.plan_id, url)}
+                onReset={master.reset}
               />
             )}
             {tab === 'eval' && (
@@ -310,85 +304,246 @@ function TabBtn({ active, onClick, icon: Icon, label, badge, issuesCount }: {
 }
 
 // ============================================================
-// Master Storyboard Board view — V4 Sprint1
+// V5.17.4 — Master Storyboard Board view (manual flow, 3 actions)
 // ============================================================
-function BoardView({ plan, board, isLoading, error, onGen }: {
+function BoardView({ plan, board, isLoading, error, referenceImages, onGen, onUploaded, onReset }: {
   plan: DirectorPlan;
   board: ReturnType<typeof useMasterBoard>['board'];
   isLoading: boolean;
   error: string | null;
-  onGen: () => void;
+  referenceImages: string[];
+  onGen: (modelEndpoint?: string) => void;
+  onUploaded: (boardUrl: string) => void;
+  onReset: () => void;
 }) {
-  if (!board && !isLoading && !error) {
+  const [preview, setPreview] = useState<MasterBoardPromptPreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string>('');
+  const [copied, setCopied] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // V5.17.4 — auto-fetch prompt preview on mount (fast ~10ms, $0 cost)
+  useEffect(() => {
+    if (board || preview || previewLoading || previewError) return;
+    setPreviewLoading(true);
+    fetchMasterBoardPromptPreview(plan, referenceImages)
+      .then((p) => {
+        setPreview(p);
+        // Auto-pick first suggested model (edit variant if refs present)
+        if (p.suggested_models.length > 0) {
+          setSelectedModel(p.suggested_models[0].endpoint);
+        }
+      })
+      .catch((e) => setPreviewError(e instanceof Error ? e.message : String(e)))
+      .finally(() => setPreviewLoading(false));
+  }, [board, plan, referenceImages, preview, previewLoading, previewError]);
+
+  const handleCopy = useCallback(async () => {
+    if (!preview?.prompt) return;
+    try {
+      await navigator.clipboard.writeText(preview.prompt);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.error('Clipboard fail', e);
+    }
+  }, [preview?.prompt]);
+
+  const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/v1/upload-media', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error(`Upload fail HTTP ${res.status}`);
+      const data = (await res.json()) as { url: string };
+      if (!data.url) throw new Error('Upload returned no URL');
+      onUploaded(data.url);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setUploading(false);
+      e.target.value = '';  // reset input for re-select
+    }
+  }, [onUploaded]);
+
+  // ============ STATE 1: Board exists (gen'd or uploaded) ============
+  if (board) {
+    const isUploaded = board.size === 'user-uploaded';
     return (
-      <div className="text-center py-12">
-        <div className="w-14 h-14 rounded-card bg-cta-gradient/15 grid place-items-center mx-auto mb-4 border border-accent-magenta/30">
-          <LayoutGrid size={26} className="text-accent-magenta" />
+      <div className="space-y-4">
+        <div className="surface-2 rounded-card p-3 flex items-center justify-between flex-wrap gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <Check size={14} className="text-accent-green" />
+            <span className="text-text-muted">
+              {isUploaded
+                ? `Board upload từ user · sẽ dùng làm anchor cho Seedance render`
+                : `Board gen từ AtlasCloud · ${board.size} · $${board.cost_usd.toFixed(3)} · ${board.elapsed_s}s`}
+            </span>
+          </div>
+          <button onClick={onReset} className="btn-ghost text-xs">
+            <X size={12} /> Bỏ board (skip)
+          </button>
         </div>
-        <h3 className="h-card mb-2">Master Storyboard Board</h3>
-        <p className="text-sm text-text-muted max-w-md mx-auto mb-2">
-          Gen <b>1 ảnh ultra-wide</b> chứa toàn bộ {plan.shot_list.length} panel + key visual + palette swatch + sound design + notes — kiểu director's sheet.
-        </p>
-        <p className="text-[11px] text-text-subtle max-w-md mx-auto mb-6">
-          Lợi ích: identity character lock 100% qua tất cả panel (cùng pixel canvas), chỉ <b>$0.04</b> thay vì $0.43 cho 12 panel riêng.
-          Sau khi gen, board sẽ làm style reference cho mọi shot Seedance.
-        </p>
-        <button onClick={onGen} className="btn-cta">
-          <Sparkles size={14} /> Generate Board · ~$0.04
-        </button>
+        <div className="relative rounded-card overflow-hidden border border-hairline">
+          <img src={board.board_url} alt="Master storyboard board" className="w-full" />
+        </div>
+        <div className="flex items-center justify-end flex-wrap gap-2">
+          {!isUploaded && (
+            <a href={board.board_url} download target="_blank" rel="noopener noreferrer" className="btn-outline">
+              <Download size={14} /> Download PNG
+            </a>
+          )}
+          <button onClick={() => onGen(selectedModel || undefined)} className="btn-outline">
+            <RotateCcw size={14} /> Regen
+          </button>
+        </div>
+        {board.prompt && (
+          <details className="surface-2 rounded-card p-3 text-xs">
+            <summary className="cursor-pointer text-text-muted">Show prompt used (debug)</summary>
+            <pre className="mt-3 text-[11px] text-text-subtle whitespace-pre-wrap font-mono">{board.prompt}</pre>
+          </details>
+        )}
       </div>
     );
   }
+
+  // ============ STATE 2: Generating (loading) ============
   if (isLoading) {
     return (
       <div className="space-y-3">
         <div className="surface-2 rounded-card p-4 flex items-center gap-3">
           <Loader2 size={16} className="animate-spin text-accent-magenta" />
-          <div className="text-sm">Seedream v4.5 đang dựng board... ~30-60s</div>
+          <div className="text-sm">Đang gen Master Board ~60-90s · vendor đang xử lý</div>
         </div>
         <div className="aspect-[16/9] rounded-card surface-2 shimmer" />
       </div>
     );
   }
-  if (error) {
-    return (
-      <div className="surface-2 rounded-card p-5 border-accent-orange/40">
+
+  // ============ STATE 3: No board yet — show 3-action UI ============
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="surface-2 rounded-card p-4">
         <div className="flex items-start gap-3">
-          <AlertTriangle size={18} className="text-accent-orange shrink-0 mt-0.5" />
-          <div>
-            <div className="text-sm font-semibold text-accent-orange">Master Board gen failed</div>
-            <p className="text-xs text-text-muted mt-2 font-mono">{error}</p>
-            <button onClick={onGen} className="btn-outline mt-4">
-              <RotateCcw size={14} /> Retry
-            </button>
+          <div className="w-10 h-10 rounded-card bg-cta-gradient/15 grid place-items-center border border-accent-magenta/30 shrink-0">
+            <LayoutGrid size={18} className="text-accent-magenta" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold">Master Storyboard Board (tùy chọn)</h3>
+            <p className="text-[11px] text-text-muted mt-1 leading-relaxed">
+              1 ảnh ultra-wide chứa {plan.shot_list.length} panel — làm style anchor lock character xuyên suốt video.
+              3 cách dùng: <b>Copy prompt</b> qua tool ngoài (GPT-Image / Midjourney) → <b>Upload</b> board về tại đây, HOẶC <b>Generate</b> trực tiếp qua AtlasCloud.
+            </p>
           </div>
         </div>
       </div>
-    );
-  }
-  if (!board) return null;
-  return (
-    <div className="space-y-4">
-      <div className="relative rounded-card overflow-hidden border border-hairline">
-        <img src={board.board_url} alt="Master storyboard board" className="w-full" />
-      </div>
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="text-xs text-text-muted">
-          {board.size} · ${board.cost_usd.toFixed(3)} · {board.elapsed_s}s
+
+      {/* Error from gen */}
+      {error && (
+        <div className="surface-2 rounded-card p-4 border-accent-orange/40">
+          <div className="flex items-start gap-2 text-sm text-accent-orange">
+            <AlertTriangle size={14} className="mt-0.5" />
+            <span><b>Gen failed:</b> <code className="font-mono text-[11px]">{error}</code></span>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <a href={board.board_url} download target="_blank" rel="noopener noreferrer" className="btn-outline">
-            <Download size={14} /> Download PNG
-          </a>
-          <button onClick={onGen} className="btn-outline">
-            <RotateCcw size={14} /> Regen
+      )}
+
+      {/* Prompt preview */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-[11px] uppercase tracking-wider text-text-subtle font-semibold">Prompt board</h4>
+          {previewLoading && <Loader2 size={12} className="animate-spin text-text-subtle" />}
+        </div>
+        {previewError && (
+          <p className="text-[11px] text-accent-orange font-mono mb-2">{previewError}</p>
+        )}
+        {preview ? (
+          <>
+            <textarea
+              value={preview.prompt}
+              readOnly
+              rows={8}
+              className="w-full rounded-md bg-surface-2 border border-hairline p-3 text-[11px] leading-relaxed font-mono resize-y"
+            />
+            <div className="flex items-center justify-between mt-2 text-[10px] text-text-subtle">
+              <span>{preview.prompt.length} chars · size {preview.size}</span>
+              <button onClick={handleCopy} className="btn-outline text-xs">
+                <Copy size={12} /> {copied ? 'Copied ✓' : 'Copy prompt'}
+              </button>
+            </div>
+          </>
+        ) : !previewLoading && !previewError ? (
+          <div className="surface-2 rounded-card p-4 text-xs text-text-subtle">Đang tải prompt preview...</div>
+        ) : null}
+      </div>
+
+      {/* 2 actions: Upload + Generate */}
+      <div className="grid md:grid-cols-2 gap-3">
+        {/* Upload */}
+        <div className="surface-2 rounded-card p-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Upload size={14} className="text-accent-cyan" /> Upload board có sẵn
+          </div>
+          <p className="text-[11px] text-text-subtle leading-relaxed">
+            Gen board ở GPT-Image / Midjourney → tải về → upload đây.
+            <b className="text-accent-cyan"> $0 charge.</b>
+          </p>
+          <label className="btn-outline cursor-pointer inline-flex">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleUpload}
+              disabled={uploading}
+              className="hidden"
+            />
+            {uploading ? (
+              <><Loader2 size={12} className="animate-spin" /> Đang upload...</>
+            ) : (
+              <><Upload size={12} /> Chọn file ảnh</>
+            )}
+          </label>
+          {uploadError && (
+            <p className="text-[11px] text-accent-orange font-mono">{uploadError}</p>
+          )}
+        </div>
+
+        {/* Generate */}
+        <div className="surface-2 rounded-card p-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Sparkles size={14} className="text-accent-magenta" /> Generate qua AtlasCloud
+          </div>
+          <p className="text-[11px] text-text-subtle leading-relaxed">
+            Vendor render ~60-90s · charge từ wallet AtlasCloud.
+          </p>
+          {preview && preview.suggested_models.length > 0 && (
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="w-full bg-surface-3 border border-hairline rounded-md text-xs px-2 py-1.5 outline-none focus:border-accent-magenta/60"
+            >
+              {preview.suggested_models.map((m) => (
+                <option key={m.key} value={m.endpoint}>
+                  {m.name} · ${m.cost_usd.toFixed(3)} {m.supports_refs ? '· match refs' : '· text-only'}
+                </option>
+              ))}
+            </select>
+          )}
+          <button
+            onClick={() => onGen(selectedModel || undefined)}
+            disabled={!selectedModel && (preview?.suggested_models.length ?? 0) === 0}
+            className="btn-cta w-full"
+          >
+            <Sparkles size={12} /> Generate · ~${(preview?.suggested_models.find((m) => m.endpoint === selectedModel)?.cost_usd ?? 0.036).toFixed(3)}
           </button>
         </div>
       </div>
-      <details className="surface-2 rounded-card p-3 text-xs">
-        <summary className="cursor-pointer text-text-muted">Show prompt used (debug)</summary>
-        <pre className="mt-3 text-[11px] text-text-subtle whitespace-pre-wrap font-mono">{board.prompt}</pre>
-      </details>
     </div>
   );
 }
