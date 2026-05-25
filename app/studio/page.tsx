@@ -18,7 +18,7 @@ import { useEnhanceBrief } from '@/lib/studio/use-enhance-brief';
 import { getModelConfig, MODEL_CONFIGS } from '@/lib/studio/model-config';
 import { type StylePreset } from '@/lib/studio/style-presets';
 import type { VideoModel, AspectRatio, AudioMode } from '@/lib/types/backend';
-import { AlertCircle, Loader2, ChevronDown, Sparkles } from 'lucide-react';
+import { AlertCircle, Loader2, ChevronDown, Sparkles, Zap } from 'lucide-react';
 
 /** V5.2 — auto-save key for draft brief + settings */
 const DRAFT_STORAGE_KEY = 'cineforge:draft_v1';
@@ -236,6 +236,74 @@ export default function StudioPage() {
   const [masterBoardUrl, setMasterBoardUrl] = useState<string | null>(null);
   const [showRefDrawer, setShowRefDrawer] = useState(false);
 
+  // V6.1 — Autonomous mode state (1-click full video, no manual director plan)
+  const [isAutonomousLoading, setIsAutonomousLoading] = useState(false);
+  const [autonomousPreview, setAutonomousPreview] = useState<{
+    caption_vn?: string;
+    hashtags_vn?: string[];
+    hook_first_3s?: string;
+    niche?: string;
+    n_shots?: number;
+    estimated_cost_usd?: number;
+  } | null>(null);
+
+  /** V6.1 — 1-click autonomous flow.
+   * POST /director/autonomous → backend chain 5 skills → spawn render →
+   * return job_id + editor_preview + hook_preview. FE shows preview ngay,
+   * job render chạy background, JobResultModal poll status như flow cũ.
+   */
+  const handleAutonomousGenerate = async () => {
+    if (!brief.trim()) {
+      toast.error('Hãy nhập ý tưởng video trước (≥5 ký tự)');
+      return;
+    }
+    setIsAutonomousLoading(true);
+    setAutonomousPreview(null);
+    try {
+      const res = await fetch('/api/v1/director/autonomous', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_idea: brief,
+          reference_image_urls: referenceZones.images,
+          reference_video_urls: [],
+          reference_audio_urls: [],
+          target_platform: aspect === '9:16' ? 'tiktok' : aspect === '16:9' ? 'youtube_long' : 'universal',
+          duration_hint_s: duration,
+          user_model: model === 'auto' ? 'auto' : model,
+          resolution,
+          use_vision_llm_for_tagging: referenceZones.images.length > 0,
+        }),
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`${res.status}: ${errText.slice(0, 200)}`);
+      }
+      const data = await res.json();
+      setAutonomousPreview({
+        caption_vn: data.editor_preview?.caption_vn,
+        hashtags_vn: data.editor_preview?.hashtags_vn,
+        hook_first_3s: data.hook_preview?.first_3s,
+        niche: data.hook_preview?.niche,
+        n_shots: data.n_shots,
+        estimated_cost_usd: data.estimated_cost_usd,
+      });
+      setJobId(data.job_id);
+      setShowJobModal(true);
+      toast.success(
+        `🎬 Autonomous mode: ${data.n_shots} shots, ${data.estimated_duration_s}s, ` +
+        `$${data.estimated_cost_usd?.toFixed(2) ?? '?'} • ${data.resolved_model}`,
+        { duration: 6000 }
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(`Autonomous failed: ${msg}`, { duration: 8000 });
+      console.error(e);
+    } finally {
+      setIsAutonomousLoading(false);
+    }
+  };
+
   const handleGeneratePlan = async () => {
     if (!brief.trim()) return;
     setShowPlanModal(false);
@@ -337,6 +405,69 @@ export default function StudioPage() {
         <p className="text-sm text-text-muted mt-3 max-w-2xl mx-auto">
           Mô tả ý tưởng → AI dựng kế hoạch shot-by-shot → render thật. Niche-agnostic, identity-locked, audio sync.
         </p>
+      </section>
+
+      {/* V6.1 — Autonomous "1-click full video" banner.
+          Đặt TRƯỚC PromptCardV2 để là CTA primary cho user mới — chỉ cần
+          ý tưởng + refs là agent tự build plan + render. Manual mode
+          (PromptCardV2 + DirectorPlanModal phía dưới) giữ cho power user. */}
+      <section className="px-5 md:px-10 pb-4 max-w-3xl mx-auto">
+        <div className="surface-2 rounded-card p-4 md:p-5 border border-accent-magenta/30 bg-gradient-to-br from-accent-magenta/10 via-transparent to-accent-cyan/10">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="shrink-0 mt-0.5">
+              <div className="w-8 h-8 rounded-full bg-accent-magenta/20 flex items-center justify-center">
+                <Zap size={16} className="text-accent-magenta" />
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-bold">🚀 1-Click Magic — Autonomous Director</div>
+              <div className="text-xs text-text-muted mt-0.5">
+                Bạn chỉ cần ý tưởng + refs. Agent tự planner → storyboard → director → render → caption viral.
+                Không cần plan tay.
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={handleAutonomousGenerate}
+            disabled={isAutonomousLoading || isRendering || !brief.trim()}
+            className="w-full btn-primary py-3 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isAutonomousLoading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Agent đang dựng kế hoạch + render…
+              </>
+            ) : (
+              <>
+                <Zap size={16} />
+                Generate Full Video (Autonomous)
+              </>
+            )}
+          </button>
+          {autonomousPreview && (
+            <div className="mt-3 text-[11px] text-text-muted space-y-1 animate-fade-in">
+              {autonomousPreview.niche && (
+                <div><span className="text-text-subtle">Niche:</span> {autonomousPreview.niche}</div>
+              )}
+              {autonomousPreview.hook_first_3s && (
+                <div className="line-clamp-2"><span className="text-text-subtle">Hook 3s:</span> {autonomousPreview.hook_first_3s}</div>
+              )}
+              {autonomousPreview.caption_vn && (
+                <div className="line-clamp-2"><span className="text-text-subtle">Caption:</span> {autonomousPreview.caption_vn}</div>
+              )}
+              {autonomousPreview.hashtags_vn && autonomousPreview.hashtags_vn.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {autonomousPreview.hashtags_vn.slice(0, 6).map((t) => (
+                    <span key={t} className="chip text-[10px]">#{t}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <div className="mt-2 text-[10px] text-text-subtle/70">
+            💡 Manual mode bên dưới vẫn dùng được — anh kiểm soát chi tiết shot/camera/audio.
+          </div>
+        </div>
       </section>
 
       {/* Main compact input card */}

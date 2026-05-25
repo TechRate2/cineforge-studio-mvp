@@ -974,6 +974,190 @@ async def generate_video(
 # ============================================================
 # POST /plan-and-render — one-shot escape hatch (no Human-in-the-Loop)
 # ============================================================
+# ============================================================
+# V6.1 — Autonomous Director endpoint (1-call full pipeline)
+# ============================================================
+
+class AutonomousGenerateRequest(BaseModel):
+    """User-facing request — 1 idea + refs, agent tự tạo plan + render.
+
+    Khác với /plan-and-render (cần ProductInput + VideoSettings chi tiết),
+    endpoint này chỉ cần 1 ý tưởng ngắn — toàn bộ niche/hook/storyboard/
+    director do 5-skill autonomous chain tự quyết.
+    """
+    user_idea: str = Field(..., min_length=5, max_length=2000)
+    reference_image_urls: list[str] = Field(default_factory=list, max_length=9)
+    reference_video_urls: list[str] = Field(default_factory=list, max_length=3)
+    reference_audio_urls: list[str] = Field(default_factory=list, max_length=3)
+    target_platform: str = Field("tiktok", description="tiktok|reels|youtube_short|youtube_long|universal")
+    duration_hint_s: Optional[int] = Field(None, ge=4, le=180)
+    user_model: str = Field("auto", description="auto|seedance_2_0|seedance_2_0_fast|wan_2_7")
+    resolution: str = "720p"
+    use_vision_llm_for_tagging: bool = True
+
+    @field_validator("reference_image_urls")
+    @classmethod
+    def _check_image_urls(cls, v: list[str]) -> list[str]:
+        return _validate_reference_images(v)
+
+
+@router.post("/autonomous")
+async def autonomous_generate(
+    request: AutonomousGenerateRequest,
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
+):
+    """V6.1 Autonomous Director — 1-call: idea + refs → rendered MP4.
+
+    Flow:
+      1. AutonomousDirector chain (5 skills) → builds DirectorPlan
+      2. Spawn render_plan() background task
+      3. Return job_id + plan_id + editor_meta (caption + hashtag preview)
+
+    Client polls /director/jobs/{job_id} for status + video_url.
+
+    Backward compat: KHÔNG touch /director/plan (manual mode). User cũ chạy
+    manual flow 100% giữ nguyên.
+    """
+    from agent.autonomous_director import AutonomousDirector, AutonomousRunRequest
+
+    # ---- Idempotency replay ----
+    if idempotency_key:
+        from core.idempotency import hash_body as _hash_body, lookup as _idem_lookup
+        body_hash = _hash_body(request.model_dump())
+        cached = _idem_lookup(idempotency_key, body_hash)
+        if cached:
+            if not cached["body_match"]:
+                raise HTTPException(
+                    409,
+                    "Idempotency-Key đã dùng với body khác. Đổi key hoặc đợi 24h.",
+                )
+            logger.info(
+                f"[/director/autonomous] Idempotency replay key={idempotency_key[:16]}…"
+            )
+            return cached["response_json"]
+
+    # ---- Step 1: Run autonomous chain (4-5 LLM calls, ~5-15s) ----
+    director_chain = AutonomousDirector()
+    try:
+        chain_result = await director_chain.run(AutonomousRunRequest(
+            user_idea=request.user_idea,
+            reference_image_urls=request.reference_image_urls,
+            reference_video_urls=request.reference_video_urls,
+            reference_audio_urls=request.reference_audio_urls,
+            target_platform=request.target_platform,
+            duration_hint_s=request.duration_hint_s,
+            user_model=request.user_model,
+            use_vision_llm_for_tagging=request.use_vision_llm_for_tagging,
+        ))
+    except Exception as e:
+        logger.exception("[/director/autonomous] chain failed")
+        raise HTTPException(500, f"Autonomous chain failed: {_redact_error(e)}") from e
+
+    plan = chain_result.director_plan
+    resolved_model = chain_result.director_out.user_model
+    job_id = f"job_{uuid.uuid4().hex[:12]}"
+
+    # ---- Step 2: Validate against resolved model (hard cap check) ----
+    model_violations = continuity_manager.validate_plan_against_model(
+        plan, user_model=resolved_model,
+    )
+    hard_violations = [
+        v for v in model_violations
+        if "discrete" in v or "max " in v or "out of range" in v
+    ]
+    if hard_violations:
+        # Auto-snap discrete for Wan 2.7 (was deferred in chain)
+        from agent.continuity_manager import snap_discrete_durations
+        snap_warnings = snap_discrete_durations(plan, resolved_model)
+        if snap_warnings:
+            logger.info(
+                f"[/director/autonomous] {job_id} snapped {len(snap_warnings)} shot durations: "
+                f"{snap_warnings[:3]}"
+            )
+
+    # ---- Step 3: Spawn render in background ----
+    _JOBS_STORE[job_id] = {
+        "status": "pending",
+        "progress": 0,
+        "current_step": "queued",
+        "plan_id": plan.plan_id,
+        "mode": "autonomous",
+        "autonomous_meta": {
+            "chain_elapsed_s": chain_result.elapsed_s,
+            "render_strategy": chain_result.director_out.render_strategy,
+            "n_chunks": chain_result.director_out.n_chunks,
+            "resolved_model": resolved_model,
+            "viral_hook_pattern": chain_result.planner_out.hook_pattern,
+            "hook_first_3s": chain_result.planner_out.hook_first_3s,
+        },
+        "editor_meta": chain_result.editor_meta.model_dump(),
+        "created_at": datetime.now(timezone.utc).isoformat() + "Z",
+    }
+
+    sanitized_plan = continuity_manager.sanitize_plan(plan)
+
+    async def _run():
+        try:
+            await video_worker.render_plan(
+                job_id=job_id,
+                plan=sanitized_plan,
+                reference_images=request.reference_image_urls,
+                user_model=resolved_model,
+                resolution=request.resolution,
+                audio_plan=None,
+                jobs_store=_JOBS_STORE,
+                use_llm_scene_gen=True,
+                cost_gate_mode="off",
+            )
+        except video_worker.JobCancelledError:
+            logger.info(f"[/director/autonomous] job {job_id} cancelled gracefully")
+            await asyncio.to_thread(video_worker.cleanup_failed_job, job_id)
+        except Exception as e:
+            logger.exception(f"[/director/autonomous] job {job_id} failed")
+            _JOBS_STORE[job_id].update(status="failed", error_message=_redact_error(e))
+            await asyncio.to_thread(video_worker.cleanup_failed_job, job_id)
+
+    _spawn(_run())
+
+    response = {
+        "job_id": job_id,
+        "polling_url": f"/api/v1/director/jobs/{job_id}",
+        "plan_id": plan.plan_id,
+        "mode": "autonomous",
+        "resolved_model": resolved_model,
+        "estimated_duration_s": plan.continuity_bible.duration_s,
+        "estimated_cost_usd": plan.cost_estimate.total_cost_usd,
+        "n_shots": len(plan.shot_list),
+        "render_strategy": chain_result.director_out.render_strategy,
+        "n_chunks": chain_result.director_out.n_chunks,
+        "chain_elapsed_s": chain_result.elapsed_s,
+        # Editor preview — FE can display caption + hashtags ngay sau khi /autonomous trả về
+        "editor_preview": {
+            "caption_vn": chain_result.editor_meta.caption_vn,
+            "caption_en": chain_result.editor_meta.caption_en,
+            "hashtags_vn": chain_result.editor_meta.hashtags_vn,
+            "hashtags_en": chain_result.editor_meta.hashtags_en,
+        },
+        # Viral hook preview
+        "hook_preview": {
+            "pattern": chain_result.planner_out.hook_pattern,
+            "first_3s": chain_result.planner_out.hook_first_3s,
+            "niche": chain_result.planner_out.niche,
+            "mood": chain_result.planner_out.mood,
+        },
+    }
+
+    # Idempotency store
+    if idempotency_key:
+        from core.idempotency import hash_body as _hash_body, store as _idem_store
+        try:
+            _idem_store(idempotency_key, _hash_body(request.model_dump()), response, status_code=201)
+        except Exception as e:
+            logger.warning(f"[/director/autonomous] idem store fail (non-fatal): {e}")
+
+    return response
+
+
 @router.post("/plan-and-render")
 async def plan_and_render(request: PlanAndRenderRequest):
     """Build a plan then render it immediately. Skips Human-in-the-Loop review.
