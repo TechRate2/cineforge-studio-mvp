@@ -240,15 +240,25 @@ class DirectorAgent:
             _max_tokens = 16000
         else:
             _max_tokens = 20000
+        # V5.16.4 HOTFIX — hard async timeout (was: no timeout → if LLM hangs
+        # we wait forever). 240s (4 phút) is enough for DeepSeek V4 Flash with
+        # 20K max_tokens long-form; under 30s for 8K typical.
+        logger.info(f"[DirectorAgent] {plan_id} calling Director LLM (max_tokens={_max_tokens})...")
         try:
-            raw = await asyncio.to_thread(
-                llm.complete,
-                system_prompt=director_system,
-                user_message=director_user,
-                task="generator",  # heavy reasoning → DeepSeek-V4-Pro / Claude
-                max_tokens=_max_tokens,
-                temperature=0.65,
+            raw = await asyncio.wait_for(
+                asyncio.to_thread(
+                    llm.complete,
+                    system_prompt=director_system,
+                    user_message=director_user,
+                    task="generator",  # heavy reasoning → DeepSeek-V4-Pro / Claude
+                    max_tokens=_max_tokens,
+                    temperature=0.65,
+                ),
+                timeout=240.0,
             )
+        except asyncio.TimeoutError as e:
+            logger.error(f"[DirectorAgent] {plan_id} LLM call TIMEOUT after 240s")
+            raise RuntimeError(f"Director LLM call timeout (240s)") from e
         except Exception as e:
             logger.exception(f"[DirectorAgent] LLM call fail: {e}")
             raise RuntimeError(f"Director LLM call failed: {e}") from e
@@ -375,16 +385,26 @@ class DirectorAgent:
         logger.info(f"[DirectorAgent] {plan_id} storytelling check done, entering evaluation")
 
         # ===== Stage E: Evaluation =====
+        # V5.16.4 HOTFIX — same timeout pattern as Stage C. Evaluation LLM
+        # also hangs in same conditions. 120s is enough for 5-shot evaluation
+        # with ~3K out tokens.
         await _emit("evaluation", "running", message="Self-critique")
+        logger.info(f"[DirectorAgent] {plan_id} calling Evaluation LLM (timeout=120s)...")
         try:
-            eval_report = await asyncio.to_thread(
-                evaluate_plan,
-                plan_dict=plan.model_dump(),
-                user_brief=user_brief,
-                tech_config=tech_config,
+            eval_report = await asyncio.wait_for(
+                asyncio.to_thread(
+                    evaluate_plan,
+                    plan_dict=plan.model_dump(),
+                    user_brief=user_brief,
+                    tech_config=tech_config,
+                ),
+                timeout=120.0,
             )
             plan.evaluation = eval_report
             plan.llm_calls_total += 1
+            logger.info(f"[DirectorAgent] {plan_id} eval done overall={eval_report.overall_score:.1f}")
+        except asyncio.TimeoutError:
+            logger.warning(f"[DirectorAgent] {plan_id} eval TIMEOUT 120s — continuing with zero scores")
         except Exception as e:
             logger.warning(f"[DirectorAgent] eval fail (continuing with zero scores): {e}")
         await _emit("evaluation", "done", overall=plan.evaluation.overall_score)
