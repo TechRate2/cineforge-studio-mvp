@@ -662,10 +662,15 @@ async def gen_master_storyboard(request: MasterBoardRequest) -> MasterBoardRespo
 
     # Resolve model_key — accept short keys ("seedream_v45") OR full endpoint
     # ("bytedance/seedream-v4.5"). Default Seedream v4.5.
+    # V5.17.6 — Include EDIT variant endpoints so FE Board UI dropdown can
+    # send any endpoint listed in /storyboard/master/preview suggested_models.
     short_to_key = {
         "bytedance/seedream-v4.5": "seedream_v45",
+        "bytedance/seedream-v4.5/edit": "seedream_v45_edit",
         "google/nano-banana-pro/text-to-image": "nano_banana_pro_t2i",
+        "google/nano-banana-pro/edit": "nano_banana_pro_edit",
         "google/nano-banana-2/text-to-image": "nano_banana_2_t2i",
+        "google/nano-banana-2/edit": "nano_banana_2_edit",
     }
     model_key = short_to_key.get(request.image_model, request.image_model)
 
