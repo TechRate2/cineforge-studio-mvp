@@ -67,21 +67,15 @@ class ProductInput(BaseModel):
 class VideoSettings(BaseModel):
     """Settings cho video gen.
 
-    BUG-M6 fix: Literal model extend đầy đủ 7 model match USER_MODEL_TO_ATLAS_KEY
-    trong render_pipeline. User giờ chọn được wan_2_2_turbo ($0.02/s budget) hoặc
-    seedance_2_0_fast ($0.076/s) qua API thay vì bị Pydantic reject.
+    V6 — 3 user-facing models (Seedance 2.0 core + Wan 2.7 fallback).
     """
     audio_mode: Literal["silent_native", "dialogue_vo", "asmr_macro"] = "silent_native"
-    # AUDIT-C1: REMOVED wan_2_2_turbo (KHÔNG có endpoint AtlasCloud). 6 models verified.
-    # V3: "auto" = let model-aware picker chấm 6 strategies + pick fit script nhất.
+    # V6: "auto" = model_picker auto-selects between seedance_2_0[_fast] and wan_2_7
     model: Literal[
         "auto",
-        "vidu_q3",
-        "vidu_q3_mix",
-        "wan_2_7",
-        "seedance_1_5_pro",
         "seedance_2_0",
         "seedance_2_0_fast",
+        "wan_2_7",
     ] = "auto"
     duration_s: int = Field(15, ge=3, le=60, description="3-60s, cap thực tế per-model enforce sau")
     aspect_ratio: Literal["9:16", "16:9", "1:1"] = "9:16"

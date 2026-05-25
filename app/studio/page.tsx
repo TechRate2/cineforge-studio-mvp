@@ -111,13 +111,12 @@ export default function StudioPage() {
     if (cfg.aspect_ratio_options.length > 0 && !cfg.aspect_ratio_options.includes(aspect)) {
       setAspect(cfg.aspect_ratio_options[0]);
     }
-    // V5.16.1 — clamp numShots to model's max when user switches model
-    // (e.g. Seedance 2.0 max 6 → switch to Seedance 1.5 Pro max 4 → clamp 6→4)
+    // V6 — clamp numShots to model's max. Seedance 2.0 family supports
+    // single-call multi-shot ≤6; Wan 2.7 is i2v only (single shot).
     const maxShotsByModel: Record<string, number> = {
-      auto: 6, seedance_2_0: 6, seedance_2_0_fast: 6,
-      seedance_1_5_pro: 4, vidu_q3: 5, vidu_q3_mix: 5, wan_2_7: 5,
+      auto: 6, seedance_2_0: 6, seedance_2_0_fast: 6, wan_2_7: 1,
     };
-    const maxShots = maxShotsByModel[model] ?? 5;
+    const maxShots = maxShotsByModel[model] ?? 6;
     if (numShots !== null && numShots > maxShots) {
       setNumShots(maxShots);
     }

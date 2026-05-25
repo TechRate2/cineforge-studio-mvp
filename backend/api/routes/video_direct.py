@@ -34,11 +34,11 @@ class DirectVideoRequest(BaseModel):
 
     Frontend gửi tất cả field; backend build payload đúng cho từng model.
     """
-    model_key: str = Field(..., description="Key trong VIDEO_MODEL_SPECS, e.g. 'vidu_q3_ref'")
+    model_key: str = Field(..., description="Key trong VIDEO_MODEL_SPECS, e.g. 'seedance_2_0_ref'")
     prompt: str = Field("", description="Text prompt")
 
     # Images (per-model có thể là single string hoặc list)
-    images: Optional[list[str]] = Field(None, description="Reference images list (Vidu / Seedance ref)")
+    images: Optional[list[str]] = Field(None, description="Reference images list (Seedance ref)")
     image: Optional[str] = Field(None, description="First-frame URL (Wan / Seedance i2v)")
     last_image: Optional[str] = None
 

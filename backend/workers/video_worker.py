@@ -51,12 +51,9 @@ from core import director_history
 # (2026-05-20). Update here when AtlasCloud changes pricing.
 # ============================================================
 RENDER_COST_PER_SECOND_USD: dict[str, float] = {
-    "vidu_q3": 0.042,
-    "vidu_q3_mix": 0.106,
-    "wan_2_7": 0.10,
-    "seedance_1_5_pro": 0.047,
     "seedance_2_0": 0.096,
     "seedance_2_0_fast": 0.076,
+    "wan_2_7": 0.10,
 }
 _DEFAULT_RATE_USD = 0.096
 
@@ -67,29 +64,19 @@ def get_render_cost_rate(user_model: str) -> float:
 
 
 # ============================================================
-# Model routing — user model choice → AtlasCloud keys for ref / i2v
+# Model routing — user_model → AtlasCloud spec key per render mode
+# SEEDANCE 2.0 CORE PATH: ref → reference-to-video, i2v → image-to-video
+# FALLBACK PATH (Wan 2.7): only i2v endpoint available
 # ============================================================
 USER_MODEL_TO_ATLAS_REF: dict[str, str] = {
-    "vidu_q3": "vidu_q3_ref",
-    "vidu_q3_mix": "vidu_q3_mix_ref",
-    "wan_2_7": "wan_2_7_i2v",                  # wan only i2v
-    "seedance_1_5_pro": "seedance_v15_pro_i2v",
     "seedance_2_0": "seedance_2_0_ref",
     "seedance_2_0_fast": "seedance_2_0_fast_ref",
+    "wan_2_7": "wan_2_7_i2v",                  # Wan: ref falls back to i2v
 }
 USER_MODEL_TO_ATLAS_I2V: dict[str, str] = {
-    # NOTE on Vidu chaining: Vidu Q3 has NO native i2v endpoint. The earlier
-    # fallback to wan_2_7_i2v caused cross-family identity drift (Wan re-styles
-    # the frame). The correct pattern is to STAY in the Vidu family and feed
-    # the previous shot's last frame as an additional entry in the `images`
-    # array of vidu_q3_ref — Vidu treats it as a strong style anchor. This is
-    # what V3.1 does.
-    "vidu_q3": "vidu_q3_ref",
-    "vidu_q3_mix": "vidu_q3_mix_ref",
-    "wan_2_7": "wan_2_7_i2v",
-    "seedance_1_5_pro": "seedance_v15_pro_i2v",
     "seedance_2_0": "seedance_2_0_i2v",
     "seedance_2_0_fast": "seedance_2_0_fast_i2v",
+    "wan_2_7": "wan_2_7_i2v",
 }
 
 
@@ -125,7 +112,7 @@ async def render_plan(
         job_id: UUID for tracking.
         plan: Validated DirectorPlan from Director Agent V3.
         reference_images: Full ordered list of uploaded refs (universal pool).
-        user_model: vidu_q3 / wan_2_7 / seedance_2_0 / auto / ...
+        user_model: seedance_2_0 / seedance_2_0_fast / wan_2_7 / auto
         resolution: 720p / 1080p / ...
         audio_plan: Optional {mode, voice_audio_url, sfx_audio_url, caption_text_vn}.
         jobs_store: Optional in-memory job state dict.
@@ -314,15 +301,12 @@ async def render_plan(
     _update_job(jobs_store, job_id, status="rendering", progress=10,
                 current_step="scene_gen", scene_count=len(shots))
 
-    # V4.5 — PER-MODEL RENDER STRATEGY DISPATCH
-    # Pick the optimal render strategy based on model capability + plan shape.
-    # Seedance 2.0 / 2.0 Fast / Seedance 1.5 Pro have native multi-shot or
-    # time-coded support → single call beats N chained calls (better identity,
-    # cheaper LLM, no concat seams). Vidu Q3 / Wan 2.7 / long-form keep the
-    # existing per-shot chain logic.
+    # V6 — PER-MODEL RENDER STRATEGY DISPATCH
+    # SEEDANCE 2.0 CORE PATH: single-call multi-shot inline (1 API call → N cuts).
+    # FALLBACK PATH (Wan 2.7 / long-form / cross-location): per-shot chain loop.
     from agent.multi_shot_prompt_builder import (
         pick_strategy, detect_cross_location_cut,
-        build_seedance_2_multi_shot, build_seedance_15_time_coded,
+        build_seedance_2_multi_shot,
     )
     total_dur_plan = int(sum(s.duration_s for s in shots))
     has_cross_cut = detect_cross_location_cut(list(shots))
@@ -415,72 +399,8 @@ async def render_plan(
         )
         # Continue to assemble stage below using clip_paths + chain_meta
         _SKIP_PER_SHOT_LOOP = True
-    elif strategy == "single_call_time_coded":
-        # ========================================================
-        # STRATEGY B — SINGLE CALL TIME-CODED (Seedance 1.5 Pro)
-        # ========================================================
-        _update_job(jobs_store, job_id, current_step="single_call_render_15pro")
-        work_dir = Path(tempfile.gettempdir()) / f"cineforge_{job_id}"
-        work_dir.mkdir(parents=True, exist_ok=True)
-
-        spec = build_seedance_15_time_coded(
-            bible=bible,
-            shots=list(shots),
-            reference_images=reference_images,
-            model_key=ref_key_default,
-            resolution=resolution,
-        )
-        # Seedance 1.5 Pro i2v takes single `image` ref — DO NOT append board
-        # (would overflow max_refs=1 and likely break the call).
-        # V5.15.6 — log when caller passed a master_board_url so they can see
-        # the $0.04 board paid but not anchored on this strategy.
-        if master_board_url:
-            logger.info(
-                f"[VideoWorker B] {job_id} master_board_url present but skipped — "
-                f"Seedance 1.5 Pro time-coded uses single i2v anchor only "
-                f"(board $0.04 paid, not anchored). Consider Seedance 2.0 for board benefit."
-            )
-        atlas_kwargs = {
-            "model_key": ref_key_default,
-            "prompt": spec.prompt,
-            "negative_prompt": spec.negative_prompt,
-            "image": spec.reference_image_urls[0] if spec.reference_image_urls else None,
-            "duration_s": spec.total_duration_s,
-            "resolution": spec.resolution,
-            "aspect_ratio": spec.aspect_ratio,
-            "generate_audio": spec.generate_audio,
-            "return_last_frame": False,
-            "poll_interval_s": 5,
-            "timeout_s": 900,
-        }
-        atlas_kwargs["on_submit"] = lambda pid: _track_prediction(jobs_store, job_id, pid)
-        # V5.3 — same setup-phase cancel guard as Strategy A
-        _check_cancelled(jobs_store, job_id)
-        single_result = await asyncio.to_thread(atlas_client.generate_video, **atlas_kwargs)
-        clip_url = single_result.get("video_url")
-        if not clip_url:
-            raise RuntimeError(f"Single-call time-coded render returned no video_url. {single_result}")
-
-        clip_path = work_dir / "single_call.mp4"
-        await _download_file(clip_url, clip_path)
-        clip_paths = [clip_path]
-        chain_meta = [{
-            "shot_id": "ALL",
-            "model_key": ref_key_default,
-            "render_mode": "single_call_time_coded",
-            "video_url": clip_url,
-            "last_frame_url": None,
-            "prediction_id": single_result.get("prediction_id"),
-            "duration_s": spec.total_duration_s,
-            "shot_timing": spec.shot_timing,
-        }]
-        last_frame_urls_by_shot_id = {}
-        _update_job(
-            jobs_store, job_id, status="rendering", progress=80,
-            current_step="single_call_done", scene_count=1,
-        )
-        _SKIP_PER_SHOT_LOOP = True
     else:
+        # FALLBACK PATH — per-shot chain loop (Wan 2.7 / long-form / cross-location)
         _SKIP_PER_SHOT_LOOP = False
 
     # Stage 1 — Reference-chained render loop.

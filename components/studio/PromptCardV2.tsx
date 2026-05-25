@@ -72,17 +72,13 @@ const AUDIO_LABELS: Record<AudioMode, string> = {
   asmr_macro: 'ASMR',
 };
 
-// V5.16 — Max shots per model (vendor hard limit). Used by numShots picker.
-// auto/seedance_2_0/seedance_2_0_fast → 6 (Strategy A cap), seedance_1_5_pro → 4
-// (Strategy B cap), vidu_q3/vidu_q3_mix/wan_2_7 → 5 (per-shot chain practical cap).
+// V6 — Max shots per model. Seedance 2.0 family supports single-call multi-shot ≤6.
+// Wan 2.7 is i2v only (1 shot).
 const MAX_SHOTS_PER_MODEL: Record<VideoModel, number> = {
   auto: 6,
   seedance_2_0: 6,
   seedance_2_0_fast: 6,
-  seedance_1_5_pro: 4,
-  vidu_q3: 5,
-  vidu_q3_mix: 5,
-  wan_2_7: 5,
+  wan_2_7: 1,
 };
 
 export function PromptCardV2({
@@ -116,14 +112,12 @@ export function PromptCardV2({
   const maxShots = MAX_SHOTS_PER_MODEL[model] ?? 5;
   const numShotsOptions = Array.from({ length: maxShots }, (_, i) => i + 1);
 
-  // V5.1 — Vidu Q3 has a vendor-side prompt cap (~1000 chars) and the backend
-  // silently truncates anything past it. Warn the user in the brief area when
-  // they're getting close so they don't lose intent.
-  const isViduModel = model === 'vidu_q3' || model === 'vidu_q3_mix';
-  const PROMPT_SOFT_LIMIT = 1000;
+  // V6 — Seedance 2.0 multi-shot inline supports up to 1200 char prompts; Wan
+  // 2.7 is i2v with ~600 char effective cap. Warn near the practical limit.
+  const PROMPT_SOFT_LIMIT = model === 'wan_2_7' ? 600 : 1200;
   const briefLength = brief.length;
-  const briefOverLimit = isViduModel && briefLength > PROMPT_SOFT_LIMIT;
-  const briefNearLimit = isViduModel && briefLength > PROMPT_SOFT_LIMIT * 0.85;
+  const briefOverLimit = briefLength > PROMPT_SOFT_LIMIT;
+  const briefNearLimit = briefLength > PROMPT_SOFT_LIMIT * 0.85;
 
   return (
     // AUDIT FIX: overflow-hidden + backdrop-blur creates a stacking context
@@ -196,16 +190,16 @@ export function PromptCardV2({
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !disabled) onSubmit();
             }}
           />
-          {/* V5.1 — Vidu Q3 / Q3-Mix prompt cap warning */}
-          {isViduModel && briefNearLimit && (
+          {/* V6 — Prompt length warning (Seedance 2.0 cap ~1200, Wan 2.7 ~600) */}
+          {briefNearLimit && (
             <div className={`mt-1.5 text-[11px] flex items-center gap-1 ${
               briefOverLimit ? 'text-accent-orange' : 'text-accent-yellow'
             }`}>
               <span className="font-mono">{briefLength}/{PROMPT_SOFT_LIMIT}</span>
               <span>
                 {briefOverLimit
-                  ? `· Vidu sẽ truncate brief — rút gọn dưới ${PROMPT_SOFT_LIMIT} chars`
-                  : `· Gần Vidu prompt limit ${PROMPT_SOFT_LIMIT} chars`}
+                  ? `· Backend sẽ truncate — rút gọn dưới ${PROMPT_SOFT_LIMIT} chars`
+                  : `· Gần prompt limit ${PROMPT_SOFT_LIMIT} chars`}
               </span>
             </div>
           )}

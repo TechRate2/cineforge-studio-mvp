@@ -9,16 +9,13 @@
 
 export type AudioMode = 'silent_native' | 'dialogue_vo' | 'asmr_macro';
 
-// AUDIT-C1: sync với backend Pydantic Literal 6 models (REMOVED wan_2_2_turbo — no Atlas endpoint)
-// V3: thêm 'auto' — let model-aware picker chấm 6 strategies + pick fit script nhất
+// V6 — 3 user-facing models (Seedance 2.0 core + Wan 2.7 fallback). Sync với
+// backend/api/schemas.py StudioSettings.model Literal.
 export type VideoModel =
   | 'auto'
-  | 'vidu_q3'
-  | 'vidu_q3_mix'
-  | 'wan_2_7'
-  | 'seedance_1_5_pro'
   | 'seedance_2_0'
-  | 'seedance_2_0_fast';
+  | 'seedance_2_0_fast'
+  | 'wan_2_7';
 
 // V5.7 — widened to match per-model BE specs (Seedance 2.0/Fast accept all 7;
 // Vidu Q3 accepts 5; Seedance 1.5 Pro accepts 6; Wan 2.7 i2v ignores aspect).
@@ -48,7 +45,7 @@ export interface ProductInput {
   image_urls?: string[];         // Ảnh sản phẩm upload
 }
 
-// Resolution loose string — mỗi model AtlasCloud có enum riêng (vidu_q3: 540p/720p/1080p,
+// Resolution loose string — mỗi model AtlasCloud có enum riêng (seedance_2_0: 480p/720p/720p-SR/1080p/1080p-SR/1440p-SR,
 // wan_2_7: 720P/1080P uppercase, seedance_2_0: 480p/720p/1080p/720p-SR/1080p-SR/...).
 // Per-model validation ở backend agent/model_specs.py build_payload().
 export type Resolution = string;

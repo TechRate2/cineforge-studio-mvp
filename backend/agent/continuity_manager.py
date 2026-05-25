@@ -156,7 +156,7 @@ def validate_plan_against_model(plan: DirectorPlan, user_model: str) -> list[str
 
     Example violations:
         "S3.duration_s=7 không hợp lệ — model wan_2_7 chỉ chấp nhận discrete [5, 10]s"
-        "S2.reference_indices có 5 refs nhưng vidu_q3 max 4"
+        "S2.reference_indices có 12 refs nhưng seedance_2_0 max 9"
     """
     from agent.model_capabilities import capabilities_for, validate_shot_against_model
 

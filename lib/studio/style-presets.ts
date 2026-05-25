@@ -139,7 +139,7 @@ export const STYLE_PRESETS: StylePreset[] = [
       'Action ngắn 1-2 beat, đủ thể hiện ý tưởng chính.',
     ].join(' '),
     settings: {
-      model: 'vidu_q3',
+      model: 'seedance_2_0_fast',
       duration_s: 8,
       aspect_ratio: '9:16',
       audio_mode: 'silent_native',

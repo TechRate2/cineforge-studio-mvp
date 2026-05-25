@@ -138,39 +138,27 @@ def _deduce_model_from_flags(
     duration_s: int,
     refs_count: int,
 ) -> str:
-    """H3 — Backend Python deduce model thay vì để LLM tự apply rules trong
-    prompt (đáng tin hơn, deterministic, dễ test).
+    """V6 — Backend deduces user_model deterministically from 3 boolean flags.
 
-    Decision tree (ưu tiên cao → thấp):
-      1. needs_dialogue_lip_sync + duration ∈ {5,10} → wan_2_7 (lip-sync VN)
-      2. is_multi_shot_cinematic + duration ≤15s:
-         • is_budget_tier → seedance_2_0_fast (cost-optimized)
-         • ngược lại → seedance_2_0 (highest quality)
-      3. duration ≤12s + ≤1 ref → seedance_1_5_pro (i2v specialist)
-      4. is_budget_tier → vidu_q3 (rẻ nhất)
-      5. Fallback → auto (worker pick at render time)
+    Decision tree (ưu tiên cao → thấp, 3 models only):
+      1. needs_dialogue_lip_sync + duration ∈ {5,10} → wan_2_7  (FALLBACK PATH)
+      2. duration ≤ 15s:
+         • is_budget_tier → seedance_2_0_fast  (mid tier)
+         • else → seedance_2_0                  (premium)
+      3. Fallback → auto (worker pick at render time)
     """
     needs_lip = bool(flags.get("needs_dialogue_lip_sync"))
-    is_multi_cinematic = bool(flags.get("is_multi_shot_cinematic"))
     is_budget = bool(flags.get("is_budget_tier"))
 
-    # Rule 1: Wan 2.7 needs discrete [5,10]s for lip-sync
+    # Rule 1: Wan 2.7 driven-audio lip-sync (only model with this capability)
     if needs_lip and duration_s in (5, 10):
         return "wan_2_7"
 
-    # Rule 2: Multi-shot cinematic short video → Seedance 2.0 family
-    if is_multi_cinematic and duration_s <= 15:
+    # Rule 2: Seedance 2.0 core — premium vs fast based on budget signal
+    if duration_s <= 15:
         return "seedance_2_0_fast" if is_budget else "seedance_2_0"
 
-    # Rule 3: Single shot short with 1 ref → Seedance 1.5 Pro
-    if duration_s <= 12 and not is_multi_cinematic and refs_count <= 1:
-        return "seedance_1_5_pro"
-
-    # Rule 4: Budget UGC fallback
-    if is_budget:
-        return "vidu_q3"
-
-    # Rule 5: Auto worker-side
+    # Rule 3: Auto worker-side
     return "auto"
 
 
@@ -334,10 +322,7 @@ async def enhance_brief(req: EnhanceBriefRequest):
     enhanced_brief = str(parsed.get("enhanced_brief", "")).strip() or req.brief
 
     # Whitelist validate suggested_model so we never send a typo back to FE
-    _ALLOWED_MODELS = {
-        "auto", "seedance_2_0", "seedance_2_0_fast", "seedance_1_5_pro",
-        "vidu_q3", "vidu_q3_mix", "wan_2_7",
-    }
+    _ALLOWED_MODELS = {"auto", "seedance_2_0", "seedance_2_0_fast", "wan_2_7"}
     _ALLOWED_AUDIO = {"silent_native", "dialogue_vo", "asmr_macro"}
     _ALLOWED_HOOKS = {
         "pattern_interrupt", "direct_question", "bold_statement", "visual_paradox",

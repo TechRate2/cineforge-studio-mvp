@@ -13,8 +13,8 @@ export interface EnhanceBriefResponse {
   suggested_mood?: string | null;
   suggested_hook_pattern?: string | null;
   suggested_num_shots?: number | null;
-  /** EXACTLY 1 of: auto | seedance_2_0 | seedance_2_0_fast | seedance_1_5_pro
-   *  | vidu_q3 | vidu_q3_mix | wan_2_7. Whitelisted server-side. */
+  /** EXACTLY 1 of: auto | seedance_2_0 | seedance_2_0_fast | wan_2_7.
+   *  Whitelisted server-side. */
   suggested_model?: string | null;
   /** EXACTLY 1 of: silent_native | dialogue_vo | asmr_macro */
   suggested_audio_mode?: string | null;

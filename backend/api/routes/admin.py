@@ -320,9 +320,6 @@ async def get_config():
             "draft_model_map": {
                 "seedance_2_0": "seedance_2_0_fast",
                 "seedance_2_0_fast": "seedance_2_0_fast",
-                "seedance_1_5_pro": "seedance_2_0_fast",
-                "vidu_q3": "vidu_q3",
-                "vidu_q3_mix": "vidu_q3",
                 "wan_2_7": "wan_2_7",
                 "auto": "seedance_2_0_fast",
             },
@@ -330,8 +327,7 @@ async def get_config():
         "video_models": {
             "auto_picker_default": "seedance_2_0",
             "available_user_models": [
-                "auto", "vidu_q3", "vidu_q3_mix", "wan_2_7",
-                "seedance_1_5_pro", "seedance_2_0", "seedance_2_0_fast",
+                "auto", "seedance_2_0", "seedance_2_0_fast", "wan_2_7",
             ],
         },
         "app": {

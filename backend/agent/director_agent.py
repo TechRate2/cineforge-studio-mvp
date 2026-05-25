@@ -770,13 +770,13 @@ class DirectorAgent:
         # Storyboard gen — assume Seedream v4.5 ~$0.04 / image, only if user opts in
         sb_cost = 0.0  # filled when /storyboard endpoint called
 
-        # Render cost — rough per-model $/s
+        # Render cost — rough per-model $/s (V6: 3 user-facing models)
         per_s = {
-            "vidu_q3": 0.042, "vidu_q3_mix": 0.046,
-            "wan_2_7": 0.060,
-            "seedance_1_5_pro": 0.047, "seedance_2_0": 0.096, "seedance_2_0_fast": 0.076,
-            "auto": 0.060,
-        }.get(tech_config.get("model", "auto"), 0.060)
+            "seedance_2_0": 0.096,
+            "seedance_2_0_fast": 0.076,
+            "wan_2_7": 0.10,
+            "auto": 0.076,
+        }.get(tech_config.get("model", "auto"), 0.076)
         render_cost = round(per_s * plan.continuity_bible.duration_s, 3)
 
         # Audio cost

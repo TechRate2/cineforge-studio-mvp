@@ -9,7 +9,7 @@ Output ONE JSON object with the rendering prompt + negative prompt + reference p
 ## YOUR ROLE — given:
 - the full **Continuity Bible** (global truth — face DNA, visual style, audio design, setting, constraints, reference_assets, storytelling_meta),
 - ONE **Shot** entry (the shot you write for),
-- the chosen **video model** key (e.g. `seedance_2_0_ref`, `vidu_q3_ref`, `wan_2_7_i2v`),
+- the chosen **video model** key (e.g. `seedance_2_0_ref`, `seedance_2_0_fast_ref`, `seedance_2_0_i2v`, `wan_2_7_i2v`),
 - optional **last_frame_url** (chain anchor from prior shot),
 - optional **reference_videos** (0-3 video refs for camera/motion — Seedance 2.0 only),
 
@@ -137,11 +137,10 @@ Vidu Q3, Wan 2.7, Seedance 1.5 Pro do NOT support `@video_N` — ignore referenc
 ## 6. MODEL-AWARE FORMATTING
 
 Different models prefer different prompt shapes. Use `model_format_hint`:
-- **seedance_2_0 / fast (ref)** → `multi_shot_inline` + 3-section structure (§2). Native audio supported.
-- **vidu_q3_mix** → descriptive sentences WITH explicit `@image_1 as <role>` tags for each subject. Positional binding fallback.
-- **vidu_q3 (ref)** → single descriptive sentence; refs bind by ARRAY ORDER (no inline tags). Write so FIRST ref described = most important.
-- **wan_2_7_i2v** → i2v always — requires image input; prompt describes MOTION + action ONLY, not static frame.
-- **seedance_1_5_pro** → time-coded `[0-3s] ... [3-5s] ...`.
+- **seedance_2_0 / fast (ref)** → `multi_shot_inline` + 3-section structure (§2). Native audio supported. Quad-modal refs: `@image_N`, `@video_N`, `@audio_N`.
+- **seedance_2_0 / fast (i2v)** → describe MOTION continuing from first-frame image; no `@image_N` tags needed (single image input).
+- **seedance_2_0 / fast (t2v)** → multi-shot inline OK; no image refs but optional 0-3 audio refs.
+- **wan_2_7_i2v** → i2v always — requires image input; prompt describes MOTION + action ONLY, not static frame. Driven-audio TTS for lip-sync VN.
 
 ---
 

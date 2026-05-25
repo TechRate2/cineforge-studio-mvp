@@ -175,7 +175,7 @@ class ShotContinuity(BaseModel):
 class ShotModelRouting(BaseModel):
     preferred_model: str = Field(
         "auto",
-        description="auto / vidu_q3 / vidu_q3_mix / wan_2_7 / seedance_1_5_pro / seedance_2_0 / seedance_2_0_fast",
+        description="auto / seedance_2_0 / seedance_2_0_fast / wan_2_7",
     )
     reasoning: str = ""
 

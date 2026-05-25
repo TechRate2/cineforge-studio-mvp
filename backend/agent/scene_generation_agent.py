@@ -48,32 +48,29 @@ RenderMode = Literal["ref_to_video", "i2v_chain", "t2v"]
 
 # ============================================================
 # Model-key → prompt format hint
+# SEEDANCE 2.0 CORE PATH: multi_shot_inline / i2v_motion
+# FALLBACK PATH (Wan 2.7): i2v_motion
 # ============================================================
 MODEL_FORMAT_HINTS: dict[str, str] = {
     "seedance_2_0_ref": "multi_shot_inline",
     "seedance_2_0_fast_ref": "multi_shot_inline",
+    "seedance_2_0_t2v": "multi_shot_inline",
+    "seedance_2_0_fast_t2v": "multi_shot_inline",
     "seedance_2_0_i2v": "i2v_motion",
     "seedance_2_0_fast_i2v": "i2v_motion",
-    "seedance_v15_pro_i2v": "time_coded",
-    "vidu_q3_ref": "single_descriptive",
-    "vidu_q3_mix_ref": "multi_ref_tagged",
     "wan_2_7_i2v": "i2v_motion",
 }
 
 _PROMPT_MAX_LEN = {
     "multi_shot_inline": 1200,
-    "multi_ref_tagged": 1000,
-    "time_coded": 800,
     "i2v_motion": 600,
-    "single_descriptive": 600,
 }
 
-# Models that natively understand `@image_N` / `@imageN` token references
-# in the prompt body (per AtlasCloud spec). For these we render explicit tags.
+# Models that natively understand `@image_N` token references inline.
+# SEEDANCE 2.0 CORE PATH only — Wan 2.7 ignores `@image_N` tokens.
 _MODELS_SUPPORT_IMAGE_TAGS = {
     "seedance_2_0_ref",
     "seedance_2_0_fast_ref",
-    "vidu_q3_mix_ref",
 }
 
 # Sprint5 C1 — Models that support @video_N reference tags (camera / motion /
@@ -127,7 +124,7 @@ _CHAIN_SCAFFOLD_PREFIX = (
 # ============================================================
 @dataclass
 class SceneRenderJob:
-    """Output for ONE shot — feed directly into `atlascloud.generate_video()`."""
+    """Output for ONE shot — feed directly into `atlas_client.generate_video()`."""
 
     shot_id: str
     prompt: str
@@ -142,38 +139,28 @@ class SceneRenderJob:
     movement_amplitude: str = "auto"
     return_last_frame: bool = True
     model_key: str = "seedance_2_0_ref"
-    # BUG #1 fix — driven-audio URL for Wan 2.7 lip-sync.
-    # Set ONLY when audio_capability=="driven". Renderer passes via field `audio`.
+    # FALLBACK PATH (Wan 2.7) — driven-audio URL for lip-sync TTS
     audio_url: Optional[str] = None
-    # Sprint5 C1 — 0-3 reference video URLs for Seedance 2.0 (@video_N tags).
-    # Models not in _MODELS_SUPPORT_VIDEO_TAGS ignore this field entirely.
-    # Tags `@video_1`..`@video_3` are injected into the prompt; the URLs
-    # themselves will be wired to AtlasCloud when the vendor adds the field
-    # to the payload schema (build_payload is the surface area to update).
+    # SEEDANCE 2.0 CORE PATH — quad-modal refs (0-3 each, ignored by Wan 2.7)
     reference_video_urls: list[str] = field(default_factory=list)
+    reference_audio_urls: list[str] = field(default_factory=list)
 
     def to_atlas_kwargs(self) -> dict:
         """Convert to kwargs for `atlas_client.generate_video()`.
 
-        V4.9 BUG FIX — Vidu Q3 / Q3-Mix chain handling: prior code set
-        `kwargs["image"] = chain_input_url` for ALL i2v_chain shots, but Vidu
-        has NO `image` field — only `images` (plural array, max 4). The
-        last_frame URL was being silently dropped by build_payload, causing
-        identity drift on shots 2+ of Vidu multi-shot plans.
+        Single source of truth: build_payload (model_specs.py) reads
+        spec.images_field and routes to the right field name. We pass the
+        raw URLs; the spec resolver picks `image` (singular) vs
+        `reference_images` (plural) per model.
 
-        Fix: detect Vidu by model_key prefix. For Vidu chain, APPEND the
-        last_frame URL to the reference_image_urls array (lowest-priority
-        position = last index, so the primary character ref stays at index 0
-        for Vidu's array-order binding). Caps at 4 to respect Vidu max.
+        SEEDANCE 2.0 CORE PATH:
+          - ref_to_video → reference_images[] + optional reference_videos[]
+            + reference_audios[]
+          - i2v / chain → image (singular)
+          - t2v → no image at all
 
-        Seedance 2.0 / 2.0 Fast i2v / Wan 2.7 / Seedance 1.5 Pro i2v still use
-        the single `image` field correctly.
-
-        Note (Sprint5 C1): `reference_video_urls` is intentionally NOT passed
-        through here yet — the AtlasCloud Python wrapper doesn't expose a
-        `reference_videos` kwarg today. The @video_N tags already live in the
-        prompt body so Seedance can resolve them once the payload-side wiring
-        lands (see `agent/model_specs.py::build_payload`).
+        FALLBACK PATH (Wan 2.7):
+          - Always i2v — image (singular) + optional audio_url for lip-sync
         """
         kwargs: dict = {
             "model_key": self.model_key,
@@ -187,51 +174,28 @@ class SceneRenderJob:
             "movement_amplitude": self.movement_amplitude,
             "audio_url": self.audio_url,
         }
-        is_vidu = self.model_key.startswith("vidu_q3")
 
         if self.render_mode == "i2v_chain" and self.chain_input_url:
-            if is_vidu:
-                # Vidu has no `image` singular field — append to images array
-                # (last position so primary character anchor stays at index 0
-                # for Vidu's array-order binding).
-                #
-                # V5.15.6 BUG#1 fix — reserve 1 slot of the 4-cap for the chain
-                # anchor. Previously: `chain_refs[:4]` after appending pushed
-                # last_frame to index 4, then [:4] DROPPED it → chain broken,
-                # identity drifts on shot 2+ when user uploaded 4 refs. Now:
-                # trim user refs to first 3 priority slots (bound_refs is sorted
-                # character→product→style by continuity_manager), then append
-                # chain anchor → guaranteed [:4] = [char, product, top style,
-                # chain_anchor]. Character at index 0 stays locked.
-                chain_refs = list(self.reference_image_urls or [])
-                if len(chain_refs) >= 4:
-                    chain_refs = chain_refs[:3]
-                if self.chain_input_url not in chain_refs:
-                    chain_refs.append(self.chain_input_url)
-                kwargs["images"] = chain_refs[:4]
-            else:
-                # Seedance i2v / Wan i2v / Seedance 1.5 Pro — chain via `image`
-                kwargs["image"] = self.chain_input_url
+            # Seedance i2v / Wan i2v — chain via singular `image` field
+            kwargs["image"] = self.chain_input_url
         elif self.reference_image_urls:
-            # V5.9 — single source of truth per model. build_payload reads the
-            # correct field based on spec.images_field ("image" singular /
-            # "images" list / "reference_images" list). Previously we set BOTH
-            # `image` + `images` for 1-ref shots which was redundant; build_payload
-            # accepts both inputs and picks the right one, but cleaner to pass
-            # only what each model expects.
-            if is_vidu:
-                # Vidu uses `images` plural array
-                kwargs["images"] = self.reference_image_urls
-            elif len(self.reference_image_urls) == 1:
-                # Wan i2v + Seedance i2v / 1.5 Pro use singular `image`
-                # Seedance 2.0 ref also accepts `images` via build_payload remapping
-                # to `reference_images`. Pass both forms so spec resolver picks one.
+            if len(self.reference_image_urls) == 1:
+                # Wan i2v + Seedance i2v use singular `image`.
+                # Seedance ref also accepts via build_payload remapping → pass both.
                 kwargs["image"] = self.reference_image_urls[0]
                 kwargs["images"] = self.reference_image_urls
             else:
                 # Multi-ref → only `images` (build_payload maps to reference_images
                 # for Seedance 2.0 ref)
                 kwargs["images"] = self.reference_image_urls
+
+        # SEEDANCE 2.0 CORE PATH — quad-modal refs (build_payload drops these
+        # for models that don't support them, e.g. Wan 2.7)
+        if self.reference_video_urls:
+            kwargs["reference_videos"] = list(self.reference_video_urls)
+        if self.reference_audio_urls:
+            kwargs["reference_audios"] = list(self.reference_audio_urls)
+
         return {k: v for k, v in kwargs.items() if v is not None}
 
 
@@ -275,19 +239,9 @@ def _filter_refs_for_chain(
     product anchors are already baked in. Keep only style/environment refs to
     avoid the model double-binding identity (which causes drift).
 
-    V4.9 — Vidu Q3 / Q3-Mix exception: Vidu binds references by ARRAY ORDER
-    and has no separate `image` chain input — the last_frame URL is APPENDED
-    to the images array (by to_atlas_kwargs). If we drop the primary
-    character ref from the array, Image1 binding slot becomes empty and the
-    last_frame ends up as the bound primary character — drift.
-    Therefore: KEEP character/product refs on Vidu chain mode.
-
-    Seedance 2.0 i2v / Wan 2.7 / Seedance 1.5 Pro i2v all use a single
-    `image` field for chain, separate from the ref pool → safe to drop
-    character/product refs.
+    Both Seedance 2.0 i2v and Wan 2.7 use a single `image` field for chain
+    input, separate from the ref pool → safe to drop character/product refs.
     """
-    if model_key.startswith("vidu_q3"):
-        return refs  # keep everything for Vidu's array-order binding
     keep_roles = {"style_reference", "environment", "brand_asset"}
     return [r for r in refs if r.role in keep_roles]
 
@@ -421,66 +375,39 @@ def generate_scene(
         r for r in bound_refs if 0 <= r.index < len(reference_images)
     ]
 
-    # V4 Sprint1 Task #7 — Inject master_board as a GLOBAL style reference.
-    # V4.9 nuance — when target is Vidu (which uses images-array chain by
-    # appending last_frame to the same pool), we CAN still inject master_board.
-    # Skip only when:
-    #   - i2v_chain on non-Vidu models (chain frame is the SINGLE image input,
-    #     master_board would displace it) → exclude Seedance/Wan i2v chain
-    #   - single-ref models (max_references==1) — board displaces primary
-    #
-    # V5.16 P1#4 — For Seedance 2.0 ref / Fast ref, PREPEND master board as
-    # ref[0] (drama-director-skill + AtlasCloud Drama Workflow pattern). The
-    # 9-panel board becomes "primary visual DNA" — Seedance ref weights earlier
-    # entries higher in identity anchoring. Vidu Q3 keeps APPEND behavior
-    # because Vidu binds positionally and primary character MUST stay at
-    # images[0] for correct identity slot mapping.
+    # SEEDANCE 2.0 CORE PATH — Inject master_board as PRIMARY visual DNA anchor.
+    # Pattern: drama-director-skill + AtlasCloud Drama Workflow.
+    # Seedance ref models weight earlier refs higher → board canvas at ref[0]
+    # locks character DNA across shots. Skip when:
+    #   - i2v_chain (chain frame IS the single image input, no slot for board)
+    #   - single-ref models (Wan 2.7 — board displaces primary)
     _max_refs = _model_spec_for_max_refs(model_key)
-    is_vidu_for_board = model_key.startswith("vidu_q3")
-    # V5.16.1 — Extended check: include i2v variants because worker resolves
-    # user_model="seedance_2_0" → "seedance_2_0_i2v" on chain shots (shot[i>0]).
-    # Without this, chained Seedance shots silently lose the board benefit
-    # (board still appended but at end instead of priority ref[0]).
-    is_seedance_ref_for_board = model_key in (
-        "seedance_2_0_ref", "seedance_2_0_fast_ref",
-        "seedance_2_0_i2v", "seedance_2_0_fast_i2v",
-    )
-    chain_blocks_board = is_chain and not is_vidu_for_board
+    is_seedance_for_board = model_key.startswith("seedance_2_0")
     if (
         master_board_url
-        and not chain_blocks_board
+        and not is_chain
         and _max_refs > 1
         and master_board_url not in ref_urls
         and len(ref_urls) < _max_refs
+        and is_seedance_for_board
     ):
         board_asset = ReferenceAsset(
-            index=len(reference_images),  # synthetic index past real refs
+            index=len(reference_images),
             url=master_board_url,
             role="style_reference",
             apply_to_shots=[shot.shot_id],
             notes=(
                 "MASTER BOARD — primary visual DNA anchor "
                 "(match character/outfit/lighting EXACTLY across shots)"
-                if is_seedance_ref_for_board
-                else "Master storyboard board — global style + character DNA anchor"
             ),
         )
-        if is_seedance_ref_for_board:
-            # PREPEND at ref[0] — Seedance treats earlier refs as stronger
-            # identity anchors. Board canvas locks character DNA across shots.
-            ref_urls.insert(0, master_board_url)
-            bound_refs_filtered.insert(0, board_asset)
-            logger.debug(
-                f"[SceneGen] {shot.shot_id} PREPENDED master_board at ref[0] "
-                f"(Seedance ref pattern) → {len(ref_urls)} refs total"
-            )
-        else:
-            # APPEND — Vidu Q3 keeps char at images[0] for positional binding
-            ref_urls.append(master_board_url)
-            bound_refs_filtered.append(board_asset)
-            logger.debug(
-                f"[SceneGen] {shot.shot_id} appended master_board → {len(ref_urls)} refs total"
-            )
+        # PREPEND at ref[0] — Seedance treats earlier refs as stronger anchors
+        ref_urls.insert(0, master_board_url)
+        bound_refs_filtered.insert(0, board_asset)
+        logger.debug(
+            f"[SceneGen] {shot.shot_id} PREPENDED master_board at ref[0] "
+            f"(Seedance ref pattern) → {len(ref_urls)} refs total"
+        )
 
     render_mode: RenderMode = (
         "i2v_chain" if is_chain

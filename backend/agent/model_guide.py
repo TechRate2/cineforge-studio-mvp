@@ -40,59 +40,6 @@ NICHE_TAGS = {
 
 VIDEO_GUIDE: dict[str, dict[str, Any]] = {
 
-    "vidu_q3_ref": {
-        "best_for": [
-            "Anime / cel-animation video 16s",
-            "Multi-entity consistency (2-4 subjects giữ identity cùng lúc)",
-            "Storyboard rapid prototype với native audio",
-            "Pre-roll ads + social promos + landing-page explainers",
-        ],
-        "strengths": [
-            "Ranked #1 China, #2 global (Artificial Analysis 03/2026)",
-            "Native audio gen — voice + SFX + BGM tự sync trong 1 pass",
-            "16s duration (gấp 2-4× competitors) — đủ setup/conflict/resolution",
-            "1080P clean detail, anti-aliased",
-            "Smart Cuts tự động chuyển góc camera theo narrative",
-        ],
-        "weaknesses": [
-            "Fingers/hands có thể mushy ở close-up",
-            "Audio đôi khi clash với mood scene",
-            "Character consistency hơi yếu trên prompt complex",
-            "Iteration cost cao (1 fail 16s = nhiều credit)",
-        ],
-        "ideal_user": "Anime creator, social media marketer, filmmaker storyboarding",
-        "niche_tags": ["Anime", "Multi-Character", "Storyboard", "UGC", "Cinematic"],
-        "sample_prompt": "Two Vietnamese women friends at Saigon cafe rooftop golden hour, woman A holds product while woman B leans in curious, warm conversation, 16:9, smooth handheld camera",
-        "rating": "9.0/10 (Pollo) · 8.5/10 (Filmora)",
-        "sources": [
-            "https://pollo.ai/hub/vidu-q3-review",
-            "https://www.promeai.pro/blog/2026/02/05/what-is-vidu-q3/",
-            "https://deevid.ai/blog/vidu-q3-review",
-        ],
-    },
-
-    "vidu_q3_mix_ref": {
-        "best_for": [
-            "Premium brand ad 1080p tier",
-            "Same Vidu Q3 strengths but pure 1080p output",
-            "High-budget shoots cần texture chi tiết nhất",
-        ],
-        "strengths": [
-            "1080p chuẩn cao hơn Q3 base (no 540p tier)",
-            "Multi-entity consistency strong",
-            "Native audio + 16s duration",
-        ],
-        "weaknesses": [
-            "Đắt 2.5× Q3 base ($0.106 vs $0.042) — chỉ dùng final cut",
-            "Vẫn limitations về hands/fingers như Q3",
-        ],
-        "ideal_user": "Brand creator, premium ad agency",
-        "niche_tags": ["Premium 1080p", "Cinematic", "Multi-Character"],
-        "sample_prompt": "Cinematic product hero shot, Vietnamese model holding YUUMY backpack, golden hour studio lighting, 1080p ultra-detailed, slow rotation 360",
-        "rating": "Premium tier — same Q3 quality, 1080p locked",
-        "sources": ["https://www.atlascloud.ai/models/vidu/q3-mix/reference-to-video"],
-    },
-
     "wan_2_7_i2v": {
         "best_for": [
             "Talking head video tiếng Việt với lipsync chính xác",
@@ -122,94 +69,6 @@ VIDEO_GUIDE: dict[str, dict[str, Any]] = {
             "https://www.seaart.ai/blog/wan-2-7-review",
             "https://runware.ai/collections/best-lip-sync",
         ],
-    },
-
-    "wan_2_7_t2v": {
-        "best_for": [
-            "Long prompt window (cinematography terminology)",
-            "Text-to-video không cần first-frame",
-            "Soundtrack via audio URL parameter",
-        ],
-        "strengths": [
-            "Long prompt window — accept detailed scene description",
-            "Sharper controls vs Wan 2.5",
-            "Native audio output (sync với text scene)",
-        ],
-        "weaknesses": [
-            "Không có lipsync specific như i2v",
-            "Cùng $0.10/s — không rẻ",
-        ],
-        "ideal_user": "Creator viết prompt chi tiết, không có ảnh ref",
-        "niche_tags": ["Cinematic", "Storyboard"],
-        "sample_prompt": "A supercar exploding out of a long dark tunnel at extreme speed, motion blur, cinematic blockbuster style, ultra-realistic",
-        "rating": "Strong text-to-video baseline 2026",
-        "sources": ["https://z.tools/blog/alibaba-wan2-7-video"],
-    },
-
-    "seedance_v15_pro_i2v": {
-        "best_for": [
-            "Quick image-to-video 10s clips (simple concept)",
-            "Production-stable API (Seedance 2.0 chưa global API)",
-            "Basic Pan/Zoom/Tilt camera",
-            "Realistic motion với reference image rõ ràng",
-        ],
-        "strengths": [
-            "Production API stable (vs 2.0 vẫn preview)",
-            "Camera_fixed flag — lock camera cho macro/product shot",
-            "Native audio (generate_audio=true)",
-            "$0.047/s — cost-effective tier",
-        ],
-        "weaknesses": [
-            "Resolution chỉ 480p/720p (no 1080p như 2.0)",
-            "Duration cap 12s (so 2.0: 15s + auto)",
-            "Camera moves cơ bản (no advanced trajectory như 2.0)",
-            "ByteDance content filter aggressive cho realistic human faces",
-        ],
-        "ideal_user": "Production user cần API stable, budget conscious",
-        "niche_tags": ["Product Showcase", "UGC", "Faceless"],
-        "sample_prompt": "Product 360° rotation on white marble, dramatic side light, macro detail focus, camera_fixed=true, 10s",
-        "rating": "Elo ~1200 (vs 2.0 Elo 1351) — solid baseline",
-        "sources": [
-            "https://www.seedance.best/blog/seedance-1-5-pro-review/",
-            "https://www.seedancev2ai.com/en/blog/seedance-1-5-pro-vs-seedance-2-0-ultimate-comparison",
-        ],
-    },
-
-    "seedance_v15_pro_t2v": {
-        "best_for": [
-            "Text-to-video budget tier ($0.047/s)",
-            "Simple narrative scenes",
-        ],
-        "strengths": ["Production API stable", "Same v1.5 reliability"],
-        "weaknesses": ["Resolution cap 720p"],
-        "ideal_user": "Same i2v but no image ref",
-        "niche_tags": ["Budget", "UGC"],
-        "sample_prompt": "A golden retriever running on sunny beach, waves crashing, cinematic lighting",
-        "rating": "Solid budget t2v",
-        "sources": ["https://www.seedance.best/blog/seedance-1-5-pro-review/"],
-    },
-
-    "seedance_v15_pro_i2v_fast": {
-        "best_for": [
-            "PROTOTYPE iteration cực rẻ ($0.018/s — rẻ NHẤT hệ thống)",
-            "Test concept trước khi commit model đắt",
-            "High-volume content production (TikTok daily batch)",
-        ],
-        "strengths": [
-            "RẺ NHẤT — $0.018/s (gấp 5× rẻ hơn Wan 2.7)",
-            "5s × $0.018 = $0.09 = ~2.200đ/video",
-            "Locked 720p (no quality drop dáo dác)",
-            "Camera_fixed cho product shot stable",
-        ],
-        "weaknesses": [
-            "Resolution locked 720p (no upgrade option)",
-            "Quality giảm so v1.5 chuẩn — speed vs detail tradeoff",
-        ],
-        "ideal_user": "Affiliate VN làm 100 video/tháng cần iterate nhanh",
-        "niche_tags": ["Budget", "Product Showcase", "UGC"],
-        "sample_prompt": "Quick product demo: hand holds backpack, rotates 90°, places on desk, 5s, camera fixed",
-        "rating": "Sweet spot cost/quality cho volume use",
-        "sources": ["https://zencreator.pro/ai-university/guides/seedance-pro-fast-v15-zencreator"],
     },
 
     "seedance_2_0_ref": {
@@ -511,9 +370,8 @@ def recommend_for_use_case(use_case: str) -> list[dict]:
 
     Use case examples:
         - "Talking head VN audio" → wan_2_7_i2v
-        - "Anime 16s" → vidu_q3_ref
-        - "Budget volume video" → seedance_v15_pro_i2v_fast
-        - "Premium ad 1080p" → vidu_q3_mix_ref or seedance_2_0_*
+        - "Budget volume video" → seedance_2_0_fast_ref
+        - "Premium ad 1080p / multi-shot" → seedance_2_0_ref
         - "Photorealistic 4K image" → nano_banana_pro_t2i
         - "Volume A/B test image" → wan_2_7_t2i (n=4)
     """
@@ -521,13 +379,11 @@ def recommend_for_use_case(use_case: str) -> list[dict]:
     matches = []
 
     rules = [
-        # Video
+        # Video — Seedance 2.0 core path, Wan 2.7 fallback for VN lip-sync
         (["talking head", "lipsync", "voice", "narration", "thuyết minh", "khớp môi"], "wan_2_7_i2v"),
-        (["anime", "cel", "2d animation"], "vidu_q3_ref"),
-        (["budget video", "rẻ video", "iterate", "test concept"], "seedance_v15_pro_i2v_fast"),
-        (["multi-shot", "storyboard", "cinematic", "premium ad"], "seedance_2_0_ref"),
-        (["premium 1080p video", "brand ad", "hero shot video"], "vidu_q3_mix_ref"),
-        (["multi entity", "multiple subject", "2 người", "nhiều nhân vật"], "vidu_q3_ref"),
+        (["budget video", "rẻ video", "iterate", "test concept", "volume"], "seedance_2_0_fast_ref"),
+        (["multi-shot", "storyboard", "cinematic", "premium ad", "multi entity", "nhiều nhân vật"], "seedance_2_0_ref"),
+        (["premium 1080p video", "brand ad", "hero shot video"], "seedance_2_0_ref"),
         # Image
         (["photorealistic", "4k photo", "magazine", "dslr", "ảnh thật"], "nano_banana_pro_t2i"),
         (["artistic", "stylized", "poster", "typography", "nghệ thuật"], "seedream_v45"),

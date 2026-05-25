@@ -157,6 +157,8 @@ class AtlasCloudClient:
         prompt: str,
         images: Optional[list[str]] = None,
         image: Optional[str] = None,
+        reference_videos: Optional[list[str]] = None,   # SEEDANCE 2.0 quad-modal
+        reference_audios: Optional[list[str]] = None,   # SEEDANCE 2.0 quad-modal
         duration_s: Optional[int] = None,
         resolution: Optional[str] = None,
         aspect_ratio: Optional[str] = None,
@@ -175,15 +177,15 @@ class AtlasCloudClient:
     ) -> dict:
         """Submit video job + poll until done.
 
-        ⚠️ Dùng build_payload() để build per-model spec chuẩn (Vidu aspect_ratio
-        vs Wan/Seedance ratio, images vs image, ...). KHÔNG hardcode field.
+        ⚠️ Dùng build_payload() để build per-model spec chuẩn (Wan dùng `ratio`,
+        Seedance dùng `ratio`, images vs image, ...). KHÔNG hardcode field.
 
         Args:
-            model_key: key trong VIDEO_MODEL_SPECS (vidu_q3_ref, wan_2_7_i2v, ...)
-            timeout_s: default 600 (10min). Sprint3 B8: callers MUST override
-                for slow tiers — Vidu Q3-Mix 1080p 16s ≈ 8-12min, 1440p-SR
-                ≈ 10-15min. Recommended: 900s for ≥1080p OR ≥12s, 1200s for
-                1440p-SR. Job rate-limit may push higher on busy days.
+            model_key: key trong VIDEO_MODEL_SPECS (seedance_2_0_*, wan_2_7_i2v)
+            reference_videos: SEEDANCE 2.0 CORE — 0-3 video URLs for motion/camera refs.
+            reference_audios: SEEDANCE 2.0 CORE — 0-3 audio URLs for beat/lip-sync source.
+            timeout_s: default 600 (10min). Override cho slow tiers — 1440p-SR
+                ≈ 10-15min nên dùng 900-1200s. Job rate-limit có thể đẩy cao hơn.
             on_submit: V5.1 — callback invoked with prediction_id immediately
                 after vendor submit (BEFORE poll). Lets the worker register the
                 ID with the jobs_store so /cancel can call cancel_prediction()
@@ -210,13 +212,14 @@ class AtlasCloudClient:
             prompt=prompt,
             images=images,
             image=image,
+            reference_videos=reference_videos,    # SEEDANCE 2.0 quad-modal
+            reference_audios=reference_audios,    # SEEDANCE 2.0 quad-modal
             duration_s=duration_s,
             resolution=resolution,
             aspect_ratio=aspect_ratio,
             negative_prompt=negative_prompt,
             seed=seed,
             generate_audio=generate_audio,
-            movement_amplitude=movement_amplitude,
             audio_url=audio_url,
             last_image=last_image,
             prompt_extend=prompt_extend,
@@ -308,7 +311,8 @@ class AtlasCloudClient:
                 "poll_interval_s": poll_interval_s,
                 "timeout_s": timeout_s,
                 "generate_audio": scene.get("generate_audio"),
-                "movement_amplitude": scene.get("movement_amplitude") or "auto",
+                "reference_videos": scene.get("reference_videos"),
+                "reference_audios": scene.get("reference_audios"),
             }
             if is_chain:
                 call_kwargs["image"] = last_frame_url

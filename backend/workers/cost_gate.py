@@ -37,12 +37,9 @@ class CostGateDecision:
 
 # Default model overrides for the draft stage.
 DRAFT_MODEL_OVERRIDE = {
-    "seedance_2_0": "seedance_2_0_fast",
+    "seedance_2_0": "seedance_2_0_fast",       # downgrade premium → fast
     "seedance_2_0_fast": "seedance_2_0_fast",  # already fast
-    "seedance_1_5_pro": "seedance_2_0_fast",   # downgrade
-    "vidu_q3": "vidu_q3",                       # vidu has no fast tier — same model
-    "vidu_q3_mix": "vidu_q3",
-    "wan_2_7": "wan_2_7",                       # wan already cheap
+    "wan_2_7": "wan_2_7",                       # wan: no cheaper tier
     "auto": "seedance_2_0_fast",
 }
 

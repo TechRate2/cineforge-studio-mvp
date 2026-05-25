@@ -310,7 +310,7 @@ Return ONE JSON object. Strict — no trailing commas, no comments, no fences.
         "style_anchor": "warm 35mm grain, soft window, shallow DoF"
       },
       "model_routing": {
-        "preferred_model": "auto|vidu_q3|seedance_2_0|...",
+        "preferred_model": "auto|seedance_2_0|seedance_2_0_fast|wan_2_7",
         "reasoning": "1 sentence"
       },
       "dynamic_description": "0:00-0:02 Hard cut to MCU handheld, character looks up startled, golden hour rim light"

@@ -1,36 +1,28 @@
-"""MULTI-SHOT PROMPT BUILDER — per-model strategy for single-call rendering.
+"""MULTI-SHOT PROMPT BUILDER — Seedance 2.0 single-call multi-shot rendering.
 
-Industry research (verified across 7 + 22 sources):
+V6 — 7-model core. Only Seedance 2.0 family supports native multi-shot inline
+notation (`[Shot N | Xs | ...]` markers in a single API call). Wan 2.7 is i2v
+only and renders per-shot.
 
-| Model           | Multi-shot inline | Time-coded | Per-shot only | Max dur |
-|-----------------|-------------------|------------|---------------|---------|
-| Seedance 2.0    | ✅ NATIVE         | (alt)      | —             | 15s     |
-| Seedance 2.0 F  | ✅ NATIVE         | (alt)      | —             | 15s     |
-| Seedance 1.5 P  | —                 | ✅ NATIVE  | (alt)         | 12s     |
-| Vidu Q3         | ❌                | ❌         | ✅ REQUIRED   | 16s     |
-| Vidu Q3 Mix     | ❌                | ❌         | ✅ REQUIRED   | 16s     |
-| Wan 2.7         | ❌ i2v only       | ❌         | ✅ REQUIRED   | 5/10s   |
+| Model            | Multi-shot inline | Per-shot chain | Max dur |
+|------------------|-------------------|----------------|---------|
+| seedance_2_0     | ✅ NATIVE         | (alt)          | 15s     |
+| seedance_2_0_fast| ✅ NATIVE         | (alt)          | 15s     |
+| wan_2_7          | ❌ (i2v only)     | ✅ REQUIRED    | 5/10s   |
 
 Strategy dispatch:
-    seedance_2_0[_fast] + duration ≤ 15s + 2-6 shots → SINGLE_CALL_MULTI_SHOT
-    seedance_1_5_pro    + duration ≤ 12s + 2-4 shots → SINGLE_CALL_TIME_CODED
-    All other combos                                  → PER_SHOT_CHAIN (existing)
+    seedance_2_0[_fast] + duration ≤ 15s + 1-6 shots → SINGLE_CALL_MULTI_SHOT
+    All other combos                                  → PER_SHOT_CHAIN
 
-Sources confirming each format:
-  Seedance 2.0 multi-shot inline:
-    - Byteplus official Dreamina Seedance 2.0 docs (Apr 2026)
-    - WaveSpeed Seedance 2.0 template (Feb 2026)
-    - awesome-seedance-2-prompts repo
-    - AtlasCloud drama workflow (3-section + multi-shot)
-    - drama-director-skill (3-section template)
-
-  Seedance 1.5 Pro time-coded:
-    - scene_generation_agent.MODEL_FORMAT_HINTS["seedance_v15_pro_i2v"] = "time_coded"
-    - AtlasCloud docs confirm `[0-3s] [3-7s]` time-coded prompt format
+Sources:
+  - Byteplus official Dreamina Seedance 2.0 docs (Apr 2026)
+  - WaveSpeed Seedance 2.0 template (Feb 2026)
+  - awesome-seedance-2-prompts repo
+  - AtlasCloud drama workflow (3-section + multi-shot)
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, Literal
 from loguru import logger
 
@@ -39,9 +31,8 @@ from agent import continuity_manager
 
 
 RenderStrategy = Literal[
-    "single_call_multi_shot",   # Seedance 2.0 / 2.0 Fast ≤15s
-    "single_call_time_coded",   # Seedance 1.5 Pro ≤12s
-    "per_shot_chain",           # Vidu / Wan / long-form / cross-location
+    "single_call_multi_shot",   # SEEDANCE 2.0 CORE PATH — ≤15s single API call
+    "per_shot_chain",           # FALLBACK PATH — Wan 2.7, long-form, cross-location
 ]
 
 
@@ -61,6 +52,9 @@ class SingleCallSpec:
     # Per-shot timing map (kept for downstream audio_timeline to overlay
     # TTS at correct start_s within the single rendered video)
     shot_timing: list[dict]  # [{"shot_id", "start_s", "end_s", "duration_s"}, ...]
+    # SEEDANCE 2.0 CORE PATH — quad-modal refs (0-3 each)
+    reference_video_urls: list[str] = field(default_factory=list)
+    reference_audio_urls: list[str] = field(default_factory=list)
 
 
 # ============================================================
@@ -82,12 +76,11 @@ def pick_strategy(
     if has_cross_location_cut:
         return "per_shot_chain"
 
+    # SEEDANCE 2.0 CORE PATH — single-call multi-shot
     if user_model in ("seedance_2_0", "seedance_2_0_fast") and total_duration_s <= 15 and 1 <= num_shots <= 6:
         return "single_call_multi_shot"
 
-    if user_model == "seedance_1_5_pro" and total_duration_s <= 12 and 1 <= num_shots <= 4:
-        return "single_call_time_coded"
-
+    # FALLBACK PATH — Wan 2.7 + edge cases
     return "per_shot_chain"
 
 
@@ -277,103 +270,6 @@ def build_seedance_2_multi_shot(
         generate_audio=generate_audio,
         model_key=model_key,
         strategy="single_call_multi_shot",
-        shot_timing=shot_timing,
-    )
-
-
-# ============================================================
-# Seedance 1.5 Pro — time-coded format (≤12s)
-# ============================================================
-def build_seedance_15_time_coded(
-    bible: ContinuityBible,
-    shots: list[Shot],
-    reference_images: list[str],
-    *,
-    model_key: str = "seedance_v15_pro_i2v",
-    resolution: str = "720p",
-) -> SingleCallSpec:
-    """Build a SINGLE time-coded prompt for Seedance 1.5 Pro (≤12s).
-
-    Format: [0-3s] beat 1 ... [3-7s] beat 2 ... [7-12s] beat 3 ...
-
-    Seedance 1.5 Pro i2v supports 1 reference (anchor) — picks first
-    character or product ref. No `@image_N` syntax — relies on anchor image
-    + time-coded prompt for shot transitions.
-
-    V4.6 (Grok V2 — Higgsfield + Replicate case studies):
-      Best anchor selection for Seedance 1.5 Pro:
-        - **Full-body high-key portrait** (NOT close-up) — gives the model
-          room to animate body motion + camera moves without warping the face
-        - Lighting in anchor = lighting in output (Seedance treats anchor
-          lighting as visual DNA). Pick anchor with desired final mood.
-        - Resolution ≥ 1024×1024 (DPI matters — low-res anchor → blurry video)
-    """
-    # Pick single anchor ref (character > product > first available)
-    anchor_idx: Optional[int] = None
-    for r in (bible.reference_assets or []):
-        if r.role == "character_anchor" and 0 <= r.index < len(reference_images):
-            anchor_idx = r.index
-            break
-    if anchor_idx is None:
-        for r in (bible.reference_assets or []):
-            if r.role == "product_hero" and 0 <= r.index < len(reference_images):
-                anchor_idx = r.index
-                break
-    if anchor_idx is None and reference_images:
-        anchor_idx = 0
-
-    ref_urls = [reference_images[anchor_idx]] if anchor_idx is not None else []
-
-    # Style preamble
-    vs = bible.visual_style
-    style_preamble = (
-        f"{vs.cinematography or 'cinematic UGC'}, "
-        f"{vs.color_grading or 'warm filmic'}, "
-        f"{vs.lighting_design or 'soft natural light'}. "
-    )
-
-    # Character anchor phrase
-    char_phrase = ""
-    if bible.characters:
-        c = bible.characters[0]
-        char_phrase = f"Character: {c.face_signature}. Outfit: {c.outfit}. "
-
-    # Time-coded beat lines
-    beat_lines: list[str] = []
-    for shot in shots:
-        v = shot.visual
-        dialogue_clip = ""
-        if shot.audio.dialogue_vn:
-            dialogue_clip = f' Speaks: "{shot.audio.dialogue_vn}"'
-        beat_lines.append(
-            f"[{shot.start_s:.0f}-{shot.end_s:.0f}s] "
-            f"{v.camera_shot or 'MCU'} {v.camera_movement or 'static'}: "
-            f"{v.subject}, {v.action}.{dialogue_clip}"
-        )
-
-    prompt = style_preamble + char_phrase + " ".join(beat_lines)
-
-    negative = continuity_manager.build_negative_prompt(bible)
-
-    dialogue_style = (bible.audio_design.dialogue_style or "silent").lower()
-    generate_audio = dialogue_style not in ("silent", "")
-
-    shot_timing = [
-        {"shot_id": s.shot_id, "start_s": s.start_s, "end_s": s.end_s, "duration_s": s.duration_s}
-        for s in shots
-    ]
-
-    return SingleCallSpec(
-        prompt=prompt,
-        negative_prompt=negative,
-        reference_image_indices=[anchor_idx] if anchor_idx is not None else [],
-        reference_image_urls=ref_urls,
-        total_duration_s=sum(s.duration_s for s in shots),
-        aspect_ratio=bible.aspect_ratio or "9:16",
-        resolution=resolution,
-        generate_audio=generate_audio,
-        model_key=model_key,
-        strategy="single_call_time_coded",
         shot_timing=shot_timing,
     )
 

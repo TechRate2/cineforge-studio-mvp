@@ -1,7 +1,7 @@
 'use client';
 import { MODEL_CONFIGS } from '@/lib/studio/model-config';
 import type { VideoModel } from '@/lib/types/backend';
-import { Zap, Award, Sparkles } from 'lucide-react';
+import { Zap, Award, Mic2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 interface ShowcaseModel {
@@ -12,11 +12,11 @@ interface ShowcaseModel {
   highlight: 'magenta' | 'orange' | 'cyan';
 }
 
-// Pulled from MODEL_CONFIGS — not hardcoded data, only display ordering/tagline UI hint.
+// V6 — 3 user-facing models. Seedance 2.0 (premium) + Fast (mid) + Wan 2.7 (lip-sync VN).
 const FEATURED: ShowcaseModel[] = [
-  { id: 'seedance_2_0', badge: 'Cinematic', badgeIcon: Award, tagline: 'Multi-shot timeline + native audio', highlight: 'magenta' },
-  { id: 'seedance_2_0_fast', badge: 'Fast draft', badgeIcon: Zap, tagline: 'Iterate ý tưởng 5× rẻ hơn', highlight: 'orange' },
-  { id: 'vidu_q3_mix', badge: 'Premium ref', badgeIcon: Sparkles, tagline: '@image_N tags · 1080p detail', highlight: 'cyan' },
+  { id: 'seedance_2_0', badge: 'Cinematic', badgeIcon: Award, tagline: 'Quad-modal · 9 images + 3 videos + 3 audio refs', highlight: 'magenta' },
+  { id: 'seedance_2_0_fast', badge: 'Fast draft', badgeIcon: Zap, tagline: 'Iterate rẻ hơn 20% · same quad-modal', highlight: 'orange' },
+  { id: 'wan_2_7', badge: 'Lip-sync VN', badgeIcon: Mic2, tagline: '1 portrait + TTS → khớp môi tiếng Việt', highlight: 'cyan' },
 ];
 
 export function ModelShowcase({ onPick }: { onPick: (m: VideoModel) => void }) {
