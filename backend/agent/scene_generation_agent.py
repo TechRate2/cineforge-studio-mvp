@@ -26,6 +26,13 @@ Sprint5 — 5 additive improvements (C1-C5) for Seedance 2.0 best practices:
     C4: "Continue from previous frame:" scaffold prefix on i2v_chain mode
     C5: Full multi-shot inline notation in deterministic build
         ([Shot N | Xs | <movement> | @image_1 as <role> + @image_2 as <role>])
+
+V6.1 — Autonomous Director integration:
+    `skills/role_tagger.py` produces TaggedReference list with same role taxonomy
+    as `agent/schemas.py:ReferenceAsset.role` — autonomous_director's adapter
+    maps them 1:1 into Bible.reference_assets, so this Scene Generation Agent
+    consumes autonomous output WITHOUT any code change. The role labels in
+    `_ROLE_LABELS` here are the canonical EN versions used for prompt injection.
 """
 from __future__ import annotations
 

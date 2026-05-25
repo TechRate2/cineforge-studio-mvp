@@ -93,6 +93,67 @@ def _resolve_models(user_model: str) -> tuple[str, str]:
 # ============================================================
 # Public entry
 # ============================================================
+# ============================================================
+# V6.1 — Autonomous mode convenience wrapper
+# ============================================================
+async def render_autonomous(
+    job_id: str,
+    user_idea: str,
+    reference_image_urls: list[str],
+    *,
+    reference_video_urls: Optional[list[str]] = None,
+    reference_audio_urls: Optional[list[str]] = None,
+    target_platform: str = "tiktok",
+    duration_hint_s: Optional[int] = None,
+    user_model: str = "auto",
+    resolution: str = "720p",
+    jobs_store: Optional[dict] = None,
+) -> dict:
+    """End-to-end autonomous flow — 1 user idea + refs → rendered video.
+
+    Chain: AutonomousDirector (5 skills) → render_plan() → MP4.
+    Returns the same dict as render_plan() PLUS editor_meta (caption, hashtag,
+    transitions) for FE post-render display.
+    """
+    from agent.autonomous_director import AutonomousDirector, AutonomousRunRequest
+
+    director_chain = AutonomousDirector()
+    result = await director_chain.run(AutonomousRunRequest(
+        user_idea=user_idea,
+        reference_image_urls=reference_image_urls,
+        reference_video_urls=reference_video_urls or [],
+        reference_audio_urls=reference_audio_urls or [],
+        target_platform=target_platform,
+        duration_hint_s=duration_hint_s,
+        user_model=user_model,
+    ))
+
+    # Render the DirectorPlan via existing pipeline (backward-compat path)
+    render_result = await render_plan(
+        job_id=job_id,
+        plan=result.director_plan,
+        reference_images=reference_image_urls,
+        user_model=result.director_out.user_model,
+        resolution=resolution,
+        audio_plan=None,
+        jobs_store=jobs_store,
+        use_llm_scene_gen=True,
+        cost_gate_mode="off",
+    )
+
+    # Merge editor meta into output
+    render_result["editor_meta"] = result.editor_meta.model_dump()
+    render_result["autonomous_meta"] = {
+        "elapsed_chain_s": result.elapsed_s,
+        "render_strategy": result.director_out.render_strategy,
+        "n_chunks": result.director_out.n_chunks,
+        "resolved_model": result.director_out.user_model,
+        "viral_hook_pattern": result.planner_out.hook_pattern,
+        "hook_first_3s": result.planner_out.hook_first_3s,
+    }
+    return render_result
+
+
 async def render_plan(
     job_id: str,
     plan: DirectorPlan,

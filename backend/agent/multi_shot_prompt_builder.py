@@ -4,21 +4,26 @@ V6 — 7-model core. Only Seedance 2.0 family supports native multi-shot inline
 notation (`[Shot N | Xs | ...]` markers in a single API call). Wan 2.7 is i2v
 only and renders per-shot.
 
-| Model            | Multi-shot inline | Per-shot chain | Max dur |
-|------------------|-------------------|----------------|---------|
-| seedance_2_0     | ✅ NATIVE         | (alt)          | 15s     |
-| seedance_2_0_fast| ✅ NATIVE         | (alt)          | 15s     |
-| wan_2_7          | ❌ (i2v only)     | ✅ REQUIRED    | 5/10s   |
+| Model            | Multi-shot inline | Per-shot chain | Max dur single-call |
+|------------------|-------------------|----------------|---------------------|
+| seedance_2_0     | ✅ NATIVE         | (alt)          | 60s                 |
+| seedance_2_0_fast| ✅ NATIVE         | (alt)          | 60s                 |
+| wan_2_7          | ❌ (i2v only)     | ✅ REQUIRED    | 5/10s               |
 
-Strategy dispatch:
-    seedance_2_0[_fast] + duration ≤ 15s + 1-6 shots → SINGLE_CALL_MULTI_SHOT
-    All other combos                                  → PER_SHOT_CHAIN
+Strategy dispatch (V6.1 — updated for long-form):
+    seedance_2_0[_fast] + duration ≤ 60s + 1-6 shots → SINGLE_CALL_MULTI_SHOT
+    > 60s OR > 6 shots                                → PER_SHOT_CHAIN
+    Wan 2.7                                            → PER_SHOT_CHAIN
+
+V6.1 — Long-form support:
+    Autonomous Director's AutoDirector skill splits >60s plans into N chunks
+    (each ≤60s) and feeds them via per_shot_chain — last_frame of chunk N
+    becomes first frame of chunk N+1 (existing chain logic handles this).
 
 Sources:
   - Byteplus official Dreamina Seedance 2.0 docs (Apr 2026)
   - WaveSpeed Seedance 2.0 template (Feb 2026)
-  - awesome-seedance-2-prompts repo
-  - AtlasCloud drama workflow (3-section + multi-shot)
+  - AtlasCloud Seedance 2.0 docs (60s max single-call, 9img+3vid+3aud refs)
 """
 from __future__ import annotations
 
@@ -76,11 +81,12 @@ def pick_strategy(
     if has_cross_location_cut:
         return "per_shot_chain"
 
-    # SEEDANCE 2.0 CORE PATH — single-call multi-shot
-    if user_model in ("seedance_2_0", "seedance_2_0_fast") and total_duration_s <= 15 and 1 <= num_shots <= 6:
+    # SEEDANCE 2.0 CORE PATH — single-call multi-shot up to 60s (V6.1)
+    # Note: per-shot duration still ≤15s (Seedance cap), but TOTAL can be 60s.
+    if user_model in ("seedance_2_0", "seedance_2_0_fast") and total_duration_s <= 60 and 1 <= num_shots <= 6:
         return "single_call_multi_shot"
 
-    # FALLBACK PATH — Wan 2.7 + edge cases
+    # FALLBACK PATH — Wan 2.7 + long-form (>60s, auto-chunked by AutoDirector)
     return "per_shot_chain"
 
 

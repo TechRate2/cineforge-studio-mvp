@@ -1,4 +1,4 @@
-"""Director Agent V3 — Layer 1.
+"""Director Agent V3 — Layer 1 (MANUAL mode, single LLM call).
 
 Pipeline:
     1. Build input bundle (brief + context + refs + tech_config + trends)
@@ -10,6 +10,18 @@ Pipeline:
 
 KHÔNG có template hardcoded. KHÔNG có persona chain linear.
 Toàn bộ creative output từ 1 hệ thống prompt + JSON schema mạnh.
+
+═══════════════════════════════════════════════════════════════════════════
+V6.1 — AUTONOMOUS MODE alternative:
+  Khi user chỉ có 1 ý tưởng ngắn + refs (không có detailed brief), dùng
+  `agent/autonomous_director.AutonomousDirector` thay vì director agent này.
+  Autonomous chạy 5-skill chain (planner → tagger → storyboard → director →
+  editor) và TRẢ VỀ DirectorPlan đã hợp lệ cùng schema — render_plan() consume
+  cả hai mode đồng nhất.
+
+  Manual mode (file này)  : user viết brief chi tiết, 1 LLM call.
+  Autonomous mode         : user chỉ nói ý tưởng, 4-5 LLM calls modular.
+═══════════════════════════════════════════════════════════════════════════
 """
 from __future__ import annotations
 

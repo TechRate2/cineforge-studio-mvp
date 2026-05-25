@@ -422,6 +422,48 @@ def auto_chain_shots(shots: list[Shot], reset_on_purpose_change: bool = True) ->
     return shots
 
 
+# ============================================================
+# V6.1 — Long-form chunk helper (Autonomous Director support)
+# ============================================================
+def split_shots_into_chunks(
+    shots: list[Shot],
+    max_chunk_duration_s: int = 60,
+) -> list[list[Shot]]:
+    """Group shots vào chunks ≤ max_chunk_duration_s mỗi chunk.
+
+    Used by Autonomous Director long-form flow (>60s video) — Seedance 2.0
+    single-call cap 60s, longer must split into N chunks rendered độc lập rồi
+    chain via last_frame.
+
+    Heuristic: greedy fill — add shots vào chunk current cho tới khi adding
+    next shot vượt cap, mở chunk mới. KHÔNG split 1 shot across chunks (shot
+    duration ≤15s ≤ cap an toàn).
+
+    Returns list of shot groups. len(result) == n_chunks. Each inner list
+    is a contiguous subset of `shots` preserving order.
+    """
+    chunks: list[list[Shot]] = []
+    current: list[Shot] = []
+    current_dur = 0
+
+    for s in shots:
+        if current and current_dur + s.duration_s > max_chunk_duration_s:
+            chunks.append(current)
+            current = [s]
+            current_dur = s.duration_s
+        else:
+            current.append(s)
+            current_dur += s.duration_s
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def is_long_form(plan: DirectorPlan, threshold_s: int = 60) -> bool:
+    """True nếu plan duration > threshold (mặc định 60s = Seedance single-call cap)."""
+    return plan.continuity_bible.duration_s > threshold_s
+
+
 def ensure_storyboard_complete(plan: DirectorPlan) -> DirectorPlan:
     """Nếu storyboard_grid thiếu frame cho shot nào → tạo entry placeholder.
 
