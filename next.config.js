@@ -12,6 +12,14 @@ const nextConfig = {
       { source: '/api/v1/:path*', destination: `${BACKEND_URL}/api/v1/:path*` },
     ];
   },
+  // V5.17.1 — Bump Next.js dev proxy timeout from default 30s → 180s.
+  // /storyboard/master needs ~60-90s for Seedream v4.5 ultra-wide gen.
+  // /director/plan can take ~60-120s with Director + Vision + Evaluation LLMs.
+  // Without this, FE sees "socket hang up" ECONNRESET while BE still working
+  // → user gets failure UI even though BE completes + charges $0.04.
+  experimental: {
+    proxyTimeout: 180000,
+  },
 };
 
 module.exports = nextConfig;
