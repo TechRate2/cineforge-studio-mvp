@@ -245,11 +245,26 @@ export function DirectorPlanModal({
               )}
               <button
                 onClick={onApprove}
-                disabled={isRendering || (plan.evaluation.red_flags || []).length > 0}
+                disabled={
+                  isRendering
+                  || (plan.evaluation.red_flags || []).length > 0
+                  // V5.16.2 — block Approve while Master Board still rendering.
+                  // Approving early sends master_board_url=null to /generate,
+                  // wasting the $0.04 board user just paid for.
+                  || (masterIsLoading && masterBoardEnabled
+                      && MASTER_BOARD_ELIGIBLE_MODELS.has(planModel))
+                }
+                title={
+                  masterIsLoading && masterBoardEnabled
+                    ? 'Đợi Master Board render xong (~30-60s) để identity anchor được áp dụng'
+                    : undefined
+                }
                 className="btn-cta"
               >
                 {isRendering ? (
                   <><Loader2 size={15} className="animate-spin" /> Rendering...</>
+                ) : masterIsLoading && masterBoardEnabled && MASTER_BOARD_ELIGIBLE_MODELS.has(planModel) ? (
+                  <><Loader2 size={15} className="animate-spin" /> Đợi Master Board...</>
                 ) : (
                   <><Sparkles size={15} /> Approve &amp; Render</>
                 )}

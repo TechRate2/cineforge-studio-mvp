@@ -256,11 +256,22 @@ export default function StudioPage() {
   };
 
   const cfg = useMemo(() => getModelConfig(model), [model]);
+  // V5.16.2 — Pre-plan cost estimate shown in PromptCardV2 chip + cost gate.
+  // Includes:
+  //   $0.04 Director Plan LLM call (analyzer + generator + evaluation)
+  //   $videoCost = per-sec rate × duration (vendor render)
+  //   $audioCost = 0.01 (TTS) or 0.10 (ASMR SFX) or 0 (silent)
+  //   $0.04 Master Board (only when toggle ON AND model in eligible set)
+  // Note: actual /generate may differ slightly after BE auto-pick + snap.
   const estimatedCostUsd = useMemo(() => {
     const videoCost = cfg.cost_per_second_usd * duration;
     const audioCost = audioMode === 'dialogue_vo' ? 0.01 : audioMode === 'asmr_macro' ? 0.10 : 0;
-    return 0.04 + videoCost + audioCost;
-  }, [cfg.cost_per_second_usd, duration, audioMode]);
+    const MASTER_BOARD_MODELS_PAGE = new Set(['auto', 'seedance_2_0', 'seedance_2_0_fast']);
+    const masterBoardCost = (
+      masterBoardEnabled && MASTER_BOARD_MODELS_PAGE.has(model) ? 0.04 : 0
+    );
+    return 0.04 + videoCost + audioCost + masterBoardCost;
+  }, [cfg.cost_per_second_usd, duration, audioMode, masterBoardEnabled, model]);
 
   return (
     <div className="min-h-full">

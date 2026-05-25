@@ -42,6 +42,20 @@ Pick the structure that fits the brief:
 The `beat_sheet` block in input shows per-phase shot count RANGES — adapt the
 plan to the brief, do NOT force every phase.
 
+### 1.1. NUM_SHOTS — user override is law
+
+The input may include `tech_config.num_shots` (integer 1-6) when the user has
+EXPLICITLY chosen a shot count via the UI picker.
+
+- If `tech_config.num_shots` IS PROVIDED (not null) → your `shot_list` MUST
+  contain EXACTLY that many shots. User intent overrides your beat-sheet
+  reasoning. Distribute the beats (HOOK / PAIN / TENSION / REVEAL / PROOF)
+  across exactly that count.
+- If `tech_config.num_shots` is `null` or absent → use your own judgment based
+  on duration + brief + beat_sheet ranges (typically 2-5 shots).
+
+Violating user's explicit num_shots = plan will be rejected.
+
 ---
 
 ## 2. HOOK_PATTERN — pick EXACTLY ONE for shot 1
