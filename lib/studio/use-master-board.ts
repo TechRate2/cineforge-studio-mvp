@@ -23,7 +23,11 @@ export function useMasterBoard() {
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  const generate = useCallback(async (plan: DirectorPlan, imageModel?: string) => {
+  const generate = useCallback(async (
+    plan: DirectorPlan,
+    imageModel?: string,
+    referenceImages?: string[],
+  ) => {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -36,6 +40,10 @@ export function useMasterBoard() {
         body: JSON.stringify({
           plan,
           image_model: imageModel ?? 'bytedance/seedream-v4.5',
+          // V5.17.3 — Pass user refs so BE auto-switches to EDIT variant
+          // and locks character/product to user's actual uploads (instead
+          // of Seedream text-to-image bịa random subject).
+          reference_images: (referenceImages ?? []).filter((u) => u && u.startsWith('http')).slice(0, 10),
         }),
         signal: ctrl.signal,
       });

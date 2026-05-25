@@ -155,13 +155,35 @@ class StoryboardRequest(BaseModel):
 
 
 class MasterBoardRequest(BaseModel):
-    """V4 Sprint1 — request body for single-image director's storyboard board."""
+    """V4 Sprint1 — request body for single-image director's storyboard board.
+
+    V5.17.3 BUG FIX — added `reference_images` field. Previously Master Board
+    used Seedream v4.5 TEXT-TO-IMAGE which has max_references=0 → ignored
+    user-uploaded refs and auto-generated random character/product. Now when
+    refs are supplied, endpoint auto-switches to Seedream v4.5 EDIT variant
+    (max 10 refs, min 1) so character DNA + product details lock to user's
+    actual uploads.
+    """
     plan: DirectorPlan
     image_model: str = Field(
         "bytedance/seedream-v4.5",
         description="Image model — Seedream v4.5 default (ultra-wide 6240*2656). "
+                    "Auto-switches to v4.5/edit when reference_images supplied. "
                     "Alternatives: google/nano-banana-pro/text-to-image",
     )
+    reference_images: list[str] = Field(
+        default_factory=list,
+        max_length=10,
+        description="V5.17.3 — User-uploaded refs (character/product/style). "
+                    "When non-empty, endpoint uses image-to-image edit variant "
+                    "so generated board matches user's actual visual content "
+                    "instead of model auto-bịa.",
+    )
+
+    @field_validator("reference_images")
+    @classmethod
+    def _check_master_board_refs(cls, v: list[str]) -> list[str]:
+        return _validate_reference_images(v)
 
 
 class MasterBoardResponse(BaseModel):
@@ -582,6 +604,26 @@ async def gen_master_storyboard(request: MasterBoardRequest) -> MasterBoardRespo
         "google/nano-banana-2/text-to-image": "nano_banana_2_t2i",
     }
     model_key = short_to_key.get(request.image_model, request.image_model)
+
+    # V5.17.3 BUG FIX — Auto-switch to EDIT variant when user provided refs.
+    # Otherwise Seedream text-to-image (max_refs=0) ignores refs and bịa
+    # random character/product → Master Board doesn't match user uploads.
+    user_refs = [u for u in (request.reference_images or []) if u][:10]
+    if user_refs:
+        edit_map = {
+            "seedream_v45": "seedream_v45_edit",
+            "nano_banana_pro_t2i": "nano_banana_pro_edit",
+            "nano_banana_2_t2i": "nano_banana_2_edit",
+        }
+        edit_key = edit_map.get(model_key)
+        if edit_key and edit_key in IMAGE_MODEL_SPECS:
+            logger.info(
+                f"[master_board] {plan.plan_id} {len(user_refs)} refs supplied → "
+                f"auto-switching {model_key} → {edit_key} (image-to-image edit "
+                f"variant locks character/product to user uploads)"
+            )
+            model_key = edit_key
+
     if model_key not in IMAGE_MODEL_SPECS:
         raise HTTPException(
             400,
@@ -617,13 +659,18 @@ async def gen_master_storyboard(request: MasterBoardRequest) -> MasterBoardRespo
     # Build per-model payload — Seedream uses `size`, Nano Banana uses
     # aspect_ratio+resolution. board_size_for_aspect returns Seedream-style
     # "WxH" — for Nano Banana we fall back to 4K + matching aspect.
+    # V5.17.3 — Edit variants need `images` param (user-uploaded refs).
+    is_edit_variant = spec.get("variant") == "edit"
+    edit_images = user_refs if is_edit_variant else None
     try:
         if uses_size_contract:
             logger.info(
-                f"[master_board] {plan.plan_id} model={model_key} size={size} (size contract)"
+                f"[master_board] {plan.plan_id} model={model_key} size={size} "
+                f"variant={spec.get('variant')} refs={len(edit_images or [])} (size contract)"
             )
             payload = build_image_payload(
                 model_key=model_key, prompt=prompt, size=size, n=1,
+                images=edit_images,
             )
         else:
             ar_options = (spec.get("aspect_ratio") or {}).get("options") or []
@@ -635,11 +682,13 @@ async def gen_master_storyboard(request: MasterBoardRequest) -> MasterBoardRespo
                     f"{ar_options} for {model_key} — fallback to '16:9'"
                 )
             logger.info(
-                f"[master_board] {plan.plan_id} model={model_key} ar={ar} res=4k (aspect contract)"
+                f"[master_board] {plan.plan_id} model={model_key} ar={ar} res=4k "
+                f"variant={spec.get('variant')} refs={len(edit_images or [])} (aspect contract)"
             )
             payload = build_image_payload(
                 model_key=model_key, prompt=prompt,
                 aspect_ratio=ar, resolution="4k",
+                images=edit_images,
             )
     except ValueError as e:
         raise HTTPException(400, f"Master board payload invalid: {e}") from e

@@ -75,7 +75,8 @@ export function DirectorPlanModal({
     if (plan.shot_list.length < MASTER_BOARD_MIN_SHOTS) return;
     if (masterBoardPlanId === plan.plan_id) return;
     if (masterIsLoading || masterError) return;
-    void masterGenerate(plan);
+    // V5.17.3 — pass user refs so BE auto-switches to EDIT variant
+    void masterGenerate(plan, undefined, referenceImages);
   }, [open, plan, planModel, masterBoardEnabled, masterBoardPlanId, masterIsLoading, masterError, masterGenerate]);
 
   // V5.16.3 F2 — Abort in-flight Master Board fetch when user toggles OFF
@@ -165,7 +166,7 @@ export function DirectorPlanModal({
                 board={master.board}
                 isLoading={master.isLoading}
                 error={master.error}
-                onGen={() => master.generate(plan)}
+                onGen={() => master.generate(plan, undefined, referenceImages)}
               />
             )}
             {tab === 'eval' && (
