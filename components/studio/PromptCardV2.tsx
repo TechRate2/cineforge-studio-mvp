@@ -14,6 +14,7 @@ import {
   ArrowUp, Loader2, Plus, Sparkles, ChevronDown, Image as ImageIcon, Wand2,
 } from 'lucide-react';
 import { MODEL_CONFIGS, getModelConfig } from '@/lib/studio/model-config';
+import { isMasterBoardEligible } from '@/lib/studio/master-board-config';
 import type { VideoModel, AspectRatio, AudioMode } from '@/lib/types/backend';
 
 interface Props {
@@ -71,11 +72,6 @@ const AUDIO_LABELS: Record<AudioMode, string> = {
   asmr_macro: 'ASMR',
 };
 
-// V5.16 — Models eligible for Master Storyboard Board ($0.04 9-panel anchor).
-// Synced with backend scene_generation_agent.py `is_seedance_ref_for_board` check
-// and DirectorPlanModal's auto-trigger condition.
-const MASTER_BOARD_MODELS = new Set<VideoModel>(['auto', 'seedance_2_0', 'seedance_2_0_fast']);
-
 // V5.16 — Max shots per model (vendor hard limit). Used by numShots picker.
 // auto/seedance_2_0/seedance_2_0_fast → 6 (Strategy A cap), seedance_1_5_pro → 4
 // (Strategy B cap), vidu_q3/vidu_q3_mix/wan_2_7 → 5 (per-shot chain practical cap).
@@ -116,7 +112,7 @@ export function PromptCardV2({
   const aspectOptions = cfg.aspect_ratio_options ?? ['9:16', '16:9', '1:1'];
 
   // V5.16 — derived: is current model eligible for Master Board?
-  const masterBoardEligible = MASTER_BOARD_MODELS.has(model);
+  const masterBoardEligible = isMasterBoardEligible(model);
   const maxShots = MAX_SHOTS_PER_MODEL[model] ?? 5;
   const numShotsOptions = Array.from({ length: maxShots }, (_, i) => i + 1);
 

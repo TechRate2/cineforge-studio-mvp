@@ -10,6 +10,7 @@ import { ModelShowcase } from '@/components/studio/ModelShowcase';
 import { StylePresets } from '@/components/studio/StylePresets';
 import { RecentGenerations } from '@/components/studio/RecentGenerations';
 import { CostConfirmDialog, COST_CONFIRM_THRESHOLD_USD } from '@/components/studio/CostConfirmDialog';
+import { isMasterBoardEligible, MASTER_BOARD_COST_USD } from '@/lib/studio/master-board-config';
 import { Drawer } from '@/components/ui/Modal';
 import { useDirectorPlan, generateFromPlan, DIRECTOR_STAGE_LABELS_VN } from '@/lib/studio/use-director-plan';
 import { usePersistedJob } from '@/lib/studio/use-persisted-job';
@@ -218,7 +219,7 @@ export default function StudioPage() {
   // the actual wallet deduction (prevents skip-dialog on $1.47+$0.04=$1.51).
   const handleApproveClick = () => {
     if (!plan) return;
-    const masterBoardCost = masterBoardUrl ? 0.04 : 0;
+    const masterBoardCost = masterBoardUrl ? MASTER_BOARD_COST_USD : 0;
     const grandTotal = plan.cost_estimate.total_cost_usd + masterBoardCost;
     if (grandTotal >= COST_CONFIRM_THRESHOLD_USD) {
       setShowCostConfirm(true);
@@ -266,9 +267,8 @@ export default function StudioPage() {
   const estimatedCostUsd = useMemo(() => {
     const videoCost = cfg.cost_per_second_usd * duration;
     const audioCost = audioMode === 'dialogue_vo' ? 0.01 : audioMode === 'asmr_macro' ? 0.10 : 0;
-    const MASTER_BOARD_MODELS_PAGE = new Set(['auto', 'seedance_2_0', 'seedance_2_0_fast']);
     const masterBoardCost = (
-      masterBoardEnabled && MASTER_BOARD_MODELS_PAGE.has(model) ? 0.04 : 0
+      masterBoardEnabled && isMasterBoardEligible(model) ? MASTER_BOARD_COST_USD : 0
     );
     return 0.04 + videoCost + audioCost + masterBoardCost;
   }, [cfg.cost_per_second_usd, duration, audioMode, masterBoardEnabled, model]);
@@ -430,7 +430,7 @@ export default function StudioPage() {
           onConfirm={handleApproveAndRender}
           onCancel={() => setShowCostConfirm(false)}
           isLoading={isRendering}
-          masterBoardCostUsd={masterBoardUrl ? 0.04 : 0}
+          masterBoardCostUsd={masterBoardUrl ? MASTER_BOARD_COST_USD : 0}
         />
       )}
 

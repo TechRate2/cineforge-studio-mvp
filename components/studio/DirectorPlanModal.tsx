@@ -7,6 +7,10 @@ import type { DirectorPlan, Shot, StorytellingIssue } from '@/lib/studio/use-dir
 import { useMasterBoard } from '@/lib/studio/use-master-board';
 import { useRefineShot } from '@/lib/studio/use-refine-shot';
 import { useRevisePlan } from '@/lib/studio/use-revise-plan';
+import {
+  MASTER_BOARD_MIN_SHOTS,
+  isMasterBoardEligible,
+} from '@/lib/studio/master-board-config';
 import type { VideoSettings } from '@/lib/types/backend';
 
 interface Props {
@@ -31,22 +35,9 @@ interface Props {
 
 type Tab = 'bible' | 'shots' | 'board' | 'eval';
 
-// V5.15.1 Sprint 1A — models that benefit from Master Board global style anchor.
-// Seedance 2.0/Fast accept multi-ref images and pin identity across panels.
-// Vidu/Wan use single-ref or i2v chain → Master Board not applicable.
-//
-// V5.15.5 L2 NOTE on `auto`: when user picks "auto", the backend resolves the
-// final model at render time via pick_model_for_plan(). The board may end up:
-//   - Seedance 2.0/Fast (most common) → full benefit, board as global anchor
-//   - Vidu Q3                          → board appended at slot 4 (still helps)
-//   - Wan 2.7 i2v / Seedance 1.5 Pro   → max_refs=1, board skipped server-side
-//                                        ($0.04 paid but not anchored — minor)
-// Trade-off accepted: we still auto-fire for "auto" so the most common case
-// (Seedance) gets the benefit; the worst case wastes $0.04 on a board that
-// scene_generation_agent.py skips. Architectural fix would require backend
-// to resolve "auto" at plan time and surface the picked model to FE.
-const MASTER_BOARD_ELIGIBLE_MODELS = new Set(['auto', 'seedance_2_0', 'seedance_2_0_fast']);
-const MASTER_BOARD_MIN_SHOTS = 2;
+// V5.16.3 — MASTER_BOARD_ELIGIBLE_MODELS + MASTER_BOARD_MIN_SHOTS now imported
+// from lib/studio/master-board-config.ts (single source of truth). See file
+// for the rationale on "auto" model inclusion + trade-off documentation.
 
 export function DirectorPlanModal({
   open, onClose, plan, onApprove, isRendering,
@@ -75,16 +66,28 @@ export function DirectorPlanModal({
   const masterIsLoading = master.isLoading;
   const masterError = master.error;
   const masterGenerate = master.generate;
+  const masterReset = master.reset;
   useEffect(() => {
     if (!open || !plan) return;
     // V5.16 #1 — respect user toggle from PromptCardV2 (was hardcoded eligibility set)
     if (!masterBoardEnabled) return;
-    if (!MASTER_BOARD_ELIGIBLE_MODELS.has(planModel)) return;
+    if (!isMasterBoardEligible(planModel)) return;
     if (plan.shot_list.length < MASTER_BOARD_MIN_SHOTS) return;
     if (masterBoardPlanId === plan.plan_id) return;
     if (masterIsLoading || masterError) return;
     void masterGenerate(plan);
   }, [open, plan, planModel, masterBoardEnabled, masterBoardPlanId, masterIsLoading, masterError, masterGenerate]);
+
+  // V5.16.3 F2 — Abort in-flight Master Board fetch when user toggles OFF
+  // mid-loading. Without this, $0.04 board completes silently after toggle
+  // OFF but bubble-effect emits null (board state mismatched intent) →
+  // wasted $0.04. useMasterBoard.reset() aborts the AbortController +
+  // clears state, so the in-flight Atlas call is cancelled.
+  useEffect(() => {
+    if (!masterBoardEnabled && masterIsLoading) {
+      masterReset();
+    }
+  }, [masterBoardEnabled, masterIsLoading, masterReset]);
 
   // V5.15.2 C1+C3 — Bubble board URL up to parent ONLY when:
   //   - board's plan_id matches the CURRENT plan (no stale board from revise)
@@ -93,7 +96,7 @@ export function DirectorPlanModal({
   // Otherwise emit null → parent clears masterBoardUrl → /generate skips stale ref.
   useEffect(() => {
     const planMatch = !!plan && masterBoardPlanId === plan.plan_id;
-    const modelEligible = MASTER_BOARD_ELIGIBLE_MODELS.has(planModel);
+    const modelEligible = isMasterBoardEligible(planModel);
     const allowed = planMatch && modelEligible && masterBoardEnabled;
     onMasterBoardChange?.(allowed ? (masterBoardUrl ?? null) : null);
   }, [plan?.plan_id, masterBoardPlanId, masterBoardUrl, planModel, masterBoardEnabled, onMasterBoardChange]);
@@ -252,7 +255,7 @@ export function DirectorPlanModal({
                   // Approving early sends master_board_url=null to /generate,
                   // wasting the $0.04 board user just paid for.
                   || (masterIsLoading && masterBoardEnabled
-                      && MASTER_BOARD_ELIGIBLE_MODELS.has(planModel))
+                      && isMasterBoardEligible(planModel))
                 }
                 title={
                   masterIsLoading && masterBoardEnabled
@@ -263,7 +266,7 @@ export function DirectorPlanModal({
               >
                 {isRendering ? (
                   <><Loader2 size={15} className="animate-spin" /> Rendering...</>
-                ) : masterIsLoading && masterBoardEnabled && MASTER_BOARD_ELIGIBLE_MODELS.has(planModel) ? (
+                ) : masterIsLoading && masterBoardEnabled && isMasterBoardEligible(planModel) ? (
                   <><Loader2 size={15} className="animate-spin" /> Đợi Master Board...</>
                 ) : (
                   <><Sparkles size={15} /> Approve &amp; Render</>
