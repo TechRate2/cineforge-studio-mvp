@@ -25,6 +25,13 @@ export interface EnhanceBriefResponse {
     product?: string | null;
     style_ref?: string | null;
   } | null;
+  /** V5.17.5 H3 — 3 bool flags LLM returns; backend deduces suggested_model from them.
+   *  Surfaced for debug transparency — FE can show "vì có dialogue VN → pick Wan 2.7". */
+  model_deduction_flags?: {
+    needs_dialogue_lip_sync?: boolean;
+    is_multi_shot_cinematic?: boolean;
+    is_budget_tier?: boolean;
+  };
 }
 
 const ENHANCE_TIMEOUT_MS = 30_000;

@@ -110,67 +110,140 @@ class EnhanceBriefRequest(BaseModel):
     reference_image_urls: list[str] = Field(default_factory=list, max_length=6)
 
 
-# V5.17 Smart Enhance — structured JSON output for FE auto-apply +
-# Director-reusable vision notes. Both prompts request the SAME schema so
-# FE has one consistent contract regardless of text/vision mode.
-_ENHANCE_JSON_SCHEMA_INSTRUCTION = (
-    "OUTPUT DUY NHẤT MỘT JSON OBJECT (không markdown fence, không text trước/sau). "
-    "Schema CHÍNH XÁC:\n"
-    "{\n"
-    '  "enhanced_brief": "<4-7 câu văn xuôi tiếng Việt giàu chi tiết visual + camera + lighting + mood>",\n'
-    '  "vision_notes": {\n'
-    '    "character": "<face / hair / outfit / expression CHÍNH XÁC từ ảnh; null nếu không ảnh người>",\n'
-    '    "product": "<color / packaging / logo từ ảnh sản phẩm; null nếu không có>",\n'
-    '    "style_ref": "<mood / color_grade từ ảnh phong cách; null nếu không có>"\n'
-    '  },\n'
-    '  "suggested_niche": "<beauty | food | tech | lifestyle | fashion | drama | ugc_review | ...>",\n'
-    '  "suggested_mood": "<vd: \'intimate warm afternoon\' | \'dramatic dark cinematic\' | \'energetic playful\'>",\n'
-    '  "suggested_hook_pattern": "<EXACTLY 1 of: pattern_interrupt | direct_question | bold_statement | visual_paradox | action_reveal | before_after | time_compression | sensory_overload | expectation_subvert | character_intro>",\n'
-    '  "suggested_num_shots": <integer 1-6, dựa duration + brief complexity>,\n'
-    '  "suggested_model": "<EXACTLY 1 of: auto | seedance_2_0 | seedance_2_0_fast | seedance_1_5_pro | vidu_q3 | wan_2_7>",\n'
-    '  "suggested_audio_mode": "<EXACTLY 1 of: silent_native | dialogue_vo | asmr_macro>"\n'
-    "}\n"
-    "Quy tắc model picking: brief có lời thoại tiếng Việt → wan_2_7 (lip-sync). "
-    "Multi-cảnh cinematic ≤15s → seedance_2_0 hoặc seedance_2_0_fast. "
-    "Đơn cảnh i2v ≤12s → seedance_1_5_pro. Budget UGC → vidu_q3. Không chắc → auto."
-)
+# V5.17.5 — Helpers cho adaptive Enhance (H1+H2+H3)
 
-_ENHANCE_SYSTEM_PROMPT_TEXT = (
-    "Bạn là Director AI chuyên viết brief video tiếng Việt cho Director Agent.\n\n"
-    "★ QUY TẮC TỐI THƯỢNG: enhanced_brief PHẢI BÁM CHẶT brief gốc của user. "
-    "Mọi danh từ chính (sản phẩm, nhân vật, hành động, niche) user đã nêu — "
-    "BẮT BUỘC xuất hiện và là TRỌNG TÂM của enhanced_brief. KHÔNG thay thế "
-    "bằng nội dung khác. Vai trò của bạn là MỞ RỘNG brief gốc thành 4-7 câu "
-    "giàu chi tiết, KHÔNG VIẾT LẠI THÀNH BRIEF KHÁC.\n\n"
-    "Cách mở rộng brief gốc (giữ nguyên ý) bằng cách BỔ SUNG:\n"
-    "(a) bối cảnh setting cụ thể (vd: 'trong phòng ngủ ánh sáng dịu vàng buổi chiều')\n"
-    "(b) ánh sáng + color grade (warm/cool/neutral, soft/hard light)\n"
-    "(c) camera shot + movement (close-up push-in, medium handheld, etc.)\n"
-    "(d) mood/tone audio (intimate quiet, energetic upbeat, dramatic tension).\n\n"
-    "KHÔNG bịa product features không có trong brief gốc. KHÔNG CTA / sale "
-    "imperatives. KHÔNG emoji. KHÔNG bullet list. Vì không có ảnh ref, set "
-    "vision_notes các field về null.\n\n"
-    + _ENHANCE_JSON_SCHEMA_INSTRUCTION
-)
+def _sentence_range_for_duration(duration_s: int) -> str:
+    """H2 — số câu enhanced_brief adapt theo duration video.
+    Brief ngắn không cần 7 câu, brief dài cần arc kể chuyện."""
+    if duration_s <= 10:
+        return "3-5 câu (single beat, focus 1 hành động chính)"
+    if duration_s <= 30:
+        return "5-8 câu (mở-thân-đóng, có chuyển cảnh)"
+    return "8-12 câu (có arc kể chuyện: hook → tension → reveal → proof)"
 
-_ENHANCE_SYSTEM_PROMPT_VISION = (
-    "Bạn là Director AI chuyên viết brief video tiếng Việt cho Director Agent. "
-    "Người dùng cung cấp brief ngắn + 1-6 ảnh tham khảo (nhân vật, sản phẩm, mood).\n\n"
-    "★ QUY TẮC TỐI THƯỢNG: enhanced_brief PHẢI BÁM CHẶT brief gốc của user. "
-    "Mọi danh từ chính (sản phẩm, nhân vật, hành động, niche) user đã nêu — "
-    "BẮT BUỘC xuất hiện và là TRỌNG TÂM của enhanced_brief. Vai trò của bạn "
-    "là MỞ RỘNG brief gốc + KẾT HỢP chi tiết từ ảnh, KHÔNG VIẾT THÀNH BRIEF "
-    "KHÁC.\n\n"
-    "Nhiệm vụ:\n"
-    "1. NHÌN KỸ từng ảnh — extract CHÍNH XÁC: màu trang phục, kiểu tóc, khuôn mặt, "
-    "   biểu cảm; với sản phẩm: màu sắc, packaging, logo cụ thể.\n"
-    "2. Viết enhanced_brief 4-7 câu BÁM brief gốc + lồng ghép chi tiết visual "
-    "   từ ảnh + thêm bối cảnh setting + ánh sáng + camera shot + mood audio.\n"
-    "3. Điền vision_notes với chi tiết extract được từ ảnh (Director sẽ reuse).\n"
-    "4. KHÔNG bịa features sản phẩm KHÔNG thấy trong ảnh hoặc KHÔNG có trong "
-    "   brief. KHÔNG CTA. KHÔNG emoji. KHÔNG bullet list.\n\n"
-    + _ENHANCE_JSON_SCHEMA_INSTRUCTION
-)
+
+def _max_tokens_for_duration(duration_s: int, mode: str) -> int:
+    """H1 — max_tokens scale theo duration để không waste + không truncate.
+    mode='vision' cần thêm tokens cho vision_notes detail."""
+    if duration_s <= 10:
+        return 800 if mode == "vision" else 700
+    if duration_s <= 30:
+        return 1300 if mode == "vision" else 1100
+    # Long-form 30-120s needs full storytelling arc
+    return 2000 if mode == "vision" else 1800
+
+
+def _deduce_model_from_flags(
+    flags: dict,
+    duration_s: int,
+    refs_count: int,
+) -> str:
+    """H3 — Backend Python deduce model thay vì để LLM tự apply rules trong
+    prompt (đáng tin hơn, deterministic, dễ test).
+
+    Decision tree (ưu tiên cao → thấp):
+      1. needs_dialogue_lip_sync + duration ∈ {5,10} → wan_2_7 (lip-sync VN)
+      2. is_multi_shot_cinematic + duration ≤15s:
+         • is_budget_tier → seedance_2_0_fast (cost-optimized)
+         • ngược lại → seedance_2_0 (highest quality)
+      3. duration ≤12s + ≤1 ref → seedance_1_5_pro (i2v specialist)
+      4. is_budget_tier → vidu_q3 (rẻ nhất)
+      5. Fallback → auto (worker pick at render time)
+    """
+    needs_lip = bool(flags.get("needs_dialogue_lip_sync"))
+    is_multi_cinematic = bool(flags.get("is_multi_shot_cinematic"))
+    is_budget = bool(flags.get("is_budget_tier"))
+
+    # Rule 1: Wan 2.7 needs discrete [5,10]s for lip-sync
+    if needs_lip and duration_s in (5, 10):
+        return "wan_2_7"
+
+    # Rule 2: Multi-shot cinematic short video → Seedance 2.0 family
+    if is_multi_cinematic and duration_s <= 15:
+        return "seedance_2_0_fast" if is_budget else "seedance_2_0"
+
+    # Rule 3: Single shot short with 1 ref → Seedance 1.5 Pro
+    if duration_s <= 12 and not is_multi_cinematic and refs_count <= 1:
+        return "seedance_1_5_pro"
+
+    # Rule 4: Budget UGC fallback
+    if is_budget:
+        return "vidu_q3"
+
+    # Rule 5: Auto worker-side
+    return "auto"
+
+
+def _build_enhance_system_prompt(mode: str, duration_s: int) -> str:
+    """V5.17.5 — Dynamic system prompt builder.
+    H2: sentence_range theo duration.
+    H3: bỏ "Quy tắc model picking" trong prompt, replace với 3 flag.
+    """
+    sentence_range = _sentence_range_for_duration(duration_s)
+
+    json_schema = (
+        f"OUTPUT DUY NHẤT MỘT JSON OBJECT (không markdown fence, không text trước/sau). "
+        f"Schema CHÍNH XÁC:\n"
+        "{\n"
+        f'  "enhanced_brief": "<{sentence_range} văn xuôi tiếng Việt giàu chi tiết visual + camera + lighting + mood>",\n'
+        '  "vision_notes": {\n'
+        '    "character": "<face / hair / outfit / expression CHÍNH XÁC từ ảnh; null nếu không ảnh người>",\n'
+        '    "product": "<color / packaging / logo từ ảnh sản phẩm; null nếu không có>",\n'
+        '    "style_ref": "<mood / color_grade từ ảnh phong cách; null nếu không có>"\n'
+        '  },\n'
+        '  "suggested_niche": "<vd: beauty | food | tech | lifestyle | fashion | drama | ugc_review | automotive | real_estate | fitness | ...>",\n'
+        '  "suggested_mood": "<vd: \'intimate warm afternoon\' | \'dramatic dark cinematic\' | \'energetic playful\'>",\n'
+        '  "suggested_hook_pattern": "<EXACTLY 1 of: pattern_interrupt | direct_question | bold_statement | visual_paradox | action_reveal | before_after | time_compression | sensory_overload | expectation_subvert | character_intro>",\n'
+        '  "suggested_num_shots": <integer 1-6, dựa duration + brief complexity>,\n'
+        '  "suggested_audio_mode": "<EXACTLY 1 of: silent_native | dialogue_vo | asmr_macro>",\n'
+        '  "needs_dialogue_lip_sync": <bool — true nếu brief có lời thoại tiếng Việt nhân vật nói khớp môi>,\n'
+        '  "is_multi_shot_cinematic": <bool — true nếu brief đòi hỏi 2+ cảnh chuyển có camera movement cinematic>,\n'
+        '  "is_budget_tier": <bool — true nếu user mention budget/cheap/test/draft hoặc brief đơn giản UGC>\n'
+        "}\n"
+        "Lưu ý: 3 flag bool dùng cho backend tự deduce model — đừng tự pick model trong response."
+    )
+
+    if mode == "vision":
+        body = (
+            "Bạn là Director AI chuyên viết brief video tiếng Việt cho Director Agent. "
+            "Người dùng cung cấp brief ngắn + 1-6 ảnh tham khảo (nhân vật, sản phẩm, mood).\n\n"
+            "★ QUY TẮC TỐI THƯỢNG: enhanced_brief PHẢI BÁM CHẶT brief gốc của user. "
+            "Mọi danh từ chính (sản phẩm, nhân vật, hành động, niche) user đã nêu — "
+            "BẮT BUỘC xuất hiện và là TRỌNG TÂM của enhanced_brief. Vai trò của bạn "
+            "là MỞ RỘNG brief gốc + KẾT HỢP chi tiết từ ảnh, KHÔNG VIẾT THÀNH BRIEF "
+            "KHÁC.\n\n"
+            f"Độ dài enhanced_brief mục tiêu: {sentence_range}.\n\n"
+            "Nhiệm vụ:\n"
+            "1. NHÌN KỸ từng ảnh — extract CHÍNH XÁC: màu trang phục, kiểu tóc, khuôn mặt, "
+            "   biểu cảm; với sản phẩm: màu sắc, packaging, logo cụ thể.\n"
+            "2. Viết enhanced_brief BÁM brief gốc + lồng ghép chi tiết visual từ ảnh + "
+            "   thêm bối cảnh setting + ánh sáng + camera shot + mood audio.\n"
+            "3. Điền vision_notes với chi tiết extract được từ ảnh (Director sẽ reuse).\n"
+            "4. Set 3 flag bool chính xác để backend deduce model.\n"
+            "5. KHÔNG bịa features sản phẩm KHÔNG thấy trong ảnh hoặc KHÔNG có trong "
+            "   brief. KHÔNG CTA. KHÔNG emoji. KHÔNG bullet list.\n\n"
+        )
+    else:  # text mode
+        body = (
+            "Bạn là Director AI chuyên viết brief video tiếng Việt cho Director Agent.\n\n"
+            "★ QUY TẮC TỐI THƯỢNG: enhanced_brief PHẢI BÁM CHẶT brief gốc của user. "
+            "Mọi danh từ chính (sản phẩm, nhân vật, hành động, niche) user đã nêu — "
+            "BẮT BUỘC xuất hiện và là TRỌNG TÂM của enhanced_brief. KHÔNG thay thế "
+            "bằng nội dung khác. Vai trò của bạn là MỞ RỘNG brief gốc, KHÔNG VIẾT LẠI "
+            "THÀNH BRIEF KHÁC.\n\n"
+            f"Độ dài enhanced_brief mục tiêu: {sentence_range}.\n\n"
+            "Cách mở rộng brief gốc (giữ nguyên ý) bằng cách BỔ SUNG:\n"
+            "(a) bối cảnh setting cụ thể (vd: 'trong phòng ngủ ánh sáng dịu vàng buổi chiều')\n"
+            "(b) ánh sáng + color grade (warm/cool/neutral, soft/hard light)\n"
+            "(c) camera shot + movement (close-up push-in, medium handheld, etc.)\n"
+            "(d) mood/tone audio (intimate quiet, energetic upbeat, dramatic tension).\n\n"
+            "Set 3 flag bool chính xác để backend deduce model.\n"
+            "KHÔNG bịa product features không có trong brief gốc. KHÔNG CTA / sale "
+            "imperatives. KHÔNG emoji. KHÔNG bullet list. Vì không có ảnh ref, set "
+            "vision_notes các field về null.\n\n"
+        )
+
+    return body + json_schema
 
 
 @router.post("/enhance-brief")
@@ -204,6 +277,7 @@ async def enhance_brief(req: EnhanceBriefRequest):
         user_msg += f"\n\nNiche hint (gợi ý phụ): {req.niche_hint}"
 
     refs = [u for u in (req.reference_image_urls or []) if u and u.startswith("http")][:6]
+    duration_s = int(req.duration_s or 15)
     try:
         if refs:
             user_msg += (
@@ -212,20 +286,21 @@ async def enhance_brief(req: EnhanceBriefRequest):
                 f"enhanced_brief — nhưng VẪN BÁM brief gốc làm trọng tâm. "
                 f"KHÔNG VIẾT brief khác."
             )
+            # V5.17.5 H1+H2 — dynamic prompt + max_tokens theo duration
             raw = llm.complete_with_image(
-                system_prompt=_ENHANCE_SYSTEM_PROMPT_VISION,
+                system_prompt=_build_enhance_system_prompt("vision", duration_s),
                 user_message=user_msg,
                 image_urls=refs,
                 task="vision",
-                max_tokens=1200,  # V5.17 — bigger cap for structured JSON
+                max_tokens=_max_tokens_for_duration(duration_s, "vision"),
             )
             mode = "vision"
         else:
             raw = llm.complete(
-                system_prompt=_ENHANCE_SYSTEM_PROMPT_TEXT,
+                system_prompt=_build_enhance_system_prompt("text", duration_s),
                 user_message=user_msg,
                 task="generator",
-                max_tokens=1000,  # V5.17 — bigger cap for structured JSON
+                max_tokens=_max_tokens_for_duration(duration_s, "text"),
                 temperature=0.5,  # V5.17 — lowered for consistent JSON output
             )
             mode = "text"
@@ -284,6 +359,21 @@ async def enhance_brief(req: EnhanceBriefRequest):
             pass
         return None
 
+    # V5.17.5 H3 — Backend deduce suggested_model từ 3 bool flags LLM trả về.
+    # Trước đây LLM tự apply model-picking rules trong prompt (text rules) →
+    # không deterministic. Giờ flags → Python deterministic mapping.
+    flags = {
+        "needs_dialogue_lip_sync": bool(parsed.get("needs_dialogue_lip_sync")),
+        "is_multi_shot_cinematic": bool(parsed.get("is_multi_shot_cinematic")),
+        "is_budget_tier": bool(parsed.get("is_budget_tier")),
+    }
+    deduced_model = _deduce_model_from_flags(flags, duration_s, len(refs))
+    # Honor LLM's explicit suggested_model nếu hợp lệ (backward compat), else
+    # dùng deduced. Đa số case LLM sẽ KHÔNG còn return suggested_model (new
+    # prompt yêu cầu không pick) → deduced_model thắng.
+    llm_picked = _safe_pick(parsed.get("suggested_model"), _ALLOWED_MODELS)
+    final_model = llm_picked or deduced_model
+
     return {
         "original_brief": req.brief,
         "enhanced_brief": enhanced_brief,
@@ -299,8 +389,11 @@ async def enhance_brief(req: EnhanceBriefRequest):
         ),
         "suggested_hook_pattern": _safe_pick(parsed.get("suggested_hook_pattern"), _ALLOWED_HOOKS),
         "suggested_num_shots": _safe_int(parsed.get("suggested_num_shots"), 1, 6),
-        "suggested_model": _safe_pick(parsed.get("suggested_model"), _ALLOWED_MODELS),
+        # V5.17.5 — model now deduced from flags (deterministic) instead of
+        # LLM-picked. flags surfaced in response for debugging/transparency.
+        "suggested_model": final_model,
         "suggested_audio_mode": _safe_pick(parsed.get("suggested_audio_mode"), _ALLOWED_AUDIO),
+        "model_deduction_flags": flags,
         # V5.17 — Vision notes for Director Agent to reuse (skip its own vision pass)
         "vision_notes": (
             parsed.get("vision_notes") if isinstance(parsed.get("vision_notes"), dict) else None
