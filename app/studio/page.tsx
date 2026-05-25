@@ -246,6 +246,8 @@ export default function StudioPage() {
     n_shots?: number;
     estimated_cost_usd?: number;
   } | null>(null);
+  // V6.2 — Manual mode collapsed by default. Autonomous IS the primary flow.
+  const [manualMode, setManualMode] = useState(false);
 
   /** V6.1 — 1-click autonomous flow.
    * POST /director/autonomous → backend chain 5 skills → spawn render →
@@ -396,165 +398,310 @@ export default function StudioPage() {
     return 0.04 + videoCost + audioCost + masterBoardCost;
   }, [cfg.cost_per_second_usd, duration, audioMode, masterBoardEnabled, model]);
 
+  // V6.2 — Estimated cost cho Autonomous flow (đơn giản: rate × duration + $0.05 plan)
+  const autonomousCostUsd = useMemo(() => {
+    const rate =
+      model === 'wan_2_7' ? 0.10 :
+      model === 'seedance_2_0' ? 0.096 :
+      0.076;  // seedance_2_0_fast / auto default
+    return 0.05 + rate * duration;
+  }, [model, duration]);
+
   return (
     <div className="min-h-full">
-      <section className="px-5 md:px-10 pt-12 md:pt-16 pb-8 max-w-container mx-auto text-center">
+      {/* V6.2 — Autonomous-first hero */}
+      <section className="px-5 md:px-10 pt-12 md:pt-16 pb-6 max-w-container mx-auto text-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5 border border-accent-magenta/30 bg-accent-magenta/10">
+          <Zap size={12} className="text-accent-magenta" />
+          <span className="text-[10px] font-bold tracking-widest uppercase text-accent-magenta">
+            Autonomous Agent · 1-Click Magic
+          </span>
+        </div>
         <h1 className="text-4xl md:text-5xl lg:text-[56px] font-extrabold tracking-tight leading-tight">
-          Create Any Video, Just Tell Your <span className="text-gradient">Agent</span>
+          Tell Your Idea · Get Your <span className="text-gradient">Video</span>
         </h1>
-        <p className="text-sm text-text-muted mt-3 max-w-2xl mx-auto">
-          Mô tả ý tưởng → AI dựng kế hoạch shot-by-shot → render thật. Niche-agnostic, identity-locked, audio sync.
+        <p className="text-sm md:text-base text-text-muted mt-4 max-w-2xl mx-auto leading-relaxed">
+          1 ý tưởng + references → Agent tự <b className="text-text">planner</b> · <b className="text-text">storyboard</b> · <b className="text-text">director</b> · <b className="text-text">render</b> · <b className="text-text">caption viral</b>.
+          Không cần plan tay.
         </p>
       </section>
 
-      {/* V6.1 — Autonomous "1-click full video" banner.
-          Đặt TRƯỚC PromptCardV2 để là CTA primary cho user mới — chỉ cần
-          ý tưởng + refs là agent tự build plan + render. Manual mode
-          (PromptCardV2 + DirectorPlanModal phía dưới) giữ cho power user. */}
-      <section className="px-5 md:px-10 pb-4 max-w-3xl mx-auto">
-        <div className="surface-2 rounded-card p-4 md:p-5 border border-accent-magenta/30 bg-gradient-to-br from-accent-magenta/10 via-transparent to-accent-cyan/10">
-          <div className="flex items-start gap-3 mb-3">
-            <div className="shrink-0 mt-0.5">
-              <div className="w-8 h-8 rounded-full bg-accent-magenta/20 flex items-center justify-center">
-                <Zap size={16} className="text-accent-magenta" />
+      {/* ═══════════════════════════════════════════════════════
+          PRIMARY: Autonomous Studio Card
+          ═══════════════════════════════════════════════════════ */}
+      <section className="px-5 md:px-10 pb-6 max-w-3xl mx-auto">
+        <div className="surface-2 rounded-card border border-hairline-strong overflow-hidden shadow-2xl shadow-accent-magenta/5">
+          {/* Top gradient accent line */}
+          <div className="h-0.5 bg-gradient-to-r from-accent-magenta via-accent-cyan to-accent-magenta" />
+
+          <div className="p-5 md:p-6 space-y-5">
+            {/* Brief textarea — primary input */}
+            <div>
+              <label className="flex items-center justify-between mb-2">
+                <span className="text-[11px] uppercase tracking-wider text-text-subtle font-semibold">
+                  Your idea
+                </span>
+                <span className="text-[10px] text-text-subtle/70 font-mono">{brief.length}/800</span>
+              </label>
+              <textarea
+                value={brief}
+                onChange={(e) => { setBrief(e.target.value); setActivePresetId(undefined); }}
+                placeholder="Vd: Cô gái Việt unbox son môi cao cấp ở quán cafe Sài Gòn, ánh nắng vàng chiều tà, camera handheld iPhone style…"
+                rows={3}
+                maxLength={800}
+                className="w-full bg-surface-3 border border-hairline rounded-card p-3.5 text-sm text-text placeholder:text-text-subtle/60 resize-none focus:outline-none focus:border-accent-magenta/60 focus:ring-1 focus:ring-accent-magenta/20 transition"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !isAutonomousLoading && brief.trim()) {
+                    void handleAutonomousGenerate();
+                  }
+                }}
+              />
+              <div className="text-[10px] text-text-subtle/70 mt-1.5">
+                Càng cụ thể càng tốt — agent đọc và tự quyết niche, hook 3s, mood, camera, audio
               </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-bold">🚀 1-Click Magic — Autonomous Director</div>
-              <div className="text-xs text-text-muted mt-0.5">
-                Bạn chỉ cần ý tưởng + refs. Agent tự planner → storyboard → director → render → caption viral.
-                Không cần plan tay.
+
+            {/* Quick platform presets */}
+            <div>
+              <label className="text-[11px] uppercase tracking-wider text-text-subtle font-semibold">
+                Platform preset
+              </label>
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {([
+                  { id: 'tiktok',   label: 'TikTok / Reels',  dur: 15, ar: '9:16' as AspectRatio, icon: '📱' },
+                  { id: 'short',    label: 'YouTube Short',   dur: 30, ar: '9:16' as AspectRatio, icon: '🎬' },
+                  { id: 'longform', label: 'YouTube Long',    dur: 60, ar: '16:9' as AspectRatio, icon: '🎥' },
+                ]).map((p) => {
+                  const active = duration === p.dur && aspect === p.ar;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => { setDuration(p.dur); setAspect(p.ar); }}
+                      className={`p-3 rounded-card border text-left transition ${
+                        active
+                          ? 'border-accent-magenta/60 bg-accent-magenta/10 shadow-sm shadow-accent-magenta/10'
+                          : 'border-hairline bg-surface-3 hover:border-hairline-strong'
+                      }`}
+                    >
+                      <div className="text-lg leading-none">{p.icon}</div>
+                      <div className="text-[11px] font-bold mt-1.5">{p.label}</div>
+                      <div className="text-[10px] text-text-subtle mt-0.5">{p.dur}s · {p.ar}</div>
+                    </button>
+                  );
+                })}
               </div>
+            </div>
+
+            {/* Inline controls row: refs + audio + cost */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setShowRefDrawer(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-3 border border-hairline hover:border-hairline-strong text-[11px] font-medium transition"
+              >
+                <span>📎</span>
+                <span>References</span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
+                  referenceZones.images.length > 0 ? 'bg-accent-magenta/20 text-accent-magenta' : 'bg-surface-2 text-text-subtle'
+                }`}>
+                  {referenceZones.images.length}
+                </span>
+              </button>
+
+              <select
+                value={audioMode}
+                onChange={(e) => setAudioMode(e.target.value as AudioMode)}
+                className="px-3 py-1.5 rounded-full bg-surface-3 border border-hairline text-[11px] font-medium focus:outline-none focus:border-hairline-strong cursor-pointer"
+              >
+                <option value="silent_native">🔇 Silent (model gen)</option>
+                <option value="dialogue_vo">🎤 Dialogue VN (TTS)</option>
+                <option value="asmr_macro">✨ ASMR / SFX</option>
+              </select>
+
+              <div className="ml-auto text-[11px] text-text-subtle font-mono">
+                ~${autonomousCostUsd.toFixed(2)}
+              </div>
+            </div>
+
+            {/* BIG CTA */}
+            <button
+              onClick={handleAutonomousGenerate}
+              disabled={isAutonomousLoading || isRendering || !brief.trim()}
+              className="w-full py-4 rounded-card bg-gradient-to-r from-accent-magenta to-accent-cyan text-white font-bold text-base flex items-center justify-center gap-2 hover:opacity-95 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed transition shadow-lg shadow-accent-magenta/30"
+            >
+              {isAutonomousLoading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Agent đang dựng kế hoạch + render…
+                </>
+              ) : (
+                <>
+                  <Zap size={18} />
+                  Generate Full Video (Autonomous)
+                </>
+              )}
+            </button>
+            <div className="text-center text-[10px] text-text-subtle/70 -mt-1">
+              Tip: <kbd className="px-1.5 py-0.5 rounded bg-surface-3 border border-hairline text-[9px] font-mono">Cmd/Ctrl + Enter</kbd> để gen nhanh
             </div>
           </div>
-          <button
-            onClick={handleAutonomousGenerate}
-            disabled={isAutonomousLoading || isRendering || !brief.trim()}
-            className="w-full btn-primary py-3 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isAutonomousLoading ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                Agent đang dựng kế hoạch + render…
-              </>
-            ) : (
-              <>
-                <Zap size={16} />
-                Generate Full Video (Autonomous)
-              </>
-            )}
-          </button>
+
+          {/* Preview area — appears after first generate */}
           {autonomousPreview && (
-            <div className="mt-3 text-[11px] text-text-muted space-y-1 animate-fade-in">
-              {autonomousPreview.niche && (
-                <div><span className="text-text-subtle">Niche:</span> {autonomousPreview.niche}</div>
-              )}
+            <div className="border-t border-hairline px-5 md:px-6 py-4 bg-surface-3/40 animate-fade-in space-y-3">
+              <div className="text-[10px] uppercase tracking-wider text-text-subtle font-semibold flex items-center gap-1.5">
+                <Sparkles size={11} className="text-accent-cyan" /> Agent's plan
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                {autonomousPreview.niche && (
+                  <div>
+                    <div className="text-[10px] text-text-subtle">Niche</div>
+                    <div className="text-text font-semibold capitalize mt-0.5">{autonomousPreview.niche}</div>
+                  </div>
+                )}
+                {autonomousPreview.n_shots && (
+                  <div>
+                    <div className="text-[10px] text-text-subtle">Shots planned</div>
+                    <div className="text-text font-semibold mt-0.5">{autonomousPreview.n_shots} shots</div>
+                  </div>
+                )}
+              </div>
               {autonomousPreview.hook_first_3s && (
-                <div className="line-clamp-2"><span className="text-text-subtle">Hook 3s:</span> {autonomousPreview.hook_first_3s}</div>
+                <div>
+                  <div className="text-[10px] text-text-subtle">Hook 3s (scroll-stop)</div>
+                  <div className="text-xs text-text leading-snug mt-0.5">{autonomousPreview.hook_first_3s}</div>
+                </div>
               )}
               {autonomousPreview.caption_vn && (
-                <div className="line-clamp-2"><span className="text-text-subtle">Caption:</span> {autonomousPreview.caption_vn}</div>
+                <div>
+                  <div className="text-[10px] text-text-subtle">Caption viral (VN)</div>
+                  <div className="text-xs text-text leading-snug mt-0.5">{autonomousPreview.caption_vn}</div>
+                </div>
               )}
               {autonomousPreview.hashtags_vn && autonomousPreview.hashtags_vn.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {autonomousPreview.hashtags_vn.slice(0, 6).map((t) => (
-                    <span key={t} className="chip text-[10px]">#{t}</span>
+                <div className="flex flex-wrap gap-1">
+                  {autonomousPreview.hashtags_vn.slice(0, 10).map((t) => (
+                    <span key={t} className="px-2 py-0.5 rounded-full bg-surface-2 border border-hairline text-[10px]">#{t}</span>
                   ))}
                 </div>
               )}
             </div>
           )}
-          <div className="mt-2 text-[10px] text-text-subtle/70">
-            💡 Manual mode bên dưới vẫn dùng được — anh kiểm soát chi tiết shot/camera/audio.
-          </div>
         </div>
-      </section>
 
-      {/* Main compact input card */}
-      <section className="px-5 md:px-10 pb-6 max-w-3xl mx-auto">
-        <PromptCardV2
-          brief={brief}
-          onBrief={(v) => { setBrief(v); setActivePresetId(undefined); }}
-          referenceCount={referenceZones.images.length}
-          onOpenReferences={() => setShowRefDrawer(true)}
-          model={model}
-          onModel={setModel}
-          aspect={aspect}
-          onAspect={setAspect}
-          resolution={resolution}
-          onResolution={setResolution}
-          duration={duration}
-          onDuration={setDuration}
-          audioMode={audioMode}
-          onAudioMode={setAudioMode}
-          numShots={numShots}
-          onNumShots={setNumShots}
-          masterBoardEnabled={masterBoardEnabled}
-          onMasterBoardEnabled={setMasterBoardEnabled}
-          qualityScore={plan?.evaluation?.overall_score}
-          estimatedCostUsd={estimatedCostUsd}
-          onSubmit={handleGeneratePlan}
-          isLoading={isLoading}
-          onEnhance={handleEnhance}
-          isEnhancing={isEnhancing}
-        />
-
-        {progress && isLoading && (
-          <div className="surface-2 rounded-card p-4 mt-4 flex items-center gap-3">
-            <Loader2 size={16} className="text-accent-magenta animate-spin shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-text">
-                {DIRECTOR_STAGE_LABELS_VN[progress.stage] || progress.stage}
-              </div>
-              {progress.message && (
-                <div className="text-xs text-text-subtle mt-0.5">{progress.message}</div>
-              )}
-            </div>
-            <span className="chip">{progress.status}</span>
-          </div>
-        )}
-        {error && (
-          <div className="surface-2 rounded-card p-4 mt-4 flex items-start gap-3 border-accent-orange/40">
-            <AlertCircle size={16} className="text-accent-orange shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <div className="text-sm font-semibold text-accent-orange">Plan failed</div>
-              <div className="text-xs text-text-muted mt-1 font-mono">{error}</div>
-              <button onClick={reset} className="btn-ghost mt-2">Reset</button>
-            </div>
-          </div>
-        )}
-
-        {/* V5.4 — Optional preset suggestions. Default collapsed — Director Agent
-            tự hiểu từ brief, không bắt buộc preset (Topview/Higgsfield UX). */}
-        <div className="mt-4">
+        {/* Switch to manual mode — subtle toggle */}
+        <div className="text-center mt-4">
           <button
-            onClick={() => setShowPresets((s) => !s)}
+            type="button"
+            onClick={() => setManualMode((m) => !m)}
             className="inline-flex items-center gap-1.5 text-[11px] text-text-subtle hover:text-text-muted transition"
           >
-            <Sparkles size={11} />
-            {showPresets ? 'Ẩn template' : 'Bí ý tưởng? Xem 6 template gợi ý'}
-            <ChevronDown size={11} className={`transition ${showPresets ? 'rotate-180' : ''}`} />
+            <ChevronDown size={11} className={`transition ${manualMode ? 'rotate-180' : ''}`} />
+            {manualMode ? 'Hide advanced manual mode' : 'Need fine-grained control? Open Advanced Manual Mode'}
           </button>
-          {showPresets && (
-            <div className="mt-3 animate-fade-in">
-              <StylePresets onPick={(p) => { handlePickPreset(p); setShowPresets(false); }} activeId={activePresetId} />
-            </div>
-          )}
         </div>
       </section>
 
-      {/* V5.2 — Recent generations carousel */}
-      <section className="px-5 md:px-10 pb-8 max-w-container mx-auto">
+      {/* ═══════════════════════════════════════════════════════
+          ADVANCED — Manual Director (collapsed by default, power-user)
+          ═══════════════════════════════════════════════════════ */}
+      {manualMode && (
+        <section className="px-5 md:px-10 pb-6 max-w-3xl mx-auto animate-fade-in">
+          <div className="surface-2 rounded-card border border-hairline p-4 md:p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1.5 h-5 rounded-full bg-accent-cyan" />
+              <div className="text-[11px] uppercase tracking-wider text-text-subtle font-semibold">
+                Advanced · Manual Director
+              </div>
+              <div className="ml-auto text-[10px] text-text-subtle/70">
+                Quyết shot/camera/audio/master-board từng bước. Hook flow Director Plan Modal.
+              </div>
+            </div>
+
+            <PromptCardV2
+              brief={brief}
+              onBrief={(v) => { setBrief(v); setActivePresetId(undefined); }}
+              referenceCount={referenceZones.images.length}
+              onOpenReferences={() => setShowRefDrawer(true)}
+              model={model}
+              onModel={setModel}
+              aspect={aspect}
+              onAspect={setAspect}
+              resolution={resolution}
+              onResolution={setResolution}
+              duration={duration}
+              onDuration={setDuration}
+              audioMode={audioMode}
+              onAudioMode={setAudioMode}
+              numShots={numShots}
+              onNumShots={setNumShots}
+              masterBoardEnabled={masterBoardEnabled}
+              onMasterBoardEnabled={setMasterBoardEnabled}
+              qualityScore={plan?.evaluation?.overall_score}
+              estimatedCostUsd={estimatedCostUsd}
+              onSubmit={handleGeneratePlan}
+              isLoading={isLoading}
+              onEnhance={handleEnhance}
+              isEnhancing={isEnhancing}
+            />
+
+            {progress && isLoading && (
+              <div className="surface-2 rounded-card p-4 mt-4 flex items-center gap-3">
+                <Loader2 size={16} className="text-accent-magenta animate-spin shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-text">
+                    {DIRECTOR_STAGE_LABELS_VN[progress.stage] || progress.stage}
+                  </div>
+                  {progress.message && (
+                    <div className="text-xs text-text-subtle mt-0.5">{progress.message}</div>
+                  )}
+                </div>
+                <span className="chip">{progress.status}</span>
+              </div>
+            )}
+            {error && (
+              <div className="surface-2 rounded-card p-4 mt-4 flex items-start gap-3 border-accent-orange/40">
+                <AlertCircle size={16} className="text-accent-orange shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-accent-orange">Plan failed</div>
+                  <div className="text-xs text-text-muted mt-1 font-mono">{error}</div>
+                  <button onClick={reset} className="btn-ghost mt-2">Reset</button>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4">
+              <button
+                onClick={() => setShowPresets((s) => !s)}
+                className="inline-flex items-center gap-1.5 text-[11px] text-text-subtle hover:text-text-muted transition"
+              >
+                <Sparkles size={11} />
+                {showPresets ? 'Ẩn template' : 'Bí ý tưởng? Xem 6 template gợi ý'}
+                <ChevronDown size={11} className={`transition ${showPresets ? 'rotate-180' : ''}`} />
+              </button>
+              {showPresets && (
+                <div className="mt-3 animate-fade-in">
+                  <StylePresets onPick={(p) => { handlePickPreset(p); setShowPresets(false); }} activeId={activePresetId} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <h3 className="text-[11px] uppercase tracking-wider text-text-subtle mb-3 px-1">Pick a tier (manual)</h3>
+            <ModelShowcase onPick={setModel} />
+          </div>
+
+          <div className="mt-4">
+            <ContextInjection value={context} onChange={setContext} />
+          </div>
+        </section>
+      )}
+
+      {/* Recent generations — always visible (both modes share render history) */}
+      <section className="px-5 md:px-10 pb-12 max-w-container mx-auto">
         <RecentGenerations />
-      </section>
-
-      <section className="px-5 md:px-10 pb-8 max-w-container mx-auto">
-        <h3 className="text-[11px] uppercase tracking-wider text-text-subtle mb-3 px-1">Pick a tier</h3>
-        <ModelShowcase onPick={setModel} />
-      </section>
-
-      <section className="px-5 md:px-10 pb-12 max-w-3xl mx-auto">
-        <ContextInjection value={context} onChange={setContext} />
       </section>
 
       <Drawer
