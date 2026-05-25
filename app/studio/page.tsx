@@ -135,7 +135,18 @@ export default function StudioPage() {
     toast.success(`Đã áp preset ${preset.label_vn} — edit brief tiếp hoặc Generate ngay`);
   }, []);
 
-  // V5.2 — Magic prompt enhance
+  // V5.17 — Smart Enhance cache: stores vision_notes + suggested fields so
+  // Director Agent can reuse vision_notes via context_injection (skip its own
+  // vision pass = save ~$0.0004 per /plan call). Cleared when brief or refs
+  // change so stale notes don't leak into a different plan.
+  const [smartEnhance, setSmartEnhance] = useState<{
+    vision_notes?: Record<string, unknown> | null;
+    suggested_niche?: string | null;
+    suggested_mood?: string | null;
+    suggested_hook_pattern?: string | null;
+  } | null>(null);
+
+  // V5.2 — Magic prompt enhance / V5.17 — Smart Enhance auto-apply settings
   const { enhance, isEnhancing } = useEnhanceBrief();
   const handleEnhance = useCallback(async () => {
     if (!brief.trim() || brief.trim().length < 4) return;
@@ -150,15 +161,49 @@ export default function StudioPage() {
         ].filter((u) => u && u.startsWith('http')),
       });
       setBrief(res.enhanced_brief);
+
+      // V5.17 — auto-apply Smart Enhance suggestions (user can override after).
+      // Each setter is independent so partial suggestions still take effect.
+      const applied: string[] = [];
+      if (res.suggested_model && res.suggested_model !== model) {
+        // Cast — server already whitelisted to VideoModel-compatible strings
+        setModel(res.suggested_model as VideoModel);
+        applied.push(`model=${res.suggested_model}`);
+      }
+      if (res.suggested_num_shots && res.suggested_num_shots !== numShots) {
+        setNumShots(res.suggested_num_shots);
+        applied.push(`shots=${res.suggested_num_shots}`);
+      }
+      if (res.suggested_audio_mode && res.suggested_audio_mode !== audioMode) {
+        setAudioMode(res.suggested_audio_mode as AudioMode);
+        applied.push(`audio=${res.suggested_audio_mode}`);
+      }
+
+      // V5.17 — cache vision_notes + suggestions for Director Agent reuse
+      setSmartEnhance({
+        vision_notes: res.vision_notes ?? null,
+        suggested_niche: res.suggested_niche ?? null,
+        suggested_mood: res.suggested_mood ?? null,
+        suggested_hook_pattern: res.suggested_hook_pattern ?? null,
+      });
+
       const modeLabel = res.mode === 'vision'
         ? `vision (đọc ${res.refs_seen} ảnh)`
         : 'text-only';
-      toast.success(`Brief enhanced · ${modeLabel} · ${res.char_count} chars`);
+      const settingsLabel = applied.length > 0 ? ` · auto-set: ${applied.join(', ')}` : '';
+      toast.success(`Brief enhanced · ${modeLabel}${settingsLabel}`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast.error(`Enhance failed: ${msg}`);
     }
-  }, [brief, duration, enhance, referenceZones.images, referenceZones.storyboardImages]);
+  }, [brief, duration, enhance, referenceZones.images, referenceZones.storyboardImages,
+      model, numShots, audioMode]);
+
+  // V5.17 — clear smart enhance cache when brief OR refs change (stale notes)
+  useEffect(() => {
+    if (smartEnhance !== null) setSmartEnhance(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brief, referenceZones.images.join('|')]);
 
   // Director plan flow
   const { createPlan, plan, setPlan, progress, isLoading, error, storytellingIssues, reset } = useDirectorPlan();
@@ -195,13 +240,24 @@ export default function StudioPage() {
   const handleGeneratePlan = async () => {
     if (!brief.trim()) return;
     setShowPlanModal(false);
+    // V5.17 — inject Smart Enhance cache into context_injection so Director
+    // Agent can reuse vision_notes (skip its vision pass) + bias plan toward
+    // suggested hook_pattern / niche / mood. Server-side schema is permissive
+    // (ContextInjection is dict-shaped) so extra fields pass through.
+    const ctxWithEnhance = smartEnhance ? {
+      ...context,
+      vision_notes: smartEnhance.vision_notes ?? undefined,
+      suggested_niche: smartEnhance.suggested_niche ?? undefined,
+      suggested_mood: smartEnhance.suggested_mood ?? undefined,
+      suggested_hook_pattern: smartEnhance.suggested_hook_pattern ?? undefined,
+    } : context;
     await createPlan({
       product_input: { text_description: brief.slice(0, 200) },
       reference_images: referenceZones.images,
       reference_role_hints: referenceZones.roles,
       reference_videos: [],
       user_brief: brief,
-      context_injection: context,
+      context_injection: ctxWithEnhance,
       settings: {
         audio_mode: audioMode,
         model,

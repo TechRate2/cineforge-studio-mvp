@@ -169,43 +169,76 @@ class DirectorAgent:
         # are merged in (skip LLM role classification but keep visual extraction).
         ref_hints: list[dict] = []
         if reference_images:
-            await _emit("vision", "running", message="Scanning reference images")
-            try:
-                vision_hints = await asyncio.to_thread(
-                    self._vision_scan_refs, reference_images,
+            # V5.17 — Smart Enhance integration: if FE already ran vision via
+            # /enhance-brief and stashed vision_notes in context_injection,
+            # synthesize ref_hints from those notes and SKIP the second vision
+            # call. Saves ~$0.0004 per /plan call + ~5-15s latency.
+            enhance_vision_notes = (context_injection or {}).get("vision_notes")
+            if isinstance(enhance_vision_notes, dict) and any(enhance_vision_notes.values()):
+                # Combine character/product/style_ref into per-ref visual descriptions.
+                # We can't know which image is which without more metadata, so
+                # we attach the combined notes to ALL refs as "vision_description"
+                # and rely on user-supplied role hints for role classification.
+                combined_desc = " | ".join(
+                    f"{k}: {v}" for k, v in enhance_vision_notes.items() if v
                 )
-            except Exception as e:
-                logger.warning(f"[DirectorAgent] vision scan fail (continuing): {e}")
-                vision_hints = []
-
-            # Merge user-tagged role hints (overrides LLM role guess) but KEEP
-            # vision's visual_description so Director sees actual image content.
-            if reference_role_hints and any(h for h in reference_role_hints):
-                hint_by_idx = {h.get("index", i): h for i, h in enumerate(vision_hints)}
-                merged: list[dict] = []
-                for i in range(len(reference_images)):
-                    v = hint_by_idx.get(i, {})
-                    user_role = (
-                        reference_role_hints[i] if i < len(reference_role_hints)
-                        else None
-                    ) or v.get("role") or "unknown"
-                    merged.append({
+                ref_hints = [
+                    {
                         "index": i,
-                        "role": user_role,                          # user wins
-                        "visual_description": v.get("visual_description", ""),
-                        "notes": "user-tagged role + vision details",
-                    })
-                ref_hints = merged
+                        "role": (
+                            reference_role_hints[i] if (reference_role_hints and i < len(reference_role_hints))
+                            else None
+                        ) or "unknown",
+                        "visual_description": combined_desc,
+                        "notes": "from Smart Enhance vision_notes (reused)",
+                    }
+                    for i in range(len(reference_images))
+                ]
                 await _emit("vision", "done",
-                            classified=len(ref_hints), source="user_tagged+vision")
+                            classified=len(ref_hints), source="smart_enhance_reuse")
                 logger.info(
-                    f"[DirectorAgent] {len(ref_hints)} refs: user role tags + "
-                    f"vision visual_descriptions"
+                    f"[DirectorAgent] {plan_id} reused Smart Enhance vision_notes "
+                    f"({len(ref_hints)} refs) — skipped vision LLM call"
                 )
+
             else:
-                ref_hints = vision_hints
-                await _emit("vision", "done",
-                            classified=len(ref_hints), source="vision_llm")
+                await _emit("vision", "running", message="Scanning reference images")
+                try:
+                    vision_hints = await asyncio.to_thread(
+                        self._vision_scan_refs, reference_images,
+                    )
+                except Exception as e:
+                    logger.warning(f"[DirectorAgent] vision scan fail (continuing): {e}")
+                    vision_hints = []
+
+                # Merge user-tagged role hints (overrides LLM role guess) but KEEP
+                # vision's visual_description so Director sees actual image content.
+                if reference_role_hints and any(h for h in reference_role_hints):
+                    hint_by_idx = {h.get("index", i): h for i, h in enumerate(vision_hints)}
+                    merged: list[dict] = []
+                    for i in range(len(reference_images)):
+                        v = hint_by_idx.get(i, {})
+                        user_role = (
+                            reference_role_hints[i] if i < len(reference_role_hints)
+                            else None
+                        ) or v.get("role") or "unknown"
+                        merged.append({
+                            "index": i,
+                            "role": user_role,                          # user wins
+                            "visual_description": v.get("visual_description", ""),
+                            "notes": "user-tagged role + vision details",
+                        })
+                    ref_hints = merged
+                    await _emit("vision", "done",
+                                classified=len(ref_hints), source="user_tagged+vision")
+                    logger.info(
+                        f"[DirectorAgent] {len(ref_hints)} refs: user role tags + "
+                        f"vision visual_descriptions"
+                    )
+                else:
+                    ref_hints = vision_hints
+                    await _emit("vision", "done",
+                                classified=len(ref_hints), source="vision_llm")
 
         # ===== Stage B: Build prompt context for Director LLM =====
         await _emit("director", "running", message="Director composing plan")

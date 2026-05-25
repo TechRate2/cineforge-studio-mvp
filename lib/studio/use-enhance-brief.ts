@@ -8,6 +8,23 @@ export interface EnhanceBriefResponse {
   /** V5.12 — "vision" when refs were sent (Qwen3-VL), "text" otherwise (DeepSeek Flash). */
   mode?: 'vision' | 'text';
   refs_seen?: number;
+  // V5.17 Smart Enhance — structured suggestions. Null if LLM returned non-JSON.
+  suggested_niche?: string | null;
+  suggested_mood?: string | null;
+  suggested_hook_pattern?: string | null;
+  suggested_num_shots?: number | null;
+  /** EXACTLY 1 of: auto | seedance_2_0 | seedance_2_0_fast | seedance_1_5_pro
+   *  | vidu_q3 | vidu_q3_mix | wan_2_7. Whitelisted server-side. */
+  suggested_model?: string | null;
+  /** EXACTLY 1 of: silent_native | dialogue_vo | asmr_macro */
+  suggested_audio_mode?: string | null;
+  /** Vision-extracted details (character/product/style_ref). Director reuses
+   *  this via context_injection to skip its own vision pass. */
+  vision_notes?: {
+    character?: string | null;
+    product?: string | null;
+    style_ref?: string | null;
+  } | null;
 }
 
 const ENHANCE_TIMEOUT_MS = 30_000;

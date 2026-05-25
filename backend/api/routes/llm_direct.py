@@ -3,9 +3,13 @@
 GET  /api/v1/llm/status           → provider config + available models
 POST /api/v1/llm/preview-cost     → ước tính cost call
 POST /api/v1/llm/test-call        → smoke test gọi 1 LLM (charge thật ~$0.0001)
+POST /api/v1/llm/enhance-brief    → V5.17 Smart Enhance: brief → structured JSON
+                                    with suggestions + vision_notes (reused by Director)
 """
 
-from typing import Optional, Literal
+from typing import Optional, Literal, Any
+import json
+import re
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from loguru import logger
@@ -13,6 +17,25 @@ from loguru import logger
 from core.config import settings
 from vendors.atlascloud_llm import PRICING_PER_1M, estimate_cost_usd, atlas_llm
 from vendors.llm_router import llm
+
+
+_JSON_FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.MULTILINE)
+
+
+def _safe_parse_json_or_none(text: str) -> Optional[dict]:
+    """Best-effort JSON parse — strip fences, brace-trim fallback, return None on fail."""
+    stripped = _JSON_FENCE_RE.sub("", text).strip()
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError:
+        start = stripped.find("{")
+        end = stripped.rfind("}")
+        if start >= 0 and end > start:
+            try:
+                return json.loads(stripped[start:end + 1])
+            except json.JSONDecodeError:
+                return None
+        return None
 
 router = APIRouter()
 
@@ -87,15 +110,41 @@ class EnhanceBriefRequest(BaseModel):
     reference_image_urls: list[str] = Field(default_factory=list, max_length=6)
 
 
+# V5.17 Smart Enhance — structured JSON output for FE auto-apply +
+# Director-reusable vision notes. Both prompts request the SAME schema so
+# FE has one consistent contract regardless of text/vision mode.
+_ENHANCE_JSON_SCHEMA_INSTRUCTION = (
+    "OUTPUT DUY NHẤT MỘT JSON OBJECT (không markdown fence, không text trước/sau). "
+    "Schema CHÍNH XÁC:\n"
+    "{\n"
+    '  "enhanced_brief": "<4-7 câu văn xuôi tiếng Việt giàu chi tiết visual + camera + lighting + mood>",\n'
+    '  "vision_notes": {\n'
+    '    "character": "<face / hair / outfit / expression CHÍNH XÁC từ ảnh; null nếu không ảnh người>",\n'
+    '    "product": "<color / packaging / logo từ ảnh sản phẩm; null nếu không có>",\n'
+    '    "style_ref": "<mood / color_grade từ ảnh phong cách; null nếu không có>"\n'
+    '  },\n'
+    '  "suggested_niche": "<beauty | food | tech | lifestyle | fashion | drama | ugc_review | ...>",\n'
+    '  "suggested_mood": "<vd: \'intimate warm afternoon\' | \'dramatic dark cinematic\' | \'energetic playful\'>",\n'
+    '  "suggested_hook_pattern": "<EXACTLY 1 of: pattern_interrupt | direct_question | bold_statement | visual_paradox | action_reveal | before_after | time_compression | sensory_overload | expectation_subvert | character_intro>",\n'
+    '  "suggested_num_shots": <integer 1-6, dựa duration + brief complexity>,\n'
+    '  "suggested_model": "<EXACTLY 1 of: auto | seedance_2_0 | seedance_2_0_fast | seedance_1_5_pro | vidu_q3 | wan_2_7>",\n'
+    '  "suggested_audio_mode": "<EXACTLY 1 of: silent_native | dialogue_vo | asmr_macro>"\n'
+    "}\n"
+    "Quy tắc model picking: brief có lời thoại tiếng Việt → wan_2_7 (lip-sync). "
+    "Multi-cảnh cinematic ≤15s → seedance_2_0 hoặc seedance_2_0_fast. "
+    "Đơn cảnh i2v ≤12s → seedance_1_5_pro. Budget UGC → vidu_q3. Không chắc → auto."
+)
+
 _ENHANCE_SYSTEM_PROMPT_TEXT = (
     "Bạn là Director AI chuyên viết brief video tiếng Việt cho Director Agent. "
     "Người dùng đưa brief ngắn (vd 'review son môi'). Nhiệm vụ: viết lại brief "
     "thành mô tả 4-7 câu tiếng Việt giàu chi tiết visual + camera + lighting + "
-    "mood + audio, KHÔNG bịa product features, KHÔNG thêm CTA / sale imperatives, "
-    "KHÔNG dùng emoji, KHÔNG bullet list. Giữ ý gốc user nhưng bổ sung: "
+    "mood + audio, KHÔNG bịa product features, KHÔNG CTA / sale imperatives, "
+    "KHÔNG emoji, KHÔNG bullet list. Giữ ý gốc user nhưng bổ sung: "
     "(a) bối cảnh setting cụ thể, (b) ánh sáng + color grade, (c) camera shot "
-    "+ movement, (d) mood/tone từ audio_design. Chỉ output brief văn xuôi, "
-    "không prefix 'Brief:' hay markdown."
+    "+ movement, (d) mood/tone audio. Vì không có ảnh ref, set vision_notes "
+    "các field về null.\n\n"
+    + _ENHANCE_JSON_SCHEMA_INSTRUCTION
 )
 
 _ENHANCE_SYSTEM_PROMPT_VISION = (
@@ -104,21 +153,26 @@ _ENHANCE_SYSTEM_PROMPT_VISION = (
     "Nhiệm vụ:\n"
     "1. NHÌN KỸ từng ảnh — note CHÍNH XÁC những gì thấy: màu trang phục, kiểu tóc, "
     "   khuôn mặt, biểu cảm; với sản phẩm: màu sắc, packaging, logo cụ thể.\n"
-    "2. Viết lại brief 4-7 câu tiếng Việt giàu chi tiết, KHỚP CHÍNH XÁC những gì có "
-    "   trong ảnh. KHÔNG mô tả màu/trang phục KHÁC ảnh thực.\n"
-    "3. Bổ sung: bối cảnh setting cụ thể, ánh sáng + color grade, camera shot + "
-    "   movement, mood/tone audio.\n"
-    "4. KHÔNG bịa features sản phẩm KHÔNG thấy trong ảnh. KHÔNG CTA / sale imperatives. "
-    "   KHÔNG emoji, bullet list, markdown. Chỉ output văn xuôi thuần."
+    "2. Viết enhanced_brief 4-7 câu tiếng Việt KHỚP CHÍNH XÁC ảnh, KHÔNG mô tả KHÁC.\n"
+    "3. Điền vision_notes với chi tiết extract được từ ảnh (Director sẽ reuse).\n"
+    "4. KHÔNG bịa features sản phẩm KHÔNG thấy. KHÔNG CTA. KHÔNG emoji.\n\n"
+    + _ENHANCE_JSON_SCHEMA_INSTRUCTION
 )
 
 
 @router.post("/enhance-brief")
 async def enhance_brief(req: EnhanceBriefRequest):
-    """Magic prompt — rewrite short brief → cinematic 4-7 sentence brief.
+    """V5.17 Smart Enhance — brief → structured JSON with suggestions.
 
-    V5.12 — if reference_image_urls supplied, use vision LLM (Qwen3-VL) so the
-    enhanced brief actually matches the uploaded images. Otherwise use text LLM.
+    Modes:
+      - vision (when refs uploaded): Qwen3-VL extracts character/product/style
+        details + returns enhanced brief + 6 suggested settings.
+      - text-only: DeepSeek V4 Flash returns same JSON shape with null
+        vision_notes.
+
+    FE auto-applies `suggested_*` fields to settings (user can override).
+    Director Agent reads `vision_notes` from context_injection to SKIP its
+    own vision pass — saves ~$0.0004 per /plan call.
     """
     user_msg = (
         f"Brief gốc của user (giữ ý chính, viết lại giàu chi tiết hơn cho video {req.duration_s}s):\n"
@@ -130,38 +184,104 @@ async def enhance_brief(req: EnhanceBriefRequest):
     refs = [u for u in (req.reference_image_urls or []) if u and u.startswith("http")][:6]
     try:
         if refs:
-            # V5.12 — vision path: LLM looks at refs to ground the brief
             user_msg += (
                 f"\n\nQUAN TRỌNG: User đã upload {len(refs)} ảnh tham khảo. "
-                f"Hãy nhìn kỹ và mô tả CHÍNH XÁC những gì thấy (màu sắc, trang phục, "
-                f"sản phẩm) — viết lại brief khớp với ảnh thực, KHÔNG bịa khác."
+                f"Hãy nhìn kỹ và mô tả CHÍNH XÁC những gì thấy — viết lại brief "
+                f"khớp với ảnh thực, KHÔNG bịa khác."
             )
-            text = llm.complete_with_image(
+            raw = llm.complete_with_image(
                 system_prompt=_ENHANCE_SYSTEM_PROMPT_VISION,
                 user_message=user_msg,
                 image_urls=refs,
                 task="vision",
-                max_tokens=700,
+                max_tokens=1200,  # V5.17 — bigger cap for structured JSON
             )
             mode = "vision"
         else:
-            text = llm.complete(
+            raw = llm.complete(
                 system_prompt=_ENHANCE_SYSTEM_PROMPT_TEXT,
                 user_message=user_msg,
                 task="generator",
-                max_tokens=600,
-                temperature=0.7,
+                max_tokens=1000,  # V5.17 — bigger cap for structured JSON
+                temperature=0.5,  # V5.17 — lowered for consistent JSON output
             )
             mode = "text"
     except Exception as e:
         logger.exception(f"enhance-brief LLM call failed: {e}")
         raise HTTPException(502, detail=f"Enhance LLM failed: {e}")
+
+    # V5.17 — Parse structured JSON. On parse fail, gracefully fall back to
+    # legacy shape (enhanced_brief only) so existing FE doesn't crash.
+    parsed = _safe_parse_json_or_none(raw)
+    if parsed is None or not isinstance(parsed, dict):
+        logger.warning(
+            f"[enhance-brief] LLM returned non-JSON (mode={mode}), "
+            f"falling back to legacy text. Head: {raw[:200]}"
+        )
+        return {
+            "original_brief": req.brief,
+            "enhanced_brief": raw.strip(),
+            "char_count": len(raw.strip()),
+            "mode": mode,
+            "refs_seen": len(refs),
+            "suggested_niche": None,
+            "suggested_mood": None,
+            "suggested_hook_pattern": None,
+            "suggested_num_shots": None,
+            "suggested_model": None,
+            "suggested_audio_mode": None,
+            "vision_notes": None,
+        }
+
+    enhanced_brief = str(parsed.get("enhanced_brief", "")).strip() or req.brief
+
+    # Whitelist validate suggested_model so we never send a typo back to FE
+    _ALLOWED_MODELS = {
+        "auto", "seedance_2_0", "seedance_2_0_fast", "seedance_1_5_pro",
+        "vidu_q3", "vidu_q3_mix", "wan_2_7",
+    }
+    _ALLOWED_AUDIO = {"silent_native", "dialogue_vo", "asmr_macro"}
+    _ALLOWED_HOOKS = {
+        "pattern_interrupt", "direct_question", "bold_statement", "visual_paradox",
+        "action_reveal", "before_after", "time_compression", "sensory_overload",
+        "expectation_subvert", "character_intro",
+    }
+
+    def _safe_pick(value: Any, allowed: set) -> Optional[str]:
+        if isinstance(value, str) and value in allowed:
+            return value
+        return None
+
+    def _safe_int(value: Any, lo: int, hi: int) -> Optional[int]:
+        try:
+            n = int(value)
+            if lo <= n <= hi:
+                return n
+        except (TypeError, ValueError):
+            pass
+        return None
+
     return {
         "original_brief": req.brief,
-        "enhanced_brief": text.strip(),
-        "char_count": len(text.strip()),
+        "enhanced_brief": enhanced_brief,
+        "char_count": len(enhanced_brief),
         "mode": mode,
         "refs_seen": len(refs),
+        # V5.17 — Smart suggestions (FE auto-applies; user can override)
+        "suggested_niche": (
+            str(parsed.get("suggested_niche", "")).strip()[:40] or None
+        ),
+        "suggested_mood": (
+            str(parsed.get("suggested_mood", "")).strip()[:120] or None
+        ),
+        "suggested_hook_pattern": _safe_pick(parsed.get("suggested_hook_pattern"), _ALLOWED_HOOKS),
+        "suggested_num_shots": _safe_int(parsed.get("suggested_num_shots"), 1, 6),
+        "suggested_model": _safe_pick(parsed.get("suggested_model"), _ALLOWED_MODELS),
+        "suggested_audio_mode": _safe_pick(parsed.get("suggested_audio_mode"), _ALLOWED_AUDIO),
+        # V5.17 — Vision notes for Director Agent to reuse (skip its own vision pass)
+        "vision_notes": (
+            parsed.get("vision_notes") if isinstance(parsed.get("vision_notes"), dict) else None
+        ),
     }
 
 
