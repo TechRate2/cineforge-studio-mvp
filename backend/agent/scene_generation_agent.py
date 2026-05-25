@@ -98,6 +98,15 @@ _ROLE_LABELS: dict[str, str] = {
     "unknown": "reference",
 }
 
+# V5.16.1 — Special label for master storyboard board.
+# The board IS a style_reference but ALSO the primary character DNA anchor.
+# Plain "style_reference" label says "do not copy subject" which contradicts
+# the board's job. Use this label when the asset's notes mark it as MASTER BOARD.
+_MASTER_BOARD_LABEL = (
+    "MASTER BOARD canvas (match character face/hair/outfit AND lighting "
+    "AND color grade EXACTLY across all shots — this is the visual DNA)"
+)
+
 # Sprint5 C1 — Default labels for @video_N tags by positional slot. Seedance
 # convention is: 1st video = camera movement, 2nd = motion style, 3rd = pacing.
 _VIDEO_TAG_DEFAULT_LABELS: list[str] = [
@@ -298,7 +307,14 @@ def _build_role_aware_image_tags(bound_refs: list[ReferenceAsset]) -> str:
     """
     parts: list[str] = []
     for i, r in enumerate(bound_refs, start=1):
-        label = _ROLE_LABELS.get(r.role, _ROLE_LABELS["unknown"])
+        # V5.16.1 — detect master board by notes marker, override generic
+        # style_reference label which contradicts the board's identity-lock job.
+        notes_str = getattr(r, "notes", "") or ""
+        is_master_board = "MASTER BOARD" in notes_str
+        if is_master_board:
+            label = _MASTER_BOARD_LABEL
+        else:
+            label = _ROLE_LABELS.get(r.role, _ROLE_LABELS["unknown"])
         tag = f"@image_{i} as {label}"
         if getattr(r, "notes", None):
             # Keep notes short — avoid blowing the per-model prompt cap.
@@ -421,8 +437,13 @@ def generate_scene(
     # images[0] for correct identity slot mapping.
     _max_refs = _model_spec_for_max_refs(model_key)
     is_vidu_for_board = model_key.startswith("vidu_q3")
+    # V5.16.1 — Extended check: include i2v variants because worker resolves
+    # user_model="seedance_2_0" → "seedance_2_0_i2v" on chain shots (shot[i>0]).
+    # Without this, chained Seedance shots silently lose the board benefit
+    # (board still appended but at end instead of priority ref[0]).
     is_seedance_ref_for_board = model_key in (
         "seedance_2_0_ref", "seedance_2_0_fast_ref",
+        "seedance_2_0_i2v", "seedance_2_0_fast_i2v",
     )
     chain_blocks_board = is_chain and not is_vidu_for_board
     if (
