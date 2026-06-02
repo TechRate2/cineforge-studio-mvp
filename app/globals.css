@@ -71,12 +71,12 @@
   /* ===== Chip / Pill (used for tags, credits) ===== */
   .chip {
     @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full
-           text-[11px] font-medium tracking-wide
+           text-[11px] font-medium
            bg-surface-3 border border-hairline text-text-muted;
   }
   .chip-gradient {
     @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full
-           text-[11px] font-semibold tracking-wide text-white
+           text-[11px] font-semibold text-white
            bg-cta-gradient;
   }
 
@@ -94,10 +94,10 @@
 
   /* ===== Hero text ===== */
   .h-hero {
-    @apply text-5xl md:text-[60px] font-extrabold tracking-tight leading-[1.02];
+    @apply text-5xl md:text-[60px] font-extrabold leading-[1.02];
   }
   .h-section {
-    @apply text-3xl md:text-4xl font-bold tracking-tight leading-tight;
+    @apply text-3xl md:text-4xl font-bold leading-tight;
   }
   .h-card {
     @apply text-xl md:text-2xl font-bold leading-snug;

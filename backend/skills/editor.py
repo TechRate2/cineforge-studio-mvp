@@ -27,6 +27,7 @@ from loguru import logger
 from pydantic import BaseModel, Field, ValidationError
 
 from vendors.llm_router import llm
+from agent.distribution_package import build_distribution_package
 from skills.planner import PlannerOutput
 from skills.storyboard import StoryboardOutput
 
@@ -53,6 +54,9 @@ class EditorInput(BaseModel):
     storyboard: StoryboardOutput
     user_idea: str
     target_platform: str = Field("tiktok")
+    target_market: str = Field("auto")
+    market_playbook: dict = Field(default_factory=dict)
+    niche_playbook: dict = Field(default_factory=dict)
     n_shots_rendered: int = Field(1, ge=1, description="Số clip thực tế đã render")
 
 
@@ -76,24 +80,27 @@ class EditorOutput(BaseModel):
         "",
         description="vd: 'TikTok VN sweet spot 19:00-22:00, weekday'",
     )
+    distribution_package: dict = Field(default_factory=dict)
 
 
 # ============================================================
 # System prompts
 # ============================================================
 
-_EDITOR_SYSTEM_PROMPT = """Bạn là Senior Social Media Editor cho viral VN content.
+_EDITOR_SYSTEM_PROMPT = """Bạn là Senior Social Media Editor cho viral international content.
 
 NHIỆM VỤ: Từ planner + storyboard + user_idea → output JSON với caption + hashtag +
 posting hint.
 
 QUY TẮC CAPTION:
-1. caption_vn (BẮT BUỘC tiếng Việt):
+1. caption_vn:
    - 1-3 câu, MAX ~150 ký tự.
    - Câu đầu = HOOK (curiosity gap / direct address / shock).
    - Câu cuối = MILD CTA (không bán hàng aggressive).
-   - Có 1-2 emoji phù hợp niche (KHÔNG spam).
-2. caption_en: dịch tự nhiên (không word-by-word), giữ hook structure.
+   - Có 0-2 emoji phù hợp niche (KHÔNG spam).
+   - Nếu target_market=vn hoặc auto+brief tiếng Việt: viết tiếng Việt tự nhiên.
+   - Nếu target_market không phải VN: vẫn trả field này, nhưng có thể là localized primary caption.
+2. caption_en: English version for international reach, giữ hook structure.
 
 QUY TẮC HASHTAG:
 1. hashtags_vn: 5-10 tag, MIX:
@@ -107,6 +114,7 @@ POSTING TIME:
 - TikTok VN: 19:00-22:00 weekday, 12:00-14:00 weekend
 - Reels: 18:00-21:00
 - YouTube Short: 14:00-17:00
+- target_market guides slang, claim style, cultural context, and posting hint.
 
 OUTPUT: DUY NHẤT 1 JSON object, schema:
 {
@@ -204,7 +212,10 @@ class AutoEditor:
         user_msg = json.dumps({
             "user_idea": inp.user_idea,
             "target_platform": inp.target_platform,
+            "target_market": inp.target_market,
+            "market_playbook": inp.market_playbook,
             "planner": inp.planner.model_dump(),
+            "niche_playbook": inp.niche_playbook,
             "storyboard_summary": {
                 "n_panels": len(inp.storyboard.panels),
                 "total_duration_s": inp.storyboard.total_duration_s,
@@ -250,6 +261,18 @@ class AutoEditor:
         # ---- Transitions (deterministic) ----
         transitions = _plan_transitions(inp.storyboard, inp.n_shots_rendered)
 
+        distribution_package = build_distribution_package(
+            target_platform=inp.target_platform,
+            target_market=inp.target_market,
+            niche=inp.planner.niche,
+            duration_s=inp.storyboard.total_duration_s,
+            caption_vn=caption_data.get("caption_vn", ""),
+            caption_en=caption_data.get("caption_en", ""),
+            hashtags_vn=caption_data.get("hashtags_vn", []) or [],
+            hashtags_en=caption_data.get("hashtags_en", []) or [],
+            market_playbook=inp.market_playbook,
+        )
+
         out = EditorOutput(
             caption_vn=caption_data.get("caption_vn", ""),
             caption_en=caption_data.get("caption_en", ""),
@@ -257,6 +280,7 @@ class AutoEditor:
             hashtags_en=caption_data.get("hashtags_en", []) or [],
             transitions=transitions,
             best_posting_time_vn=caption_data.get("best_posting_time_vn", ""),
+            distribution_package=distribution_package,
         )
         logger.info(
             f"[AutoEditor] caption_vn_len={len(out.caption_vn)} "

@@ -1,11 +1,11 @@
 'use client';
 
 /**
- * use-project-history — Wrapper cho /api/v1/director/history endpoint.
+ * use-project-history: wrapper for /api/v1/director/history.
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import type { DirectorPlan } from './use-director-plan';
+import type { DirectorPlan } from './director-job-api';
 
 export interface HistoryItem {
   job_id: string;
@@ -15,7 +15,6 @@ export interface HistoryItem {
   output_url: string | null;
   title: string | null;
   duration_s: number | null;
-  cost_estimate_usd: number | null;
   created_at: string;
   finished_at: string | null;
 }
@@ -33,10 +32,7 @@ export interface HistoryDetail extends HistoryItem {
   }> | null;
 }
 
-// V5.3 — module-level cache so multiple mounts (e.g. RecentGenerations carousel
-// + History page) share the same fetch result for up to CACHE_TTL_MS. Without
-// this every component remount fired a fresh /history request.
-const HISTORY_CACHE_TTL_MS = 30_000;  // 30s
+const HISTORY_CACHE_TTL_MS = 30_000;
 let _historyCache: { items: HistoryItem[]; fetchedAt: number } | null = null;
 let _inflight: Promise<HistoryItem[]> | null = null;
 
@@ -79,7 +75,9 @@ export function useProjectHistory() {
     }
   }, []);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   const getDetail = useCallback(async (jobId: string): Promise<HistoryDetail> => {
     const r = await fetch(`/api/v1/director/history/${jobId}`);
@@ -91,7 +89,6 @@ export function useProjectHistory() {
     const r = await fetch(`/api/v1/director/history/${jobId}`, { method: 'DELETE' });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     setItems((prev) => prev.filter((it) => it.job_id !== jobId));
-    // V5.3 — bust shared cache so other mounts see the deletion
     if (_historyCache) {
       _historyCache.items = _historyCache.items.filter((it) => it.job_id !== jobId);
     }

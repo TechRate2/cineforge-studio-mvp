@@ -20,6 +20,14 @@ from .storyboard import AutoStoryboard, StoryboardInput, StoryboardOutput, Story
 from .director import AutoDirector, DirectorInput, DirectorOutput
 from .role_tagger import RoleTagger, RoleTaggerInput, RoleTaggerOutput, TaggedReference
 from .editor import AutoEditor, EditorInput, EditorOutput
+from .niche_playbooks import get_niche_playbook, list_niche_keys
+from .market_playbooks import get_market_playbook
+from .niche_benchmarks import (
+    list_benchmark_cases,
+    get_benchmark_case,
+    validate_benchmark_coverage,
+)
+from .niche_readiness import build_niche_readiness_matrix
 
 __all__ = [
     "AutoPlanner", "PlannerInput", "PlannerOutput",
@@ -27,4 +35,7 @@ __all__ = [
     "AutoDirector", "DirectorInput", "DirectorOutput",
     "RoleTagger", "RoleTaggerInput", "RoleTaggerOutput", "TaggedReference",
     "AutoEditor", "EditorInput", "EditorOutput",
+    "get_niche_playbook", "list_niche_keys", "get_market_playbook",
+    "list_benchmark_cases", "get_benchmark_case", "validate_benchmark_coverage",
+    "build_niche_readiness_matrix",
 ]

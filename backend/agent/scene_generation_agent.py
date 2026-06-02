@@ -46,6 +46,14 @@ from pydantic import BaseModel, Field, ValidationError
 
 from agent.schemas import ContinuityBible, Shot, ReferenceAsset
 from agent import continuity_manager
+from agent.reference_manifest import (
+    build_reference_manifest,
+    format_reference_manifest,
+    format_reference_manifest_inline,
+)
+from agent.seedance_prompt_compiler import compile_seedance_scene_prompt
+from agent.reference_policy_optimizer import optimize_shot_references
+from agent.model_specs import resolve_video_model_variant
 from system_prompts import load as load_system_prompt
 from vendors.llm_router import llm
 
@@ -69,8 +77,8 @@ MODEL_FORMAT_HINTS: dict[str, str] = {
 }
 
 _PROMPT_MAX_LEN = {
-    "multi_shot_inline": 1200,
-    "i2v_motion": 600,
+    "multi_shot_inline": 1800,
+    "i2v_motion": 900,
 }
 
 # Models that natively understand `@image_N` token references inline.
@@ -86,6 +94,15 @@ _MODELS_SUPPORT_IMAGE_TAGS = {
 _MODELS_SUPPORT_VIDEO_TAGS = {
     "seedance_2_0_ref",
     "seedance_2_0_fast_ref",
+}
+
+_MODELS_SUPPORT_AUDIO_TAGS = {
+    "seedance_2_0_ref",
+    "seedance_2_0_fast_ref",
+    "seedance_2_0_i2v",
+    "seedance_2_0_fast_i2v",
+    "seedance_2_0_t2v",
+    "seedance_2_0_fast_t2v",
 }
 
 # Sprint5 C2 — Role-aware @image_N tag labels. Mirrors scene.md mapping so the
@@ -117,6 +134,12 @@ _VIDEO_TAG_DEFAULT_LABELS: list[str] = [
     "camera movement reference (match this dolly / pan / push-in trajectory)",
     "motion style reference (match tempo and easing)",
     "shot pacing reference (match cut rhythm)",
+]
+
+_AUDIO_TAG_DEFAULT_LABELS: list[str] = [
+    "beat reference (match tempo, rhythm, and emotional pacing)",
+    "sound design reference (match texture and impact moments)",
+    "dialogue or voice reference (match pacing and emotion, not identity)",
 ]
 
 # Sprint5 C4 — Chain scaffold prefix prepended to prompts in i2v_chain mode.
@@ -151,6 +174,7 @@ class SceneRenderJob:
     # SEEDANCE 2.0 CORE PATH — quad-modal refs (0-3 each, ignored by Wan 2.7)
     reference_video_urls: list[str] = field(default_factory=list)
     reference_audio_urls: list[str] = field(default_factory=list)
+    reference_policy: dict = field(default_factory=dict)
 
     def to_atlas_kwargs(self) -> dict:
         """Convert to kwargs for `atlas_client.generate_video()`.
@@ -302,6 +326,18 @@ def _build_video_tags(video_urls: list[str]) -> str:
     return "Video references: " + ", ".join(parts) + "."
 
 
+def _build_audio_tags(audio_urls: list[str]) -> str:
+    """Build an `@audio_N` tag suffix for Seedance 2.0 audio references."""
+    n = min(len(audio_urls), 3)
+    if n == 0:
+        return ""
+    parts: list[str] = []
+    for i in range(n):
+        label = _AUDIO_TAG_DEFAULT_LABELS[i] if i < len(_AUDIO_TAG_DEFAULT_LABELS) else "audio reference"
+        parts.append(f"@audio_{i + 1} as {label}")
+    return "Audio references: " + ", ".join(parts) + "."
+
+
 def _model_spec_for_max_refs(model_key: str) -> int:
     """Return max_references for a model_key, defaulting to 1 if unknown.
 
@@ -312,6 +348,20 @@ def _model_spec_for_max_refs(model_key: str) -> int:
     from agent.model_specs import VIDEO_MODEL_SPECS as _SPECS
     spec = _SPECS.get(model_key) or {}
     return int(spec.get("max_references", 1) or 1)
+
+
+def _reference_roles_from_bible(bible: ContinuityBible, modality_key: str) -> list[str]:
+    """Return stored video/audio role assignments from autonomous metadata."""
+    meta = bible.storytelling_meta or {}
+    role_meta = meta.get("quad_modal_reference_roles") or {}
+    items = role_meta.get(modality_key) or []
+    if not isinstance(items, list):
+        return []
+    sorted_items = sorted(
+        [item for item in items if isinstance(item, dict)],
+        key=lambda item: int(item.get("index") or 0),
+    )
+    return [str(item.get("role") or "unknown") for item in sorted_items]
 
 
 # ============================================================
@@ -329,6 +379,7 @@ def generate_scene(
     is_last_shot: bool = False,
     driven_audio_url: Optional[str] = None,
     reference_videos: Optional[list[str]] = None,
+    reference_audios: Optional[list[str]] = None,
     master_board_url: Optional[str] = None,
 ) -> SceneRenderJob:
     """Build a `SceneRenderJob` for one shot.
@@ -366,6 +417,7 @@ def generate_scene(
                             primary character ref.
     """
     reference_videos = reference_videos or []
+    reference_audios = reference_audios or []
 
     # ---- Resolve render_mode -------------------------------------------------
     is_chain = bool(shot.continuity.previous_shot_id) and bool(last_frame_url)
@@ -418,7 +470,33 @@ def generate_scene(
 
     render_mode: RenderMode = (
         "i2v_chain" if is_chain
-        else ("ref_to_video" if ref_urls else "t2v")
+        else ("ref_to_video" if (ref_urls or reference_videos) else "t2v")
+    )
+    ref_policy = optimize_shot_references(
+        bible=bible,
+        shot=shot,
+        image_refs=bound_refs_filtered,
+        reference_videos=reference_videos,
+        reference_audios=reference_audios,
+        model_key=model_key,
+        render_mode=render_mode,
+        max_image_refs=min(_max_refs, 4) if model_key.startswith("seedance_2_0") else _max_refs,
+    )
+    bound_refs_filtered = list(ref_policy.get("image_refs") or [])
+    ref_urls = [
+        r.url if r.index >= len(reference_images) else reference_images[r.index]
+        for r in bound_refs_filtered
+        if r.index >= len(reference_images) or 0 <= r.index < len(reference_images)
+    ]
+    reference_videos = list(ref_policy.get("reference_videos") or [])
+    reference_audios = list(ref_policy.get("reference_audios") or [])
+    render_mode = (
+        "i2v_chain" if is_chain
+        else ("ref_to_video" if (ref_urls or reference_videos) else "t2v")
+    )
+    model_key = resolve_video_model_variant(
+        model_key,
+        "i2v" if render_mode == "i2v_chain" else ("ref" if render_mode == "ref_to_video" else "t2v"),
     )
 
     # ---- Audio decision (from Bible.audio_design × model capability) --------
@@ -440,6 +518,13 @@ def generate_scene(
     llm_negative: Optional[str] = None
     llm_render_mode: Optional[RenderMode] = None
     llm_model_params: dict = {}
+    reference_manifest = build_reference_manifest(
+        image_refs=bound_refs_filtered if render_mode != "i2v_chain" else [],
+        video_count=len(reference_videos),
+        audio_count=len(reference_audios),
+        video_roles=_reference_roles_from_bible(bible, "videos"),
+        audio_roles=_reference_roles_from_bible(bible, "audios"),
+    )
 
     if llm_mode:
         try:
@@ -448,6 +533,8 @@ def generate_scene(
                 ref_urls=ref_urls,
                 last_frame_url=last_frame_url if is_chain else None,
                 reference_videos=reference_videos,
+                reference_audios=reference_audios,
+                reference_manifest=reference_manifest,
             )
             prompt = llm_out.prompt.strip()
             if llm_out.negative_prompt:
@@ -469,10 +556,12 @@ def generate_scene(
             )
             prompt = _deterministic_build_prompt(
                 bible, shot, model_key, bound_refs_filtered, reference_videos,
+                reference_audios,
             )
     else:
         prompt = _deterministic_build_prompt(
             bible, shot, model_key, bound_refs_filtered, reference_videos,
+            reference_audios,
         )
 
     # ---- Inject @image_N tags for models that support them -------------------
@@ -502,6 +591,41 @@ def generate_scene(
         if video_sentence:
             prompt = f"{prompt.rstrip()} {video_sentence}"
 
+    if (
+        reference_audios
+        and model_key in _MODELS_SUPPORT_AUDIO_TAGS
+        and "@audio" not in prompt.lower()
+    ):
+        audio_sentence = _build_audio_tags(reference_audios)
+        if audio_sentence:
+            prompt = f"{prompt.rstrip()} {audio_sentence}"
+
+    # Seedance 2.0 Universal Reference performs best when the prompt contains a
+    # single manifest describing what each media input controls. The tag
+    # injectors above make sure tokens exist; this manifest removes ambiguity.
+    if (
+        (ref_urls or reference_videos or reference_audios)
+        and model_key.startswith("seedance_2_0")
+        and "reference manifest" not in prompt.lower()
+    ):
+        manifest_sentence = format_reference_manifest_inline(reference_manifest)
+        if manifest_sentence:
+            prompt = f"{prompt.rstrip()} {manifest_sentence}"
+
+    # Seedance 2.0 creator guidance is consistent: assign every asset a job,
+    # describe the shot on a timeline, use physical verbs, then state camera,
+    # sound, and constraints. Compile both LLM and deterministic outputs into
+    # that shape so autonomous jobs do not depend on one-off prompt style.
+    prompt = compile_seedance_scene_prompt(
+        bible=bible,
+        shot=shot,
+        base_prompt=prompt,
+        reference_manifest=reference_manifest,
+        render_mode=render_mode,
+        model_key=model_key,
+        last_frame_url=last_frame_url if is_chain else None,
+    )
+
     # Sprint5 C4 — Chain scaffold: prepend the "Continue from previous frame:"
     # context anchor when in i2v_chain mode so the model treats the last-frame
     # as a hard anchor instead of a loose hint. Skip if the prompt already
@@ -515,7 +639,7 @@ def generate_scene(
     hint = MODEL_FORMAT_HINTS.get(model_key, "single_descriptive")
     cap = _PROMPT_MAX_LEN.get(hint, 600)
     if len(prompt) > cap:
-        prompt = prompt[:cap - 1].rstrip() + "…"
+        prompt = prompt[:cap - 3].rstrip() + "..."
 
     # ---- Merge LLM model_params (only known/safe keys) ----------------------
     movement_amplitude = "auto"
@@ -544,6 +668,11 @@ def generate_scene(
         if (reference_videos and model_key in _MODELS_SUPPORT_VIDEO_TAGS)
         else []
     )
+    effective_audio_urls = (
+        list(reference_audios[:3])
+        if (reference_audios and model_key in _MODELS_SUPPORT_AUDIO_TAGS)
+        else []
+    )
 
     return SceneRenderJob(
         shot_id=shot.shot_id,
@@ -561,6 +690,8 @@ def generate_scene(
         model_key=model_key,
         audio_url=attached_audio_url,
         reference_video_urls=effective_video_urls,
+        reference_audio_urls=effective_audio_urls,
+        reference_policy=ref_policy.get("policy") or {},
     )
 
 
@@ -576,6 +707,8 @@ def _llm_build(
     *,
     max_attempts: int = 2,
     reference_videos: Optional[list[str]] = None,
+    reference_audios: Optional[list[str]] = None,
+    reference_manifest: Optional[dict] = None,
 ) -> _SceneLLMOutput:
     """Run the Layer 2 LLM call. Retry once on JSON or schema validation error.
 
@@ -606,6 +739,9 @@ def _llm_build(
         "last_frame_url": last_frame_url,
         "reference_images": ref_urls,
         "reference_videos": reference_videos or [],
+        "reference_audios": reference_audios or [],
+        "reference_manifest": reference_manifest or {},
+        "reference_manifest_prompt": format_reference_manifest(reference_manifest or {}),
         # V4 — explicit beat-aware hint so the LLM doesn't have to infer from
         # shot.purpose alone. Falls back gracefully when purpose is unknown.
         "beat_intent": beat_intent,
@@ -647,6 +783,7 @@ def _deterministic_build_prompt(
     model_key: str,
     bound_refs: Optional[list[ReferenceAsset]] = None,
     reference_videos: Optional[list[str]] = None,
+    reference_audios: Optional[list[str]] = None,
 ) -> str:
     """Pure-function fallback. Model-aware formatting via `MODEL_FORMAT_HINTS`.
 
@@ -669,6 +806,7 @@ def _deterministic_build_prompt(
     hint = MODEL_FORMAT_HINTS.get(model_key, "single_descriptive")
     bound_refs = bound_refs or []
     reference_videos = reference_videos or []
+    reference_audios = reference_audios or []
 
     base = (
         f"{shot.visual.subject}. {shot.visual.action}. "
@@ -696,7 +834,12 @@ def _deterministic_build_prompt(
             header = f"[Shot {shot.index + 1} | {shot.duration_s}s | {movement} | {ref_slug}]"
         else:
             header = f"[Shot {shot.index + 1} | {shot.duration_s}s | {movement}]"
-        return f"{header} {base}"
+        prompt = f"{header} {base}"
+        if reference_videos and model_key in _MODELS_SUPPORT_VIDEO_TAGS:
+            prompt = f"{prompt} {_build_video_tags(reference_videos)}"
+        if reference_audios and model_key in _MODELS_SUPPORT_AUDIO_TAGS:
+            prompt = f"{prompt} {_build_audio_tags(reference_audios)}"
+        return prompt
     if hint == "time_coded":
         return f"[{shot.start_s:.0f}-{shot.end_s:.0f}s] {base}"
     if hint == "i2v_motion":
@@ -720,6 +863,7 @@ def generate_all_scenes(
     resolution: str = "720p",
     llm_mode: bool = True,
     reference_videos: Optional[list[str]] = None,
+    reference_audios: Optional[list[str]] = None,
 ) -> list[SceneRenderJob]:
     """Build a `SceneRenderJob` for every shot in `shots`.
 
@@ -763,6 +907,7 @@ def generate_all_scenes(
             resolution=resolution,
             is_last_shot=(i == n - 1),
             reference_videos=reference_videos,
+            reference_audios=reference_audios,
         ))
     return jobs
 

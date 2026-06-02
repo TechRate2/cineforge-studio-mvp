@@ -42,7 +42,7 @@ FastAPI + Pydantic + AtlasCloud — Director Agent V3 (dynamic planning) thay th
 │   + agent/evaluation_layer.py self-critique scoring             │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
-          ✋  Human-in-the-Loop (DirectorPlanModal review/edit)
+          ✋  Human-in-the-Loop (Autonomous Studio plan/storyboard approval)
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
 │ LAYER 2 — Scene Generation Agent                                │
@@ -92,7 +92,7 @@ backend/
 │   ├── trend_cache.py            Optional VN-TikTok trend SQLite cache
 │   ├── model_specs.py            Per-model AtlasCloud payload spec
 │   ├── model_adapter.py          Cost / model metadata
-│   ├── model_guide.py / model_demos.py
+│   ├── model_guide.py
 │   ├── image_specs.py            Seedream / Flux payload
 │   ├── duration_extender.py
 │   └── strategies/               Per-model legacy strategies (kept for jobs.py legacy)
@@ -491,10 +491,10 @@ or front it with a Cloudflare Worker / custom domain to serve clips to users.
 
 ---
 
-## 11.6. Reference Zones (v2.1 §5)
+## 11.6. Autonomous Reference Manifest
 
-The frontend `components/studio/ReferenceZones.tsx` splits the single
-`reference_images[]` upload into THREE buckets:
+The frontend `/studio` Autonomous Agent upload surface builds a confirmed
+reference manifest from image/video/audio assets before paid render:
 
 | Zone | Default role tag | What goes here |
 |---|---|---|
@@ -502,7 +502,7 @@ The frontend `components/studio/ReferenceZones.tsx` splits the single
 | **Product / Props** | `product_hero` | The product or main prop being showcased |
 | **Storyboard** | `style_reference` | Pre-composed frames for composition / style |
 
-Frontend sends both `reference_images[]` (flat URL list) AND
+Frontend sends flat reference URL lists plus a role manifest:
 `reference_role_hints[]` (parallel role list). The Director Agent uses the
 hints to **skip the vision-pass classification** — saves an LLM call and
 guarantees the role tag the user intended.

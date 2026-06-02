@@ -263,6 +263,37 @@ def snap_discrete_durations(plan: DirectorPlan, user_model: str) -> list[str]:
     return warnings
 
 
+def normalize_per_shot_durations_for_model(plan: DirectorPlan, user_model: str) -> list[str]:
+    """Clamp per-shot render units to the active model's vendor duration bounds.
+
+    Seedance 2.0 can describe 1-3s beats inside a single multi-shot call, but
+    per-shot vendor calls still require 4-15s clips. This guard runs only for
+    per-shot rendering paths so short beats do not fail at AtlasCloud submit.
+    """
+    from agent.model_capabilities import capabilities_for
+
+    cap = capabilities_for(user_model)
+    if cap.duration_discrete:
+        return []
+
+    warnings: list[str] = []
+    for s in plan.shot_list:
+        original = int(s.duration_s)
+        fitted = max(cap.duration_min_s, min(cap.duration_max_s, original))
+        if fitted == original:
+            continue
+        warnings.append(
+            f"{s.shot_id}: duration_s {original}s -> {fitted}s "
+            f"(model {cap.user_model} per-shot range {cap.duration_min_s}-{cap.duration_max_s}s)"
+        )
+        s.duration_s = fitted
+
+    if warnings:
+        normalize_timeline(plan.shot_list)
+        plan.continuity_bible.duration_s = int(sum(s.duration_s for s in plan.shot_list))
+    return warnings
+
+
 def find_character(bible: ContinuityBible, char_id: str) -> Optional[Character]:
     for c in bible.characters:
         if c.id == char_id:
@@ -429,11 +460,11 @@ def split_shots_into_chunks(
     shots: list[Shot],
     max_chunk_duration_s: int = 60,
 ) -> list[list[Shot]]:
-    """Group shots vào chunks ≤ max_chunk_duration_s mỗi chunk.
+    """Group shots into scene/chunk units ≤ max_chunk_duration_s.
 
-    Used by Autonomous Director long-form flow (>60s video) — Seedance 2.0
-    single-call cap 60s, longer must split into N chunks rendered độc lập rồi
-    chain via last_frame.
+    Used by Autonomous Director long-form flow. This is an orchestration chunk
+    for progress, QA, retry, and assembly. It is not a single Seedance request:
+    each contained shot still renders inside the model's 4-15s generation cap.
 
     Heuristic: greedy fill — add shots vào chunk current cho tới khi adding
     next shot vượt cap, mở chunk mới. KHÔNG split 1 shot across chunks (shot
@@ -460,7 +491,7 @@ def split_shots_into_chunks(
 
 
 def is_long_form(plan: DirectorPlan, threshold_s: int = 60) -> bool:
-    """True nếu plan duration > threshold (mặc định 60s = Seedance single-call cap)."""
+    """True if plan duration is above the social-sequence threshold."""
     return plan.continuity_bible.duration_s > threshold_s
 
 

@@ -220,6 +220,7 @@ class AtlasCloudClient:
             negative_prompt=negative_prompt,
             seed=seed,
             generate_audio=generate_audio,
+            movement_amplitude=movement_amplitude,
             audio_url=audio_url,
             last_image=last_image,
             prompt_extend=prompt_extend,

@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     llm_model_generator: str = "deepseek-ai/deepseek-v4-flash"
     llm_model_vision: str = "qwen/qwen3-vl-30b-a3b-instruct"   # vision-capable (product image analysis)
     llm_model_premium: str = "anthropic/claude-sonnet-4.6"     # opt-in premium
+    llm_allow_pro_for_complex_brief: bool = False              # cost guard: Pro only when explicitly enabled
+    llm_allow_premium_brain: bool = False                      # cost guard: Claude brain only when explicitly enabled
 
     # AtlasCloud — 2 wallet riêng, 2 key riêng
     # Pay-as-you-go: image/video/upload via /api/v1/model/*
@@ -79,6 +81,11 @@ class Settings(BaseSettings):
     # Set `ADMIN_API_KEY` env in production. When empty, admin mutations are
     # ONLY allowed when `app_env=='development'` (localhost dev convenience).
     admin_api_key: str = ""
+
+    # Direct image/video/audio generate endpoints bypass the autonomous Agent.
+    # Keep them off by default for SaaS safety; normal users should use the
+    # approved autonomous render flow instead of direct vendor submission.
+    allow_direct_paid_generation: bool = False
 
     # Paths
     base_dir: Path = Path(__file__).parent.parent

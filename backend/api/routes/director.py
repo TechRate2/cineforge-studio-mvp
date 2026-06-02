@@ -21,7 +21,9 @@ legacy linear pipeline), but the canonical V3 flow is /director/*.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
+import os
 import uuid
 from typing import Optional, Any
 from datetime import datetime, timezone
@@ -36,6 +38,18 @@ from pydantic import BaseModel, Field, field_validator
 # 10MB raw decodes to ~13MB base64 chars; users uploading > this should
 # go through /api/v1/upload first (R2 hosted URL).
 _MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
+_AUTONOMOUS_ASPECT_RATIOS = {"9:16", "16:9", "1:1"}
+
+
+def _validate_optional_aspect_ratio(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    normalized = str(value).strip().lower()
+    if normalized in {"", "auto", "adaptive"}:
+        return None
+    if normalized not in _AUTONOMOUS_ASPECT_RATIOS:
+        raise ValueError("aspect_ratio must be one of 9:16, 16:9, 1:1, auto")
+    return normalized
 
 
 def _validate_reference_images(images: list[str]) -> list[str]:
@@ -72,10 +86,42 @@ from agent.schemas import DirectorPlan, ContinuityBible, Shot, StoryboardFrame
 from agent import continuity_manager
 from api.schemas import ProductInput, VideoSettings, AudioPlan
 from workers import video_worker, reassemble_worker
-from core import director_history
+from core import (
+    director_history,
+    production_artifacts,
+    production_graph_store,
+    autonomous_benchmark_store,
+    render_feedback_store,
+)
+from core.config import settings as app_settings
 
 
 router = APIRouter()
+
+
+def _require_mutation_admin(x_admin_key: Optional[str]) -> None:
+    """Guard routes that mutate production evidence or graph state."""
+    expected = app_settings.admin_api_key
+    if not expected:
+        raise HTTPException(403, "Mutating endpoint is locked: set ADMIN_API_KEY first")
+    if x_admin_key != expected:
+        raise HTTPException(403, "Unauthorized: set X-Admin-Key with ADMIN_API_KEY value")
+
+
+def _require_dev_metadata_stub(x_admin_key: Optional[str]) -> None:
+    """Metadata stubs are allowed only for local development smoke tests."""
+    if app_settings.app_env != "development":
+        raise HTTPException(403, "Metadata stubs are disabled outside development")
+    _require_mutation_admin(x_admin_key)
+
+
+def _require_paid_executor_admin(x_admin_key: Optional[str]) -> None:
+    """Paid graph execution must never be enabled by an unauthenticated request."""
+    expected = app_settings.admin_api_key
+    if not expected:
+        raise HTTPException(403, "Set ADMIN_API_KEY before enabling paid graph execution")
+    if x_admin_key != expected:
+        raise HTTPException(403, "Unauthorized: paid graph execution requires X-Admin-Key")
 
 
 # ============================================================
@@ -117,6 +163,38 @@ class ContextInjection(BaseModel):
     mood_hint: Optional[str] = Field(None, max_length=500)
 
 
+class RenderFeedbackRequest(BaseModel):
+    rating: str = Field("needs_work", max_length=20)
+    issue_tags: list[str] = Field(default_factory=list, max_length=12)
+    notes: Optional[str] = Field(None, max_length=1200)
+    reviewer: Optional[str] = Field(None, max_length=80)
+    output_url: Optional[str] = Field(None, max_length=2000)
+
+    @field_validator("rating")
+    @classmethod
+    def _check_rating(cls, v: str) -> str:
+        value = str(v or "").strip()
+        if value not in render_feedback_store.ALLOWED_RATINGS:
+            raise ValueError(
+                f"rating must be one of {sorted(render_feedback_store.ALLOWED_RATINGS)}"
+            )
+        return value
+
+    @field_validator("issue_tags")
+    @classmethod
+    def _check_issue_tags(cls, v: list[str]) -> list[str]:
+        clean: list[str] = []
+        for raw in v:
+            tag = str(raw or "").strip()
+            if not tag:
+                continue
+            if tag not in render_feedback_store.ALLOWED_ISSUE_TAGS:
+                raise ValueError(f"unsupported issue tag: {tag}")
+            if tag not in clean:
+                clean.append(tag)
+        return clean
+
+
 class PlanRequest(BaseModel):
     product_input: ProductInput
     reference_images: list[str] = Field(default_factory=list, max_length=12)
@@ -136,7 +214,8 @@ class PlanRequest(BaseModel):
             "skips the vision-pass for these refs."
         ),
     )
-    reference_videos: list[str] = Field(default_factory=list, max_length=1)
+    reference_videos: list[str] = Field(default_factory=list, max_length=3)
+    reference_audios: list[str] = Field(default_factory=list, max_length=3)
     user_brief: str = Field("", max_length=3000)
     context_injection: ContextInjection = Field(default_factory=ContextInjection)
     settings: VideoSettings
@@ -207,6 +286,8 @@ class GenerateRequest(BaseModel):
     """
     plan: DirectorPlan
     reference_images: list[str] = Field(default_factory=list, max_length=12)
+    reference_videos: list[str] = Field(default_factory=list, max_length=3)
+    reference_audios: list[str] = Field(default_factory=list, max_length=3)
 
     @field_validator("reference_images")
     @classmethod
@@ -293,6 +374,8 @@ class RefineRequest(BaseModel):
     plan: DirectorPlan
     shot_id: str
     reference_images: list[str] = Field(default_factory=list, max_length=12)
+    reference_videos: list[str] = Field(default_factory=list, max_length=3)
+    reference_audios: list[str] = Field(default_factory=list, max_length=3)
 
     @field_validator("reference_images")
     @classmethod
@@ -390,6 +473,7 @@ async def create_plan(request: PlanRequest):
             product_input=request.product_input.model_dump(exclude_none=True),
             reference_images=request.reference_images,
             reference_videos=request.reference_videos,
+            reference_audios=request.reference_audios,
             user_brief=request.user_brief,
             context_injection=request.context_injection.model_dump(exclude_none=True),
             tech_config=tech_config,
@@ -439,6 +523,7 @@ async def create_plan_stream(request: PlanRequest, raw_request: Request):
                 product_input=request.product_input.model_dump(exclude_none=True),
                 reference_images=request.reference_images,
                 reference_videos=request.reference_videos,
+                reference_audios=request.reference_audios,
                 user_brief=request.user_brief,
                 context_injection=request.context_injection.model_dump(exclude_none=True),
                 tech_config=tech_config,
@@ -930,6 +1015,8 @@ async def generate_video(
                 job_id=job_id,
                 plan=sanitized_plan,
                 reference_images=request.reference_images,
+                reference_videos=request.reference_videos,
+                reference_audios=request.reference_audios,
                 user_model=request.settings.model,
                 resolution=request.settings.resolution,
                 audio_plan=audio_plan_dict,
@@ -989,16 +1076,993 @@ class AutonomousGenerateRequest(BaseModel):
     reference_image_urls: list[str] = Field(default_factory=list, max_length=9)
     reference_video_urls: list[str] = Field(default_factory=list, max_length=3)
     reference_audio_urls: list[str] = Field(default_factory=list, max_length=3)
+    reference_manifest: dict[str, Any] = Field(default_factory=dict)
+    pinned_asset_ids: list[str] = Field(
+        default_factory=list,
+        max_length=12,
+        description="Approved autonomous asset pin IDs to inject as image references.",
+    )
+    auto_select_asset_pins: bool = Field(
+        True,
+        description="When true, backend may add high-priority approved pins for the inferred niche/market/series.",
+    )
+    series_key: str = Field("", max_length=120, description="Optional brand/series/campaign memory scope.")
     target_platform: str = Field("tiktok", description="tiktok|reels|youtube_short|youtube_long|universal")
-    duration_hint_s: Optional[int] = Field(None, ge=4, le=180)
+    target_market: str = Field("auto", description="auto|vn|us|sea|jp|kr|global")
+    duration_hint_s: Optional[int] = Field(None, ge=4, le=1800)
+    aspect_ratio: Optional[str] = Field(None, description="auto|9:16|16:9|1:1")
     user_model: str = Field("auto", description="auto|seedance_2_0|seedance_2_0_fast|wan_2_7")
     resolution: str = "720p"
     use_vision_llm_for_tagging: bool = True
+    approved_plan_id: Optional[str] = Field(None, max_length=80)
+    approved_plan_source_hash: Optional[str] = Field(None, max_length=80)
+    approved_plan_source_length: Optional[int] = Field(None, ge=0, le=2000)
 
     @field_validator("reference_image_urls")
     @classmethod
     def _check_image_urls(cls, v: list[str]) -> list[str]:
         return _validate_reference_images(v)
+
+    @field_validator("aspect_ratio")
+    @classmethod
+    def _check_aspect_ratio(cls, v: Optional[str]) -> Optional[str]:
+        return _validate_optional_aspect_ratio(v)
+
+
+def _approved_plan_meta_from_request(request: AutonomousGenerateRequest) -> dict[str, Any]:
+    """Validate optional preflight approval metadata before paid rendering."""
+    if request.approved_plan_source_hash and request.aspect_ratio:
+        approved_aspect_marker = f"Output frame:\n{request.aspect_ratio}"
+        if approved_aspect_marker not in request.user_idea:
+            raise HTTPException(
+                422,
+                {
+                    "code": "approved_plan_aspect_ratio_mismatch",
+                    "message": "Approved plan does not include the requested output frame. Re-approve the current plan before rendering.",
+                    "approved_plan_id": request.approved_plan_id,
+                    "requested_aspect_ratio": request.aspect_ratio,
+                },
+            )
+    actual_hash = hashlib.sha256(request.user_idea.encode("utf-8")).hexdigest()
+    actual_length = len(request.user_idea)
+    if request.approved_plan_source_hash and request.approved_plan_source_hash != actual_hash:
+        raise HTTPException(
+            422,
+            {
+                "code": "approved_plan_source_hash_mismatch",
+                "message": "Approved plan hash does not match the render source. Re-approve the current plan before rendering.",
+                "approved_plan_id": request.approved_plan_id,
+            },
+        )
+    if (
+        request.approved_plan_source_length is not None
+        and request.approved_plan_source_length != actual_length
+    ):
+        raise HTTPException(
+            422,
+            {
+                "code": "approved_plan_source_length_mismatch",
+                "message": "Approved plan length does not match the render source. Re-approve the current plan before rendering.",
+                "approved_plan_id": request.approved_plan_id,
+            },
+        )
+    return {
+        "id": request.approved_plan_id,
+        "source_hash": request.approved_plan_source_hash,
+        "source_length": request.approved_plan_source_length,
+        "actual_source_hash": actual_hash if request.approved_plan_source_hash else None,
+        "actual_source_length": actual_length if request.approved_plan_source_length is not None else None,
+        "included_in_render_source": bool(
+            request.approved_plan_id
+            and request.approved_plan_source_hash
+            and request.approved_plan_source_hash == actual_hash
+        ),
+    }
+
+
+_CONFIRMED_REFERENCE_ROLES = {
+    "image": {
+        "character_anchor", "secondary_character", "product_hero", "product_detail",
+        "style_reference", "environment", "brand_asset",
+    },
+    "video": {"camera_motion", "motion_style", "shot_pacing"},
+    "audio": {"beat_reference", "lip_sync_source", "sfx_layer"},
+}
+
+
+def _require_confirmed_reference_manifest_for_paid_render(request: AutonomousGenerateRequest) -> None:
+    """Block paid autonomous renders when uploaded refs have unconfirmed jobs."""
+    expected_refs: list[tuple[str, str]] = [
+        *[("image", url) for url in request.reference_image_urls],
+        *[("video", url) for url in request.reference_video_urls],
+        *[("audio", url) for url in request.reference_audio_urls],
+    ]
+    expected_refs = [(kind, str(url or "").strip()) for kind, url in expected_refs if str(url or "").strip()]
+    if not expected_refs:
+        return
+
+    manifest = request.reference_manifest if isinstance(request.reference_manifest, dict) else {}
+    items = manifest.get("items") or []
+    if not isinstance(items, list) or not bool(manifest.get("confirmed")):
+        raise HTTPException(
+            422,
+            {
+                "code": "reference_manifest_confirmation_required",
+                "message": "Confirm every uploaded reference role before paid autonomous render.",
+                "expected_references": len(expected_refs),
+            },
+        )
+
+    confirmed_by_url: dict[tuple[str, str], dict[str, Any]] = {}
+    for item in items[:12]:
+        if not isinstance(item, dict) or not item.get("role_confirmed"):
+            continue
+        kind = str(item.get("kind") or "").strip().lower()
+        role = str(item.get("role") or "").strip().lower()
+        url = str(item.get("url") or "").strip()
+        if kind in _CONFIRMED_REFERENCE_ROLES and role in _CONFIRMED_REFERENCE_ROLES[kind] and url:
+            confirmed_by_url[(kind, url)] = item
+
+    missing = [
+        {"kind": kind, "url": url[:160]}
+        for kind, url in expected_refs
+        if (kind, url) not in confirmed_by_url
+    ]
+    if missing:
+        raise HTTPException(
+            422,
+            {
+                "code": "reference_manifest_mismatch",
+                "message": "Uploaded references do not match confirmed reference manifest. Re-confirm roles before render.",
+                "missing": missing[:12],
+            },
+        )
+
+
+def _resolve_pinned_asset_refs(
+    *,
+    reference_image_urls: list[str],
+    pinned_asset_ids: list[str],
+    auto_selected_pin_ids: Optional[list[str]] = None,
+    max_images: int = 9,
+) -> dict[str, Any]:
+    """Append approved pinned asset images to the reference pool.
+
+    Seedance 2.0 Reference-to-Video accepts up to 9 image refs. Pins are
+    explicit approvals, but they still must respect that vendor cap.
+    """
+    auto_selected_set = set(auto_selected_pin_ids or [])
+    if not pinned_asset_ids:
+        return {
+            "reference_image_urls": reference_image_urls,
+            "pinned_assets": [],
+            "skipped_pins": [],
+        }
+    from core import autonomous_asset_pins
+
+    out_urls = list(reference_image_urls)
+    pinned_assets: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = []
+    seen_urls = set(out_urls)
+    seen_pin_ids: set[str] = set()
+
+    for pin_id in pinned_asset_ids:
+        if pin_id in seen_pin_ids:
+            continue
+        seen_pin_ids.add(pin_id)
+        pin = autonomous_asset_pins.get_pin(pin_id)
+        if not pin:
+            skipped.append({"pin_id": pin_id, "reason": "pin_not_found"})
+            continue
+        if pin.get("status") != "active":
+            skipped.append({"pin_id": pin_id, "reason": f"pin_status_{pin.get('status')}"})
+            continue
+        asset = pin.get("asset") or {}
+        image_url = str(asset.get("image_url") or "")
+        if not image_url:
+            skipped.append({"pin_id": pin_id, "reason": "asset_missing_image_url"})
+            continue
+        if image_url in seen_urls:
+            reference_index = out_urls.index(image_url)
+        elif len(out_urls) < max_images:
+            reference_index = len(out_urls)
+            out_urls.append(image_url)
+            seen_urls.add(image_url)
+        else:
+            skipped.append({"pin_id": pin_id, "reason": "seedance_image_reference_cap"})
+            continue
+        pinned_assets.append({
+            "pin_id": pin_id,
+            "asset_id": asset.get("id"),
+            "asset_type": asset.get("type"),
+            "name": asset.get("name"),
+            "image_url": image_url,
+            "role": pin.get("role"),
+            "target_market": pin.get("target_market"),
+            "niche": pin.get("niche"),
+            "series_key": pin.get("series_key"),
+            "priority": pin.get("priority"),
+            "reference_index": reference_index,
+            "injection_source": "auto" if pin_id in auto_selected_set else "explicit",
+        })
+    return {
+        "reference_image_urls": out_urls,
+        "pinned_assets": pinned_assets,
+        "skipped_pins": skipped,
+    }
+
+
+class BenchmarkResultCreateRequest(BaseModel):
+    case_id: str = Field(..., min_length=3, max_length=120)
+    niche: str = Field(..., min_length=2, max_length=80)
+    target_market: str = Field("auto", max_length=40)
+    runtime_class: str = Field(..., min_length=3, max_length=40)
+    model_key: str = Field(..., min_length=3, max_length=120)
+    status: str = Field("planned", description="planned|running|passed|failed|needs_review")
+    output_url: Optional[str] = Field(None, max_length=2000)
+    cost_usd: Optional[float] = Field(None, ge=0)
+    latency_s: Optional[float] = Field(None, ge=0)
+    qa_score: Optional[float] = Field(None, ge=0, le=10)
+    reviewer_decision: Optional[str] = Field(
+        None,
+        description="approved|rejected|needs_review|unknown",
+    )
+    evidence: dict[str, Any] = Field(default_factory=dict)
+    review_scores: Optional[dict[str, float]] = Field(
+        None,
+        description="Optional rubric dimension scores. When provided, backend computes qa_score.",
+    )
+    review_hard_failures: list[str] = Field(default_factory=list)
+
+
+class BenchmarkResultUpdateRequest(BaseModel):
+    status: Optional[str] = Field(None, description="planned|running|passed|failed|needs_review")
+    output_url: Optional[str] = Field(None, max_length=2000)
+    cost_usd: Optional[float] = Field(None, ge=0)
+    latency_s: Optional[float] = Field(None, ge=0)
+    qa_score: Optional[float] = Field(None, ge=0, le=10)
+    reviewer_decision: Optional[str] = Field(None)
+    evidence: Optional[dict[str, Any]] = None
+    review_scores: Optional[dict[str, float]] = None
+    review_hard_failures: list[str] = Field(default_factory=list)
+
+
+class BenchmarkRunRequest(BaseModel):
+    case_ids: list[str] = Field(default_factory=list, max_length=50)
+    niches: list[str] = Field(default_factory=list, max_length=50)
+    model_key: Optional[str] = Field(None, max_length=120)
+    mode: str = Field("dry_run", description="dry_run|stub_evidence")
+    limit: int = Field(5, ge=1, le=100)
+
+
+class AutonomousProductionDecisionRequest(BaseModel):
+    user_idea: str = Field(..., min_length=5, max_length=3000)
+    target_market: str = Field("auto", max_length=40)
+    target_platform: str = Field("tiktok", max_length=40)
+    duration_hint_s: Optional[int] = Field(None, ge=4, le=1800)
+    aspect_ratio: Optional[str] = Field(None, description="auto|9:16|16:9|1:1")
+    niche_hint: Optional[str] = Field(None, max_length=80)
+    speaker_count: int = Field(1, ge=1, le=4)
+    reference_counts: dict[str, int] = Field(default_factory=dict)
+    reference_image_urls: list[str] = Field(default_factory=list, max_length=9)
+    reference_video_urls: list[str] = Field(default_factory=list, max_length=3)
+    reference_audio_urls: list[str] = Field(default_factory=list, max_length=3)
+    reference_manifest: dict[str, Any] = Field(default_factory=dict)
+    allow_expensive_reasoning: bool = Field(
+        False,
+        description="Cost guard: when false, Pro is only surfaced as an upgrade candidate.",
+    )
+    allow_premium_brain: bool = Field(
+        False,
+        description="Cost guard: when false, premium Claude brain is locked.",
+    )
+
+    @field_validator("reference_image_urls")
+    @classmethod
+    def _validate_preflight_reference_images(cls, v: list[str]) -> list[str]:
+        return _validate_reference_images(v)
+
+    @field_validator("aspect_ratio")
+    @classmethod
+    def _validate_preflight_aspect_ratio(cls, v: Optional[str]) -> Optional[str]:
+        return _validate_optional_aspect_ratio(v)
+
+
+class ConversationalPreflightRequest(BaseModel):
+    user_idea: str = Field(..., min_length=5, max_length=3000)
+    target_market: str = Field("auto", max_length=40)
+    target_platform: str = Field("tiktok", max_length=40)
+    duration_hint_s: Optional[int] = Field(None, ge=4, le=1800)
+    aspect_ratio: Optional[str] = Field(None, description="auto|9:16|16:9|1:1")
+    speaker_count: int = Field(1, ge=1, le=4)
+    reference_counts: dict[str, int] = Field(default_factory=dict)
+    reference_image_urls: list[str] = Field(default_factory=list, max_length=9)
+    reference_video_urls: list[str] = Field(default_factory=list, max_length=3)
+    reference_audio_urls: list[str] = Field(default_factory=list, max_length=3)
+    reference_manifest: dict[str, Any] = Field(default_factory=dict)
+    approved: bool = False
+    edited_brief: Optional[str] = Field(None, max_length=3000)
+    revision_notes: Optional[str] = Field(None, max_length=1200)
+    conversation_messages: list[dict[str, Any]] = Field(default_factory=list, max_length=20)
+
+    @field_validator("reference_image_urls")
+    @classmethod
+    def _validate_conversation_reference_images(cls, v: list[str]) -> list[str]:
+        return _validate_reference_images(v)
+
+    @field_validator("aspect_ratio")
+    @classmethod
+    def _validate_conversation_aspect_ratio(cls, v: Optional[str]) -> Optional[str]:
+        return _validate_optional_aspect_ratio(v)
+
+
+class ProductIntelligenceRequest(BaseModel):
+    url: str = Field(..., min_length=4, max_length=2000)
+    user_idea: str = Field("", max_length=3000)
+
+
+class DeepPreflightRequest(AutonomousProductionDecisionRequest):
+    allow_live_llm: bool = Field(
+        False,
+        description="Opt-in only: true lets the endpoint call the low-cost text LLM.",
+    )
+    allow_vision_llm: bool = Field(
+        False,
+        description="Opt-in only: true lets the endpoint call vision LLM for image role suggestions.",
+    )
+    product_context: dict[str, Any] = Field(default_factory=dict)
+
+
+class GraphExecutionClaimRequest(BaseModel):
+    worker_id: str = Field("autonomous_executor", max_length=120)
+    limit: int = Field(4, ge=1, le=25)
+    lease_ttl_s: int = Field(900, ge=30, le=7200)
+
+
+class GraphTaskResultRequest(BaseModel):
+    outcome: str = Field(..., description="success|passed|warn|accepted|failed|retry_failed|completed")
+    lease_id: Optional[str] = Field(None, max_length=120)
+    worker_id: Optional[str] = Field(None, max_length=120)
+    payload_patch: dict[str, Any] = Field(default_factory=dict)
+
+
+class GraphExecutorRunOnceRequest(BaseModel):
+    worker_id: str = Field("autonomous_graph_executor", max_length=120)
+    limit: int = Field(1, ge=1, le=25)
+    lease_ttl_s: int = Field(900, ge=30, le=7200)
+    preview: bool = Field(True, description="Preview next executable batch without leasing or mutating graph state.")
+    allow_metadata_stub: bool = Field(
+        False,
+        description="Use non-vendor stub handlers for local smoke tests. Never produces real video.",
+    )
+
+
+class GraphExecutorLoopRequest(BaseModel):
+    worker_id: str = Field("autonomous_graph_executor", max_length=120)
+    limit: int = Field(1, ge=1, le=25)
+    lease_ttl_s: int = Field(900, ge=30, le=7200)
+    max_cycles: int = Field(100, ge=1, le=1000)
+    run_background: bool = Field(True, description="Spawn the loop in the Director background task supervisor.")
+    allow_metadata_stub: bool = Field(False, description="Run non-vendor stub handlers for local smoke tests.")
+    allow_paid_handlers: bool = Field(False, description="Trusted-only: use video_worker handlers that may call AtlasCloud.")
+
+
+def _apply_benchmark_review_scores(
+    payload: dict[str, Any],
+    *,
+    existing: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    """Compute qa_score from benchmark review rubric when dimension scores exist."""
+    payload = dict(payload)
+    review_scores = payload.pop("review_scores", None)
+    hard_failures = payload.pop("review_hard_failures", None) or []
+    if not review_scores:
+        return payload
+
+    from agent.benchmark_review_rubric import (
+        build_benchmark_review_rubric,
+        score_benchmark_review,
+    )
+
+    context = {**(existing or {}), **payload}
+    evidence = dict(context.get("evidence") or {})
+    has_dialogue = bool(
+        context.get("has_dialogue")
+        or evidence.get("has_dialogue")
+        or "dialogue" in str(evidence.get("audio_report") or "").lower()
+        or "voice" in str(evidence.get("audio_report") or "").lower()
+    )
+    rubric = build_benchmark_review_rubric(
+        niche=str(context.get("niche") or "ugc_review"),
+        runtime_class=str(context.get("runtime_class") or "short"),
+        target_market=str(context.get("target_market") or "auto"),
+        has_dialogue=has_dialogue,
+    )
+    review_score = score_benchmark_review(
+        rubric=rubric,
+        dimension_scores={str(k): float(v) for k, v in review_scores.items()},
+        hard_failures=[str(item) for item in hard_failures],
+    )
+    next_evidence = dict(payload.get("evidence") or {})
+    next_evidence.update({
+        "benchmark_review_rubric": rubric,
+        "benchmark_review_score": review_score,
+    })
+    payload["evidence"] = next_evidence
+    payload["qa_score"] = review_score["weighted_score"]
+    if not payload.get("reviewer_decision"):
+        payload["reviewer_decision"] = review_score["recommended_reviewer_decision"]
+    return payload
+
+
+@router.get("/autonomous/capabilities")
+async def autonomous_capabilities():
+    """Return current autonomous niche/runtime/model readiness matrix."""
+    from skills.niche_readiness import build_niche_readiness_matrix
+
+    return build_niche_readiness_matrix()
+
+
+@router.get("/autonomous/capability-matrix")
+async def autonomous_capability_matrix():
+    """Return detailed runtime x niche capability guidance for autonomous routing."""
+    from agent.autonomous_capability_matrix import build_autonomous_capability_matrix
+
+    return build_autonomous_capability_matrix()
+
+
+@router.get("/autonomous/benchmarks")
+async def autonomous_benchmarks():
+    """Return the deterministic benchmark contract for autonomous quality."""
+    from agent.autonomous_benchmark_suite import build_autonomous_benchmark_contract
+
+    return build_autonomous_benchmark_contract()
+
+
+@router.get("/autonomous/benchmarks/plan")
+async def autonomous_benchmark_plan(
+    focus: str = "launch",
+    limit: int = 12,
+):
+    """Return prioritized benchmark work for route promotion."""
+    from agent.autonomous_benchmark_planner import build_autonomous_benchmark_plan
+
+    return build_autonomous_benchmark_plan(focus=focus, limit=limit)
+
+
+@router.post("/autonomous/benchmarks/run")
+async def run_autonomous_benchmarks(
+    request: BenchmarkRunRequest,
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
+    """Create benchmark evidence rows without calling vendors by default."""
+    from agent.autonomous_benchmark_runner import run_autonomous_benchmark_batch
+
+    _require_mutation_admin(x_admin_key)
+    if (request.mode or "").strip().lower() == "stub_evidence":
+        _require_dev_metadata_stub(x_admin_key)
+    try:
+        return run_autonomous_benchmark_batch(
+            case_ids=request.case_ids,
+            niches=request.niches,
+            model_key=request.model_key,
+            mode=request.mode,
+            limit=request.limit,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@router.get("/autonomous/benchmarks/results")
+async def list_autonomous_benchmark_results(
+    case_id: Optional[str] = None,
+    niche: Optional[str] = None,
+    model_key: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 100,
+):
+    """List stored benchmark evidence rows."""
+    from agent.benchmark_evidence_validator import validate_benchmark_result_evidence
+
+    results = autonomous_benchmark_store.list_results(
+        case_id=case_id,
+        niche=niche,
+        model_key=model_key,
+        status=status,
+        limit=limit,
+    )
+    return {
+        "schema_version": "cinejelly.benchmark_results.v1",
+        "stats": autonomous_benchmark_store.stats(),
+        "results": [
+            {**row, "evidence_validation": validate_benchmark_result_evidence(row)}
+            for row in results
+        ],
+    }
+
+
+@router.post("/autonomous/benchmarks/results")
+async def create_autonomous_benchmark_result(
+    request: BenchmarkResultCreateRequest,
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
+    """Create one benchmark evidence row after a benchmark render or review."""
+    from agent.benchmark_evidence_validator import validate_benchmark_result_evidence
+
+    _require_mutation_admin(x_admin_key)
+    try:
+        payload = _apply_benchmark_review_scores(request.model_dump())
+        row = autonomous_benchmark_store.create_result(**payload)
+        return {**row, "evidence_validation": validate_benchmark_result_evidence(row)}
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@router.get("/autonomous/benchmarks/results/{result_id}")
+async def get_autonomous_benchmark_result(result_id: str):
+    """Get one benchmark evidence row by id."""
+    from agent.benchmark_evidence_validator import validate_benchmark_result_evidence
+
+    result = autonomous_benchmark_store.get_result(result_id)
+    if not result:
+        raise HTTPException(404, f"benchmark result '{result_id}' not found")
+    return {**result, "evidence_validation": validate_benchmark_result_evidence(result)}
+
+
+@router.patch("/autonomous/benchmarks/results/{result_id}")
+async def update_autonomous_benchmark_result(
+    result_id: str,
+    request: BenchmarkResultUpdateRequest,
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
+    """Patch one benchmark evidence row."""
+    from agent.benchmark_evidence_validator import validate_benchmark_result_evidence
+
+    _require_mutation_admin(x_admin_key)
+    existing = autonomous_benchmark_store.get_result(result_id)
+    if not existing:
+        raise HTTPException(404, f"benchmark result '{result_id}' not found")
+    try:
+        patch = _apply_benchmark_review_scores(
+            request.model_dump(exclude_unset=True),
+            existing=existing,
+        )
+        result = autonomous_benchmark_store.update_result(
+            result_id,
+            **patch,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    if not result:
+        raise HTTPException(404, f"benchmark result '{result_id}' not found")
+    return {**result, "evidence_validation": validate_benchmark_result_evidence(result)}
+
+
+@router.delete("/autonomous/benchmarks/results/{result_id}")
+async def delete_autonomous_benchmark_result(
+    result_id: str,
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
+    """Delete one benchmark evidence row."""
+    _require_mutation_admin(x_admin_key)
+    deleted = autonomous_benchmark_store.delete_result(result_id)
+    if not deleted:
+        raise HTTPException(404, f"benchmark result '{result_id}' not found")
+    return {"deleted": True, "id": result_id}
+
+
+@router.post("/autonomous/benchmarks/results/from-job/{job_id}")
+async def create_autonomous_benchmark_result_from_job(
+    job_id: str,
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
+    """Create a needs-review benchmark row from a rendered autonomous job.
+
+    The generated evidence draft only contains fields proven by the saved
+    artifact/job record. Missing QA/reviewer evidence keeps promotion locked.
+    """
+    from agent.benchmark_evidence_pack_builder import build_benchmark_result_draft_from_artifact
+    from agent.benchmark_evidence_validator import validate_benchmark_result_evidence
+
+    _require_mutation_admin(x_admin_key)
+    snapshot = production_artifacts.load_snapshot(job_id)
+    if not snapshot:
+        raise HTTPException(404, f"artifact for job '{job_id}' not found")
+    job_record = _JOBS_STORE.get(job_id, {})
+    draft = build_benchmark_result_draft_from_artifact(snapshot, job_record={**job_record, "job_id": job_id})
+    try:
+        row = autonomous_benchmark_store.create_result(
+            case_id=draft["case_id"],
+            niche=draft["niche"],
+            target_market=draft["target_market"],
+            runtime_class=draft["runtime_class"],
+            model_key=draft["model_key"],
+            status=draft["status"],
+            output_url=draft.get("output_url"),
+            cost_usd=draft.get("cost_usd"),
+            latency_s=draft.get("latency_s"),
+            qa_score=draft.get("qa_score"),
+            reviewer_decision=draft.get("reviewer_decision"),
+            evidence={
+                **(draft.get("evidence") or {}),
+                "artifact_evidence_pack": draft.get("evidence_pack"),
+            },
+        )
+        return {**row, "evidence_validation": validate_benchmark_result_evidence(row)}
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@router.get("/autonomous/workflow")
+async def autonomous_workflow():
+    """Return the structured workflow contract for autonomous inspection."""
+    from agent.autonomous_workflow_contract import build_autonomous_workflow_contract
+
+    return build_autonomous_workflow_contract()
+
+
+@router.get("/autonomous/readiness")
+async def autonomous_readiness():
+    """Return source-backed readiness verdict for autonomous production quality."""
+    from agent.autonomous_readiness_report import build_autonomous_readiness_report
+
+    return build_autonomous_readiness_report()
+
+
+@router.get("/autonomous/recommendations")
+async def autonomous_recommendations():
+    """Return source-backed upgrade recommendations for top-tier autonomous video."""
+    from agent.autonomous_upgrade_recommendations import build_autonomous_upgrade_recommendations
+
+    return build_autonomous_upgrade_recommendations()
+
+
+@router.get("/autonomous/research")
+async def autonomous_research():
+    """Return curated external research mapped to current source gaps."""
+    from agent.autonomous_competitive_research import build_autonomous_competitive_research
+
+    return build_autonomous_competitive_research()
+
+
+@router.get("/autonomous/niche-launch-matrix")
+async def autonomous_niche_launch_matrix():
+    """Return launch tiers, duration envelope, and proof gates by niche."""
+    from agent.autonomous_niche_launch_matrix import build_autonomous_niche_launch_matrix
+
+    return build_autonomous_niche_launch_matrix()
+
+
+@router.get("/autonomous/atlas-model-matrix")
+async def autonomous_atlas_model_matrix():
+    """Return internal AtlasCloud model lanes and benchmark promotion gates."""
+    from agent.atlas_model_integration_matrix import build_atlas_model_integration_matrix
+
+    return build_atlas_model_integration_matrix()
+
+
+@router.get("/autonomous/niche-playbook-catalog")
+async def autonomous_niche_playbook_catalog():
+    """Return production playbooks for all autonomous niches and durations."""
+    from agent.autonomous_niche_playbook_catalog import build_autonomous_niche_playbook_catalog
+
+    return build_autonomous_niche_playbook_catalog()
+
+
+@router.get("/autonomous/niche-audit")
+async def autonomous_niche_audit(
+    include_long_form: bool = True,
+    limit: int = 40,
+):
+    """Return all-niche source-backed routing audit without vendor calls."""
+    from agent.autonomous_niche_audit import build_autonomous_niche_audit
+
+    return build_autonomous_niche_audit(
+        include_long_form=include_long_form,
+        limit=limit,
+    )
+
+
+@router.get("/autonomous/market-audit")
+async def autonomous_market_audit():
+    """Return market/localization routing audit without vendor calls."""
+    from agent.autonomous_market_audit import build_autonomous_market_audit
+
+    return build_autonomous_market_audit()
+
+
+@router.get("/autonomous/top-tier-completion-gate")
+async def autonomous_top_tier_completion_gate():
+    """Return strict top-app parity gate with evidence requirements."""
+    from agent.autonomous_top_tier_completion_gate import build_autonomous_top_tier_completion_gate
+
+    return build_autonomous_top_tier_completion_gate()
+
+
+@router.get("/autonomous/paid-benchmark-manifest")
+async def autonomous_paid_benchmark_manifest(
+    focus: str = "sell_first",
+    outputs_per_route: int = 2,
+    limit: int = 18,
+):
+    """Return a concrete manifest for the next paid AtlasCloud benchmark batch."""
+    from agent.autonomous_paid_benchmark_manifest import build_autonomous_paid_benchmark_manifest
+
+    return build_autonomous_paid_benchmark_manifest(
+        focus=focus,
+        outputs_per_route=outputs_per_route,
+        limit=limit,
+    )
+
+
+@router.get("/autonomous/phase3-prompt-route-audit")
+async def autonomous_phase3_prompt_route_audit():
+    """Return Phase 3 model/niche/prompt audit without vendor calls."""
+    from agent.phase3_prompt_route_audit import build_phase3_prompt_route_audit
+
+    return build_phase3_prompt_route_audit()
+
+
+@router.get("/autonomous/phase4-completion-audit")
+async def autonomous_phase4_completion_audit():
+    """Return Phase 4 non-paid completion gate without vendor calls."""
+    from agent.phase4_non_paid_completion_audit import build_phase4_non_paid_completion_audit
+
+    return build_phase4_non_paid_completion_audit()
+
+
+@router.get("/autonomous/benchmark-review-rubric")
+async def autonomous_benchmark_review_rubric(
+    niche: str = "ugc_review",
+    runtime_class: str = "short",
+    target_market: str = "auto",
+    has_dialogue: bool = False,
+):
+    """Return human/model-backed scoring rubric for benchmark review."""
+    from agent.benchmark_review_rubric import build_benchmark_review_rubric
+
+    return build_benchmark_review_rubric(
+        niche=niche,
+        runtime_class=runtime_class,
+        target_market=target_market,
+        has_dialogue=has_dialogue,
+    )
+
+
+@router.get("/autonomous/production-audit")
+async def autonomous_production_audit():
+    """Return source-backed audit of workflow, niche fit, evidence gaps, and roadmap."""
+    from agent.autonomous_production_audit import build_autonomous_production_audit
+
+    return build_autonomous_production_audit()
+
+
+@router.get("/autonomous/operator-brief")
+async def autonomous_operator_brief():
+    """Return concise source-backed answer for product/operator review."""
+    from agent.autonomous_operator_brief import build_autonomous_operator_brief
+
+    return build_autonomous_operator_brief()
+
+
+@router.get("/autonomous/workflow-niche-guide")
+async def autonomous_workflow_niche_guide():
+    """Return source-backed workflow, niche, duration, and model route guide."""
+    from agent.autonomous_workflow_niche_guide import build_autonomous_workflow_niche_guide
+
+    return build_autonomous_workflow_niche_guide()
+
+
+@router.post("/autonomous/product-intelligence")
+async def autonomous_product_intelligence(request: ProductIntelligenceRequest):
+    """Extract public product/page metadata without LLM or paid video calls."""
+    from agent.product_intelligence import build_product_intelligence
+
+    return await build_product_intelligence(url=request.url, user_idea=request.user_idea)
+
+
+@router.post("/autonomous/deep-preflight")
+async def autonomous_deep_preflight(request: DeepPreflightRequest):
+    """Opt-in deep preflight brain.
+
+    Default mode is deterministic and vendor-free. Live LLM/Vision calls happen
+    only when the client explicitly sets allow_live_llm/allow_vision_llm.
+    This endpoint never starts paid video rendering.
+    """
+    from agent.deep_preflight_brain import build_deep_preflight_brain
+
+    return build_deep_preflight_brain(
+        user_idea=request.user_idea,
+        target_market=request.target_market,
+        target_platform=request.target_platform,
+        duration_hint_s=request.duration_hint_s,
+        aspect_ratio=request.aspect_ratio,
+        reference_counts=request.reference_counts,
+        reference_image_urls=request.reference_image_urls,
+        reference_video_urls=request.reference_video_urls,
+        reference_audio_urls=request.reference_audio_urls,
+        reference_manifest=request.reference_manifest,
+        speaker_count=request.speaker_count,
+        allow_live_llm=request.allow_live_llm,
+        allow_vision_llm=request.allow_vision_llm,
+        product_context=request.product_context,
+    )
+
+
+@router.post("/autonomous/production-decision")
+async def autonomous_production_decision(request: AutonomousProductionDecisionRequest):
+    """Return a vendor-free production strategy preview for an idea.
+
+    This does not call LLMs and does not start rendering. It is meant for
+    admin/UI inspection of niche, runtime, market, model route, dialogue lane,
+    Seedance constraints, QA gates, and benchmark requirements before the
+    paid `/autonomous` render path is invoked.
+    """
+    from agent.autonomous_production_decision import build_autonomous_production_decision
+
+    return build_autonomous_production_decision(
+        user_idea=request.user_idea,
+        target_market=request.target_market,
+        target_platform=request.target_platform,
+        duration_hint_s=request.duration_hint_s,
+        reference_counts=request.reference_counts,
+        reference_image_urls=request.reference_image_urls,
+        reference_video_urls=request.reference_video_urls,
+        reference_audio_urls=request.reference_audio_urls,
+        reference_manifest=request.reference_manifest,
+        niche_hint=request.niche_hint,
+        speaker_count=request.speaker_count,
+        allow_expensive_reasoning=request.allow_expensive_reasoning,
+        allow_premium_brain=request.allow_premium_brain,
+    )
+
+
+@router.post("/autonomous/llm-brain-policy")
+async def autonomous_llm_brain_policy(request: AutonomousProductionDecisionRequest):
+    """Return the Phase 1 low-cost LLM brain route without live LLM/video calls."""
+    from agent.autonomous_production_decision import build_autonomous_production_decision
+
+    decision = build_autonomous_production_decision(
+        user_idea=request.user_idea,
+        target_market=request.target_market,
+        target_platform=request.target_platform,
+        duration_hint_s=request.duration_hint_s,
+        reference_counts=request.reference_counts,
+        reference_image_urls=request.reference_image_urls,
+        reference_video_urls=request.reference_video_urls,
+        reference_audio_urls=request.reference_audio_urls,
+        niche_hint=request.niche_hint,
+        speaker_count=request.speaker_count,
+        allow_expensive_reasoning=request.allow_expensive_reasoning,
+        allow_premium_brain=request.allow_premium_brain,
+    )
+    return decision["llm_brain_policy"]
+
+
+@router.post("/autonomous/creative-brief-contract")
+async def autonomous_creative_brief_contract(request: AutonomousProductionDecisionRequest):
+    """Return Phase 1 chat-input understanding without live LLM/video calls."""
+    from agent.creative_brief_contract import build_creative_brief_contract
+
+    return build_creative_brief_contract(
+        user_idea=request.user_idea,
+        target_market=request.target_market,
+        target_platform=request.target_platform,
+        duration_hint_s=request.duration_hint_s,
+        reference_counts=request.reference_counts,
+    )
+
+
+@router.post("/autonomous/creative-producer-v2")
+async def autonomous_creative_producer_v2(request: AutonomousProductionDecisionRequest):
+    """Return Phase 2 producer angles, script beats, and shot graph without vendor calls."""
+    from agent.autonomous_production_decision import build_autonomous_production_decision
+
+    decision = build_autonomous_production_decision(
+        user_idea=request.user_idea,
+        target_market=request.target_market,
+        target_platform=request.target_platform,
+        duration_hint_s=request.duration_hint_s,
+        reference_counts=request.reference_counts,
+        reference_image_urls=request.reference_image_urls,
+        reference_video_urls=request.reference_video_urls,
+        reference_audio_urls=request.reference_audio_urls,
+        niche_hint=request.niche_hint,
+        speaker_count=request.speaker_count,
+        allow_expensive_reasoning=request.allow_expensive_reasoning,
+        allow_premium_brain=request.allow_premium_brain,
+    )
+    return decision["creative_producer_v2"]
+
+
+@router.post("/autonomous/prompt-execution-contract")
+async def autonomous_prompt_execution_contract(request: AutonomousProductionDecisionRequest):
+    """Return Phase 3 per-shot prompt/model execution contract without vendor calls."""
+    from agent.autonomous_production_decision import build_autonomous_production_decision
+
+    decision = build_autonomous_production_decision(
+        user_idea=request.user_idea,
+        target_market=request.target_market,
+        target_platform=request.target_platform,
+        duration_hint_s=request.duration_hint_s,
+        reference_counts=request.reference_counts,
+        reference_image_urls=request.reference_image_urls,
+        reference_video_urls=request.reference_video_urls,
+        reference_audio_urls=request.reference_audio_urls,
+        niche_hint=request.niche_hint,
+        speaker_count=request.speaker_count,
+        allow_expensive_reasoning=request.allow_expensive_reasoning,
+        allow_premium_brain=request.allow_premium_brain,
+    )
+    return decision["prompt_execution_contract_v3"]
+
+
+@router.post("/autonomous/viral-creative-brain")
+async def autonomous_viral_creative_brain(request: AutonomousProductionDecisionRequest):
+    """Return Phase 4A viral hooks, retention plan, and packaging without vendor calls."""
+    from agent.autonomous_production_decision import build_autonomous_production_decision
+
+    decision = build_autonomous_production_decision(
+        user_idea=request.user_idea,
+        target_market=request.target_market,
+        target_platform=request.target_platform,
+        duration_hint_s=request.duration_hint_s,
+        reference_counts=request.reference_counts,
+        reference_image_urls=request.reference_image_urls,
+        reference_video_urls=request.reference_video_urls,
+        reference_audio_urls=request.reference_audio_urls,
+        niche_hint=request.niche_hint,
+        speaker_count=request.speaker_count,
+        allow_expensive_reasoning=request.allow_expensive_reasoning,
+        allow_premium_brain=request.allow_premium_brain,
+    )
+    return decision["viral_creative_brain"]
+
+
+@router.post("/autonomous/output-qa-retry-brain")
+async def autonomous_output_qa_retry_brain(request: AutonomousProductionDecisionRequest):
+    """Return Phase 4B output QA and retry contract without vendor calls."""
+    from agent.autonomous_production_decision import build_autonomous_production_decision
+
+    decision = build_autonomous_production_decision(
+        user_idea=request.user_idea,
+        target_market=request.target_market,
+        target_platform=request.target_platform,
+        duration_hint_s=request.duration_hint_s,
+        reference_counts=request.reference_counts,
+        reference_image_urls=request.reference_image_urls,
+        reference_video_urls=request.reference_video_urls,
+        reference_audio_urls=request.reference_audio_urls,
+        niche_hint=request.niche_hint,
+        speaker_count=request.speaker_count,
+        allow_expensive_reasoning=request.allow_expensive_reasoning,
+        allow_premium_brain=request.allow_premium_brain,
+    )
+    return decision["output_qa_retry_brain"]
+
+
+@router.post("/autonomous/conversation/preflight")
+async def autonomous_conversational_preflight(request: ConversationalPreflightRequest):
+    """Return chat-style preflight: ask, draft, approve, then render."""
+    from agent.conversational_preflight import build_conversational_preflight
+
+    return build_conversational_preflight(
+        user_idea=request.user_idea,
+        target_market=request.target_market,
+        target_platform=request.target_platform,
+        duration_hint_s=request.duration_hint_s,
+        aspect_ratio=request.aspect_ratio,
+        reference_counts=request.reference_counts,
+        reference_image_urls=request.reference_image_urls,
+        reference_video_urls=request.reference_video_urls,
+        reference_audio_urls=request.reference_audio_urls,
+        reference_manifest=request.reference_manifest,
+        speaker_count=request.speaker_count,
+        approved=request.approved,
+        edited_brief=request.edited_brief,
+        revision_notes=request.revision_notes,
+        conversation_messages=request.conversation_messages,
+    )
 
 
 @router.post("/autonomous")
@@ -1036,16 +2100,98 @@ async def autonomous_generate(
             )
             return cached["response_json"]
 
+    _require_confirmed_reference_manifest_for_paid_render(request)
+
+    auto_pin_selection = {
+        "enabled": bool(request.auto_select_asset_pins),
+        "mode": "disabled",
+        "explicit_pin_ids": request.pinned_asset_ids,
+        "auto_selected_pin_ids": [],
+        "count": 0,
+    }
+    from agent.autonomous_production_decision import build_autonomous_production_decision
+
+    pre_decision = build_autonomous_production_decision(
+        user_idea=request.user_idea,
+        target_market=request.target_market,
+        target_platform=request.target_platform,
+        duration_hint_s=request.duration_hint_s,
+        reference_counts={
+            "images": len(request.reference_image_urls),
+            "videos": len(request.reference_video_urls),
+            "audios": len(request.reference_audio_urls),
+            "pinned_assets": len(request.pinned_asset_ids),
+        },
+        reference_image_urls=request.reference_image_urls,
+        reference_video_urls=request.reference_video_urls,
+        reference_audio_urls=request.reference_audio_urls,
+        reference_manifest=request.reference_manifest,
+    )
+    if (pre_decision.get("decision") or {}).get("niche_resolution_review_required"):
+        raise HTTPException(
+            422,
+            {
+                "code": "niche_resolution_requires_clarification",
+                "message": "Clarify the primary niche and proof target before paid autonomous render.",
+                "niche_resolution": (pre_decision.get("input_summary") or {}).get("niche_resolution"),
+            },
+        )
+    responsible_gate = pre_decision.get("responsible_content_gate") or {}
+    if not bool(responsible_gate.get("render_allowed", True)):
+        raise HTTPException(
+            422,
+            {
+                "code": "responsible_content_requires_review",
+                "message": "This prompt needs likeness, voice, or IP review before paid autonomous render.",
+                "responsible_content_gate": responsible_gate,
+            },
+        )
+    approved_plan_meta = _approved_plan_meta_from_request(request)
+    combined_pin_ids = list(request.pinned_asset_ids)
+    if request.auto_select_asset_pins and len(combined_pin_ids) < 12:
+        try:
+            from agent.asset_memory import select_approved_asset_pins_for_render
+            effective_target_market = str(
+                (pre_decision.get("decision") or {}).get("target_market")
+                or request.target_market
+                or "auto"
+            )
+            auto_pin_selection = select_approved_asset_pins_for_render(
+                user_idea=request.user_idea,
+                niche=str((pre_decision.get("decision") or {}).get("niche") or "any"),
+                target_market=effective_target_market,
+                series_key=request.series_key,
+                explicit_pin_ids=request.pinned_asset_ids,
+                limit=min(6, 12 - len(combined_pin_ids)),
+            )
+            for pin_id in auto_pin_selection.get("auto_selected_pin_ids") or []:
+                if pin_id not in combined_pin_ids:
+                    combined_pin_ids.append(pin_id)
+        except Exception as e:
+            logger.warning(f"[/director/autonomous] auto pin selection skipped: {_redact_error(e)}")
+
+    pinned_refs = _resolve_pinned_asset_refs(
+        reference_image_urls=request.reference_image_urls,
+        pinned_asset_ids=combined_pin_ids,
+        auto_selected_pin_ids=auto_pin_selection.get("auto_selected_pin_ids") or [],
+    )
+    reference_image_urls = pinned_refs["reference_image_urls"]
+
     # ---- Step 1: Run autonomous chain (4-5 LLM calls, ~5-15s) ----
     director_chain = AutonomousDirector()
     try:
         chain_result = await director_chain.run(AutonomousRunRequest(
             user_idea=request.user_idea,
-            reference_image_urls=request.reference_image_urls,
+            reference_image_urls=reference_image_urls,
             reference_video_urls=request.reference_video_urls,
             reference_audio_urls=request.reference_audio_urls,
+            reference_manifest=request.reference_manifest,
+            pinned_asset_ids=combined_pin_ids,
+            pinned_assets=pinned_refs["pinned_assets"],
             target_platform=request.target_platform,
+            target_market=request.target_market,
             duration_hint_s=request.duration_hint_s,
+            aspect_ratio=request.aspect_ratio,
             user_model=request.user_model,
             use_vision_llm_for_tagging=request.use_vision_llm_for_tagging,
         ))
@@ -1056,11 +2202,120 @@ async def autonomous_generate(
     plan = chain_result.director_plan
     resolved_model = chain_result.director_out.user_model
     job_id = f"job_{uuid.uuid4().hex[:12]}"
-
-    # ---- Step 2: Validate against resolved model (hard cap check) ----
+    from agent.producer_strategy import build_producer_strategy
+    producer_strategy = build_producer_strategy(
+        estimated_cost_usd=plan.cost_estimate.total_cost_usd,
+        estimated_duration_s=plan.continuity_bible.duration_s,
+        n_shots=len(plan.shot_list),
+        n_chunks=chain_result.director_out.n_chunks,
+        render_strategy=chain_result.director_out.render_strategy,
+        resolved_model=resolved_model,
+    )
+    storytelling_meta = plan.continuity_bible.storytelling_meta or {}
+    production_graph = storytelling_meta.get("production_graph")
+    scene_memory_pack = storytelling_meta.get("scene_memory_pack")
     model_violations = continuity_manager.validate_plan_against_model(
         plan, user_model=resolved_model,
     )
+    from agent.autonomous_preflight_gate import build_autonomous_preflight_report
+    autonomous_preflight = build_autonomous_preflight_report(
+        plan=plan,
+        resolved_model=resolved_model,
+        target_market=str(
+            (plan.continuity_bible.storytelling_meta or {}).get("target_market")
+            if plan.continuity_bible.storytelling_meta else request.target_market
+        ),
+        target_platform=request.target_platform,
+        reference_counts={
+            "images": len(reference_image_urls),
+            "videos": len(request.reference_video_urls),
+            "audios": len(request.reference_audio_urls),
+            "pinned_assets": len(pinned_refs["pinned_assets"]),
+        },
+        model_violations=model_violations,
+        pinned_assets=pinned_refs["pinned_assets"],
+    )
+    reference_counts = {
+        "images": len(reference_image_urls),
+        "videos": len(request.reference_video_urls),
+        "audios": len(request.reference_audio_urls),
+        "pinned_assets": len(pinned_refs["pinned_assets"]),
+    }
+    from agent.autonomous_production_decision import build_autonomous_production_decision
+    production_decision = build_autonomous_production_decision(
+        user_idea=request.user_idea,
+        target_market=request.target_market,
+        target_platform=request.target_platform,
+        duration_hint_s=plan.continuity_bible.duration_s,
+        reference_counts=reference_counts,
+        reference_image_urls=reference_image_urls,
+        reference_video_urls=request.reference_video_urls,
+        reference_audio_urls=request.reference_audio_urls,
+        reference_manifest=request.reference_manifest,
+        niche_hint=chain_result.planner_out.niche,
+        speaker_count=max(1, min(4, len(request.reference_audio_urls) or 1)),
+    )
+    effective_response_market = str(
+        (production_decision.get("decision") or {}).get("target_market")
+        or request.target_market
+        or "auto"
+    )
+    artifact_meta = production_artifacts.save_autonomous_snapshot(
+        job_id=job_id,
+        plan_id=plan.plan_id,
+        plan=plan,
+        planner_out=chain_result.planner_out,
+        storyboard_out=chain_result.storyboard_out,
+        director_out=chain_result.director_out,
+        role_tagger_out=chain_result.role_tagger_out,
+        editor_meta=chain_result.editor_meta,
+        producer_strategy=producer_strategy.model_dump(),
+        asset_memory=chain_result.asset_memory_meta,
+        request_meta={
+            "target_platform": request.target_platform,
+            "target_market": effective_response_market,
+            "requested_target_market": request.target_market,
+            "series_key": request.series_key,
+            "auto_select_asset_pins": request.auto_select_asset_pins,
+            "duration_hint_s": request.duration_hint_s,
+            "aspect_ratio": request.aspect_ratio,
+            "user_model": request.user_model,
+            "resolved_model": resolved_model,
+            "resolution": request.resolution,
+            "reference_image_urls": reference_image_urls,
+            "reference_video_urls": request.reference_video_urls,
+            "reference_audio_urls": request.reference_audio_urls,
+            "reference_counts": reference_counts,
+            "pinned_assets": pinned_refs["pinned_assets"],
+            "skipped_pins": pinned_refs["skipped_pins"],
+            "auto_pin_selection": auto_pin_selection,
+            "approved_plan": approved_plan_meta,
+            "autonomous_preflight": autonomous_preflight,
+            "production_decision": production_decision,
+        },
+    )
+    graph_meta = production_graph_store.save_graph(
+        job_id=job_id,
+        plan_id=plan.plan_id,
+        graph=production_graph if isinstance(production_graph, dict) else {},
+    )
+    graph_long_form_enabled = (
+        os.getenv("CINEJELLY_ENABLE_GRAPH_LONG_FORM", "").strip().lower()
+        in {"1", "true", "yes", "on"}
+    )
+    graph_executor_available = bool(
+        producer_strategy.long_form_mode and graph_meta.get("persisted")
+    )
+    use_graph_executor = bool(
+        graph_executor_available
+        and graph_long_form_enabled
+        and autonomous_preflight.get("render_allowed", True)
+    )
+    execution_mode = (
+        "graph_executor_long_form" if use_graph_executor else "linear_worker"
+    )
+
+    # ---- Step 2: Validate against resolved model (hard cap check) ----
     hard_violations = [
         v for v in model_violations
         if "discrete" in v or "max " in v or "out of range" in v
@@ -1082,13 +2337,33 @@ async def autonomous_generate(
         "current_step": "queued",
         "plan_id": plan.plan_id,
         "mode": "autonomous",
+        "execution_mode": execution_mode,
         "autonomous_meta": {
             "chain_elapsed_s": chain_result.elapsed_s,
             "render_strategy": chain_result.director_out.render_strategy,
             "n_chunks": chain_result.director_out.n_chunks,
             "resolved_model": resolved_model,
+            "target_market": effective_response_market,
+            "requested_target_market": request.target_market,
+            "execution_mode": execution_mode,
+            "graph_executor_available": graph_executor_available,
+            "graph_long_form_enabled": graph_long_form_enabled,
+            "producer_strategy": producer_strategy.model_dump(),
+            "autonomous_preflight": autonomous_preflight,
+            "production_decision": production_decision,
+            "scene_memory_pack": scene_memory_pack,
+            "artifact": artifact_meta,
+            "production_graph": graph_meta,
+            "asset_memory": chain_result.asset_memory_meta,
+            "pinned_assets": pinned_refs["pinned_assets"],
+            "skipped_pins": pinned_refs["skipped_pins"],
+            "auto_pin_selection": auto_pin_selection,
+            "approved_plan": approved_plan_meta,
             "viral_hook_pattern": chain_result.planner_out.hook_pattern,
             "hook_first_3s": chain_result.planner_out.hook_first_3s,
+            "production_graph_summary": (
+                production_graph.get("summary") if isinstance(production_graph, dict) else None
+            ),
         },
         "editor_meta": chain_result.editor_meta.model_dump(),
         "created_at": datetime.now(timezone.utc).isoformat() + "Z",
@@ -1098,17 +2373,47 @@ async def autonomous_generate(
 
     async def _run():
         try:
-            await video_worker.render_plan(
-                job_id=job_id,
-                plan=sanitized_plan,
-                reference_images=request.reference_image_urls,
-                user_model=resolved_model,
-                resolution=request.resolution,
-                audio_plan=None,
-                jobs_store=_JOBS_STORE,
-                use_llm_scene_gen=True,
-                cost_gate_mode="off",
-            )
+            if use_graph_executor:
+                from agent.production_graph_executor import run_graph_executor_until_idle
+
+                _JOBS_STORE[job_id].update(
+                    status="graph_executing",
+                    progress=max(1, int(_JOBS_STORE[job_id].get("progress") or 1)),
+                    current_step="graph_executor_loop",
+                )
+                handlers = video_worker.graph_executor_handlers_from_artifact(
+                    job_id=job_id,
+                    jobs_store=_JOBS_STORE,
+                )
+                result = await run_graph_executor_until_idle(
+                    job_id=job_id,
+                    worker_id="autonomous_graph_executor",
+                    limit=1,
+                    lease_ttl_s=900,
+                    handlers=handlers,
+                    max_cycles=max(20, len(sanitized_plan.shot_list) * 4 + 10),
+                )
+                _JOBS_STORE[job_id].update(
+                    graph_executor=result,
+                    current_step="done" if result.get("completed") else "graph_executor_idle",
+                    status="done" if result.get("completed") else "graph_idle",
+                    progress=100 if result.get("completed") else _JOBS_STORE[job_id].get("progress", 1),
+                )
+            else:
+                await video_worker.render_plan(
+                    job_id=job_id,
+                    plan=sanitized_plan,
+                    reference_images=reference_image_urls,
+                    reference_videos=request.reference_video_urls,
+                    reference_audios=request.reference_audio_urls,
+                    user_model=resolved_model,
+                    resolution=request.resolution,
+                    audio_plan=None,
+                    jobs_store=_JOBS_STORE,
+                    use_llm_scene_gen=True,
+                    cost_gate_mode=producer_strategy.cost_gate_mode,
+                    cost_gate_threshold=producer_strategy.cost_gate_threshold,
+                )
         except video_worker.JobCancelledError:
             logger.info(f"[/director/autonomous] job {job_id} cancelled gracefully")
             await asyncio.to_thread(video_worker.cleanup_failed_job, job_id)
@@ -1124,12 +2429,31 @@ async def autonomous_generate(
         "polling_url": f"/api/v1/director/jobs/{job_id}",
         "plan_id": plan.plan_id,
         "mode": "autonomous",
+        "execution_mode": execution_mode,
+        "graph_executor_available": graph_executor_available,
+        "graph_long_form_enabled": graph_long_form_enabled,
         "resolved_model": resolved_model,
+        "target_market": effective_response_market,
+        "requested_target_market": request.target_market,
         "estimated_duration_s": plan.continuity_bible.duration_s,
         "estimated_cost_usd": plan.cost_estimate.total_cost_usd,
         "n_shots": len(plan.shot_list),
         "render_strategy": chain_result.director_out.render_strategy,
         "n_chunks": chain_result.director_out.n_chunks,
+        "producer_strategy": producer_strategy.model_dump(),
+        "autonomous_preflight": autonomous_preflight,
+        "production_decision": production_decision,
+        "scene_memory_pack": scene_memory_pack,
+        "asset_memory": chain_result.asset_memory_meta,
+        "pinned_assets": pinned_refs["pinned_assets"],
+        "skipped_pins": pinned_refs["skipped_pins"],
+        "auto_pin_selection": auto_pin_selection,
+        "approved_plan": approved_plan_meta,
+        "artifact_summary": artifact_meta.get("summary"),
+        "production_graph_persistence": graph_meta,
+        "production_graph_summary": (
+            production_graph.get("summary") if isinstance(production_graph, dict) else None
+        ),
         "chain_elapsed_s": chain_result.elapsed_s,
         # Editor preview — FE can display caption + hashtags ngay sau khi /autonomous trả về
         "editor_preview": {
@@ -1137,6 +2461,7 @@ async def autonomous_generate(
             "caption_en": chain_result.editor_meta.caption_en,
             "hashtags_vn": chain_result.editor_meta.hashtags_vn,
             "hashtags_en": chain_result.editor_meta.hashtags_en,
+            "distribution_package": chain_result.editor_meta.distribution_package,
         },
         # Viral hook preview
         "hook_preview": {
@@ -1156,6 +2481,307 @@ async def autonomous_generate(
             logger.warning(f"[/director/autonomous] idem store fail (non-fatal): {e}")
 
     return response
+
+
+@router.get("/jobs/{job_id}/artifact")
+async def get_job_artifact(job_id: str):
+    """Return persisted autonomous production artifact snapshot, if available."""
+    snapshot = production_artifacts.load_snapshot(job_id)
+    if not snapshot:
+        raise HTTPException(404, f"artifact for job '{job_id}' not found")
+    return snapshot
+
+
+@router.get("/jobs/{job_id}/production-report")
+async def get_job_production_report(job_id: str):
+    """Return a concise agent-readable storyboard/design/graph/QA report."""
+    report = production_artifacts.load_report(
+        job_id,
+        job_record={**_JOBS_STORE.get(job_id, {}), "job_id": job_id},
+    )
+    if not report:
+        raise HTTPException(404, f"production report for job '{job_id}' not found")
+    report["user_feedback"] = render_feedback_store.summarize_job_feedback(job_id)
+    return report
+
+
+@router.get("/jobs/{job_id}/benchmark-evidence-pack")
+async def get_job_benchmark_evidence_pack(job_id: str):
+    """Return a benchmark evidence draft extracted from a production artifact."""
+    from agent.benchmark_evidence_pack_builder import build_benchmark_result_draft_from_artifact
+    from agent.benchmark_evidence_validator import validate_benchmark_result_evidence
+
+    snapshot = production_artifacts.load_snapshot(job_id)
+    if not snapshot:
+        raise HTTPException(404, f"artifact for job '{job_id}' not found")
+    job_record = _JOBS_STORE.get(job_id, {})
+    draft = build_benchmark_result_draft_from_artifact(snapshot, job_record={**job_record, "job_id": job_id})
+    return {
+        "schema_version": "cinejelly.job_benchmark_evidence_pack.v1",
+        "job_id": job_id,
+        "benchmark_result_draft": draft,
+        "user_feedback": render_feedback_store.build_feedback_evidence(job_id),
+        "evidence_validation_preview": validate_benchmark_result_evidence(draft),
+    }
+
+
+def _find_feedback_job_record(job_id: str) -> Optional[dict[str, Any]]:
+    if job_id in _JOBS_STORE:
+        return {**_JOBS_STORE[job_id], "job_id": job_id}
+    history = director_history.get_job(job_id, include_plan=False)
+    if history:
+        return history
+    snapshot = production_artifacts.load_snapshot(job_id)
+    if snapshot:
+        return {
+            "job_id": job_id,
+            "status": "artifact",
+            "mode": "autonomous",
+            "output_url": None,
+        }
+    return None
+
+
+@router.get("/jobs/{job_id}/feedback")
+async def get_job_feedback(job_id: str):
+    """Return human/operator feedback captured for a rendered job."""
+    try:
+        evidence = render_feedback_store.build_feedback_evidence(job_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    if evidence["summary"]["feedback_count"] == 0 and _find_feedback_job_record(job_id) is None:
+        raise HTTPException(404, "job not found")
+    return evidence
+
+
+@router.post("/jobs/{job_id}/feedback")
+async def record_job_feedback(job_id: str, request: RenderFeedbackRequest):
+    """Persist post-render feedback without triggering any paid render work."""
+    job_record = _find_feedback_job_record(job_id)
+    if job_record is None:
+        raise HTTPException(404, "job not found")
+    try:
+        doc = render_feedback_store.record_feedback(
+            job_id=job_id,
+            rating=request.rating,
+            issue_tags=request.issue_tags,
+            notes=request.notes,
+            reviewer=request.reviewer,
+            output_url=request.output_url,
+            job_record=job_record,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    return {
+        "schema_version": "cinejelly.render_feedback_response.v1",
+        "job_id": job_id,
+        "summary": doc["summary"],
+        "latest": doc["entries"][-1],
+    }
+
+
+@router.get("/jobs/{job_id}/production-graph")
+async def get_job_production_graph(job_id: str):
+    """Return queryable persisted production graph nodes/edges, if available."""
+    graph = production_graph_store.load_graph(job_id)
+    if not graph:
+        raise HTTPException(404, f"production graph for job '{job_id}' not found")
+    return {
+        **graph,
+        "resume_plan": production_graph_store.build_resume_plan(graph),
+        "execution_batch": production_graph_store.build_execution_batch(graph),
+    }
+
+
+@router.post("/jobs/{job_id}/production-graph/claim")
+async def claim_job_production_graph_batch(
+    job_id: str,
+    request: GraphExecutionClaimRequest,
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
+    """Lease the next dependency-safe production graph tasks for a worker."""
+    _require_mutation_admin(x_admin_key)
+    claim = production_graph_store.claim_execution_batch(
+        job_id=job_id,
+        worker_id=request.worker_id,
+        limit=request.limit,
+        lease_ttl_s=request.lease_ttl_s,
+    )
+    if not claim:
+        raise HTTPException(404, f"production graph for job '{job_id}' not found")
+    return claim
+
+
+@router.post("/jobs/{job_id}/production-graph/leases/expire")
+async def expire_job_production_graph_leases(
+    job_id: str,
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
+    """Release expired leased graph nodes back to executable states."""
+    _require_mutation_admin(x_admin_key)
+    graph = production_graph_store.load_graph(job_id)
+    if not graph:
+        raise HTTPException(404, f"production graph for job '{job_id}' not found")
+    return production_graph_store.release_expired_leases(job_id)
+
+
+@router.post("/jobs/{job_id}/production-graph/tasks/{node_id}/result")
+async def record_job_production_graph_task_result(
+    job_id: str,
+    node_id: str,
+    request: GraphTaskResultRequest,
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
+    """Record completion/failure for one leased graph task.
+
+    This is the executor acknowledgement path: a graph worker claims a shot,
+    QA, or assembly node, performs the work, then posts the result here so the
+    next dependency-safe batch can be computed without re-planning the job.
+    """
+    _require_mutation_admin(x_admin_key)
+    graph = production_graph_store.load_graph(job_id)
+    if not graph:
+        raise HTTPException(404, f"production graph for job '{job_id}' not found")
+    try:
+        result = production_graph_store.record_task_result(
+            job_id=job_id,
+            node_id=node_id,
+            outcome=request.outcome,
+            payload_patch=request.payload_patch,
+            lease_id=request.lease_id,
+            worker_id=request.worker_id,
+        )
+    except ValueError as e:
+        raise HTTPException(409, str(e)) from e
+    if not result.get("recorded"):
+        raise HTTPException(404, f"node '{node_id}' not found in production graph for job '{job_id}'")
+    return result
+
+
+@router.post("/jobs/{job_id}/production-graph/executor/run-once")
+async def run_job_production_graph_executor_once(
+    job_id: str,
+    request: GraphExecutorRunOnceRequest,
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
+    """Run one graph executor cycle.
+
+    Default `preview=true` is read-only. Real paid render execution must be
+    wired through internal worker handlers; the HTTP route exposes only preview
+    plus explicit metadata stubs for local non-vendor smoke tests.
+    """
+    from agent.production_graph_executor import (
+        metadata_stub_handlers,
+        run_graph_executor_once,
+    )
+
+    if not request.preview:
+        if request.allow_metadata_stub:
+            _require_dev_metadata_stub(x_admin_key)
+        else:
+            _require_mutation_admin(x_admin_key)
+    if not request.preview and not request.allow_metadata_stub:
+        raise HTTPException(
+            400,
+            "HTTP graph executor cannot run paid render handlers. Use preview=true or allow_metadata_stub=true for local smoke tests.",
+        )
+    result = await run_graph_executor_once(
+        job_id=job_id,
+        worker_id=request.worker_id,
+        limit=request.limit,
+        lease_ttl_s=request.lease_ttl_s,
+        handlers=metadata_stub_handlers() if request.allow_metadata_stub else None,
+        preview=request.preview,
+    )
+    if not result.get("ok") and result.get("reason") == "graph_not_found":
+        raise HTTPException(404, f"production graph for job '{job_id}' not found")
+    return result
+
+
+@router.post("/jobs/{job_id}/production-graph/executor/run-loop")
+async def run_job_production_graph_executor_loop(
+    job_id: str,
+    request: GraphExecutorLoopRequest,
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
+    """Run a graph executor loop until idle/noop/blocked.
+
+    By default this route refuses to run mutating work unless either
+    `allow_metadata_stub` or `allow_paid_handlers` is explicit. Paid handlers
+    reconstruct the persisted DirectorPlan artifact and may call AtlasCloud.
+    """
+    from agent.production_graph_executor import (
+        metadata_stub_handlers,
+        run_graph_executor_until_idle,
+    )
+
+    if request.allow_metadata_stub and request.allow_paid_handlers:
+        raise HTTPException(400, "choose either metadata stubs or paid handlers, not both")
+    if request.allow_metadata_stub:
+        _require_dev_metadata_stub(x_admin_key)
+    if request.allow_paid_handlers:
+        _require_paid_executor_admin(x_admin_key)
+    if not request.allow_metadata_stub and not request.allow_paid_handlers:
+        raise HTTPException(
+            400,
+            "run-loop mutates graph state. Set allow_metadata_stub=true for local tests or allow_paid_handlers=true for trusted paid execution.",
+        )
+    graph = production_graph_store.load_graph(job_id)
+    if not graph:
+        raise HTTPException(404, f"production graph for job '{job_id}' not found")
+
+    def _handlers():
+        if request.allow_metadata_stub:
+            return metadata_stub_handlers()
+        return video_worker.graph_executor_handlers_from_artifact(
+            job_id=job_id,
+            jobs_store=_JOBS_STORE,
+        )
+
+    async def _run_loop():
+        return await run_graph_executor_until_idle(
+            job_id=job_id,
+            worker_id=request.worker_id,
+            limit=request.limit,
+            lease_ttl_s=request.lease_ttl_s,
+            handlers=_handlers(),
+            max_cycles=request.max_cycles,
+        )
+
+    if request.run_background:
+        _JOBS_STORE.setdefault(job_id, {}).update(
+            status="graph_executing",
+            current_step="graph_executor_loop",
+            progress=max(1, int(_JOBS_STORE.get(job_id, {}).get("progress") or 1)),
+        )
+
+        async def _run():
+            try:
+                result = await _run_loop()
+                _JOBS_STORE.setdefault(job_id, {}).update(
+                    graph_executor=result,
+                    current_step="graph_executor_idle" if not result.get("completed") else "done",
+                    status="done" if result.get("completed") else "graph_idle",
+                    progress=100 if result.get("completed") else _JOBS_STORE.get(job_id, {}).get("progress", 1),
+                )
+            except Exception as e:
+                logger.exception(f"[graph_executor] loop failed for {job_id}")
+                _JOBS_STORE.setdefault(job_id, {}).update(
+                    status="failed",
+                    current_step="graph_executor_failed",
+                    error_message=_redact_error(e),
+                )
+
+        _spawn(_run())
+        return {
+            "schema_version": "cinejelly.graph_executor_loop_start.v1",
+            "job_id": job_id,
+            "started": True,
+            "mode": "metadata_stub" if request.allow_metadata_stub else "paid_handlers",
+            "polling_url": f"/api/v1/director/jobs/{job_id}",
+        }
+
+    return await _run_loop()
 
 
 @router.post("/plan-and-render")
@@ -1200,6 +2826,7 @@ async def plan_and_render(request: PlanAndRenderRequest):
                 product_input=pr.product_input.model_dump(exclude_none=True),
                 reference_images=pr.reference_images,
                 reference_videos=pr.reference_videos,
+                reference_audios=pr.reference_audios,
                 user_brief=pr.user_brief,
                 context_injection=pr.context_injection.model_dump(exclude_none=True),
                 tech_config=tech_config,
@@ -1224,6 +2851,8 @@ async def plan_and_render(request: PlanAndRenderRequest):
                 job_id=job_id,
                 plan=plan_built,
                 reference_images=pr.reference_images,
+                reference_videos=pr.reference_videos,
+                reference_audios=pr.reference_audios,
                 user_model=pr.settings.model,
                 resolution=pr.settings.resolution,
                 audio_plan=(
@@ -1372,6 +3001,8 @@ async def refine_shot(request: RefineRequest):
                 plan=plan_for_refine,
                 shot_id=request.shot_id,
                 reference_images=request.reference_images,
+                reference_videos=request.reference_videos,
+                reference_audios=request.reference_audios,
                 user_model=request.settings.model,
                 resolution=request.settings.resolution,
                 previous_last_frame_url=request.previous_last_frame_url,
@@ -1404,7 +3035,11 @@ async def refine_shot(request: RefineRequest):
 async def get_job(job_id: str):
     if job_id not in _JOBS_STORE:
         raise HTTPException(404, "job not found")
-    return {"job_id": job_id, **_JOBS_STORE[job_id]}
+    return {
+        "job_id": job_id,
+        **_JOBS_STORE[job_id],
+        "feedback_summary": render_feedback_store.summarize_job_feedback(job_id),
+    }
 
 
 @router.post("/jobs/{job_id}/cancel")
@@ -1545,7 +3180,10 @@ async def list_history(limit: int = 50, status: Optional[str] = None):
     Sorted by `finished_at` desc. Each item is a thin summary; full plan +
     chain meta available via GET /history/{job_id}.
     """
-    return {"items": director_history.list_jobs(limit=limit, status_filter=status)}
+    items = director_history.list_jobs(limit=limit, status_filter=status)
+    for item in items:
+        item["feedback_summary"] = render_feedback_store.summarize_job_feedback(item["job_id"])
+    return {"items": items}
 
 
 @router.get("/history/{job_id}")
@@ -1554,6 +3192,8 @@ async def get_history(job_id: str):
     item = director_history.get_job(job_id, include_plan=True)
     if not item:
         raise HTTPException(404, f"history job '{job_id}' not found")
+    item["feedback_summary"] = render_feedback_store.summarize_job_feedback(job_id)
+    item["feedback_entries"] = render_feedback_store.list_feedback(job_id)
     return item
 
 

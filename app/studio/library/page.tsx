@@ -20,7 +20,7 @@ export default function LibraryPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="h-section flex items-center gap-3"><Library size={26} /> Asset library</h1>
-          <p className="text-sm text-text-muted mt-1">Reuse ảnh nhân vật / sản phẩm / style frame cho mọi plan.</p>
+          <p className="text-sm text-text-muted mt-1">Reusable character, product and style references for future autonomous videos.</p>
         </div>
         <button onClick={refresh} className="btn-outline" disabled={loading}>
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
@@ -69,8 +69,8 @@ export default function LibraryPage() {
       {!loading && items.length === 0 && (
         <div className="surface-2 rounded-card p-12 text-center">
           <Library size={32} className="mx-auto text-text-subtle mb-3" />
-          <h3 className="font-semibold mb-1">Library trống</h3>
-          <p className="text-sm text-text-muted">Upload ảnh từ Studio và lưu vào library để tái sử dụng.</p>
+          <h3 className="font-semibold mb-1">Library is empty</h3>
+          <p className="text-sm text-text-muted">Approve references from Studio to reuse them across future videos.</p>
         </div>
       )}
 
@@ -82,7 +82,7 @@ export default function LibraryPage() {
             </div>
             <div className="p-2.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] uppercase tracking-wider text-text-subtle">{a.type}</span>
+                <span className="text-[10px] uppercase text-text-subtle">{a.type}</span>
                 <button
                   onClick={() => remove(a.id)}
                   className="opacity-0 group-hover:opacity-100 transition text-text-subtle hover:text-accent-orange"

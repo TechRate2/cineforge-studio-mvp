@@ -1,0 +1,14 @@
+import { NextResponse } from 'next/server';
+
+const BACKEND = process.env.BACKEND_URL || 'http://127.0.0.1:8001';
+
+export async function GET() {
+  try {
+    const res = await fetch(`${BACKEND}/api/v1/director/autonomous/phase4-completion-audit`, {
+      cache: 'no-store',
+    });
+    return NextResponse.json(await res.json(), { status: res.status });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
