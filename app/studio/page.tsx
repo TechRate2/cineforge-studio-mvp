@@ -27,8 +27,15 @@ import {
   Wand2,
   X,
 } from 'lucide-react';
+import { CommandComposer } from '@/components/studio/CommandComposer';
 import { JobResultModal } from '@/components/studio/JobResultModal';
+import { PipelinePreview } from '@/components/studio/PipelinePreview';
+import { PipelineTraceView } from '@/components/studio/PipelineTraceView';
 import { RecentGenerations } from '@/components/studio/RecentGenerations';
+import { ReferenceTray } from '@/components/studio/ReferenceTray';
+import { RenderReviewPanel } from '@/components/studio/RenderReviewPanel';
+import { SettingsBar } from '@/components/studio/SettingsBar';
+import { StoryboardTimeline } from '@/components/studio/StoryboardTimeline';
 import { usePersistedJob } from '@/lib/studio/use-persisted-job';
 import { uploadMediaToR2 } from '@/lib/studio/upload-media';
 
@@ -626,6 +633,7 @@ export default function StudioPage() {
   const [conversationalPreflightLoading, setConversationalPreflightLoading] = useState(false);
   const [preflightApproved, setPreflightApproved] = useState(false);
   const [approvedInputKey, setApprovedInputKey] = useState('');
+  const [approvalLockRevision, setApprovalLockRevision] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [autonomousPreview, setAutonomousPreview] = useState<AutonomousPreview | null>(null);
   const [productionDecision, setProductionDecision] = useState<ProductionDecision | null>(null);
@@ -1437,6 +1445,7 @@ export default function StudioPage() {
     setConversationalPreflightLoading(false);
     setPreflightApproved(false);
     setApprovedInputKey('');
+    setApprovalLockRevision(0);
     setAutonomousPreview(null);
     setProductionDecision(null);
     setProductionDecisionLoading(false);
@@ -1453,6 +1462,13 @@ export default function StudioPage() {
       localStorage.removeItem(DRAFT_STORAGE_KEY);
     }
     toast.success('New autonomous project started.');
+  }, []);
+
+  const invalidateApprovalLock = useCallback((message?: string) => {
+    setPreflightApproved(false);
+    setApprovedInputKey('');
+    setApprovalLockRevision((revision) => revision + 1);
+    if (message) toast.info(message, { duration: 4200 });
   }, []);
 
   const uploadReferences = useCallback(async (files: FileList | File[]) => {
@@ -1523,6 +1539,7 @@ export default function StudioPage() {
       uploading: true,
     }));
     setRefs((prev) => [...prev, ...placeholders]);
+    invalidateApprovalLock('Reference set changed. Review the pipeline again before paid render.');
 
     await Promise.all(placeholders.map(async (placeholder, index) => {
       try {
@@ -1541,7 +1558,7 @@ export default function StudioPage() {
         console.error(e);
       }
     }));
-  }, [refs]);
+  }, [invalidateApprovalLock, refs]);
 
   const removeReference = useCallback((id: string) => {
     setRefs((prev) => {
@@ -1549,14 +1566,15 @@ export default function StudioPage() {
       if (removed) revokeReferencePreview(removed);
       return prev.filter((r) => r.id !== id);
     });
-  }, []);
+    invalidateApprovalLock('Reference removed. ApprovalLock will be rebuilt after review.');
+  }, [invalidateApprovalLock]);
 
   const updateReferenceRole = useCallback((id: string, role: ReferenceRole) => {
     setRefs((prev) => prev.map((item) => (
       item.id === id ? { ...item, role, roleConfirmed: true, roleSource: 'user' } : item
     )));
-    setPreflightApproved(false);
-  }, []);
+    invalidateApprovalLock('Reference role changed. ApprovalLock will be rebuilt after review.');
+  }, [invalidateApprovalLock]);
 
   const confirmAllReferenceRoles = useCallback(() => {
     setRefs((prev) => prev.map((item) => (
@@ -1564,9 +1582,9 @@ export default function StudioPage() {
         ? item
         : { ...item, roleConfirmed: item.role !== 'unknown', roleSource: item.roleSource || 'user' }
     )));
-    setPreflightApproved(false);
+    invalidateApprovalLock();
     toast.success('Reference manifest confirmed.');
-  }, []);
+  }, [invalidateApprovalLock]);
 
   const approveReferenceAsMemory = useCallback(async (
     ref: ReferenceAsset,
@@ -1861,138 +1879,118 @@ export default function StudioPage() {
           marketLabel={targetMarket === 'auto' ? 'Auto market' : `${targetMarket.toUpperCase()} market`}
         />
 
-        <UnifiedCommandTable
-          brief={brief}
-          chatInput={chatInput}
-          chatRevisionMode={chatRevisionMode}
-          refs={refs}
-          readyRefs={readyRefs}
-          refCounts={refCounts}
-          targetMarket={targetMarket}
-          durationHintS={durationHintS}
-          qualityPreset={qualityPreset}
-          selectedResolution={selectedResolution}
-          videoModelChoice={videoModelChoice}
-          aspectRatioChoice={aspectRatioChoice}
-          loading={conversationalPreflightLoading || productionDecisionLoading}
-          suggestedReplies={suggestedReplies}
-          showStarterPrompts={showStarterPrompts}
-          productIntelligenceLoading={productIntelligenceLoading}
-          deepPreflightLoading={deepPreflightLoading}
-          referenceRolesConfirmed={referenceRolesConfirmed}
-          onChatInputChange={setChatInput}
-          onSubmit={handleChatSubmit}
-          onStarterPrompt={handleStarterPrompt}
-          onExtractProductUrl={handleExtractProductUrl}
-          onDeepAnalyze={handleDeepAnalyze}
-          onAddReference={() => fileInputRef.current?.click()}
-          onFilesSelected={uploadReferences}
-          fileInputRef={fileInputRef}
-          onRemoveReference={removeReference}
-          onConfirmReferenceRoles={confirmAllReferenceRoles}
-          onReferenceRoleChange={updateReferenceRole}
-          onTargetMarketChange={setTargetMarket}
-          onDurationChange={setDurationHintS}
-          onQualityChange={(value) => {
-            setQualityPreset(value);
-            setPreflightApproved(false);
-          }}
-          onVideoModelChange={(value) => {
-            setVideoModelChoice(value);
-            setPreflightApproved(false);
-          }}
-          onAspectRatioChange={(value) => {
-            setAspectRatioChoice(value);
-            setPreflightApproved(false);
-          }}
-          inputRef={chatInputRef}
-          onFocusComposer={() => chatInputRef.current?.focus()}
-        />
+        <div className="mb-5 grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
+          <div className="space-y-5">
+            <CommandComposer
+              value={brief}
+              chatValue={chatInput}
+              revisionMode={chatRevisionMode}
+              loading={conversationalPreflightLoading || productionDecisionLoading}
+              deepAnalyzeLoading={deepPreflightLoading}
+              productIntelligenceLoading={productIntelligenceLoading}
+              charLimit={CHAT_INPUT_MAX_CHARS}
+              starterPrompts={STARTER_PROMPTS}
+              showStarterPrompts={showStarterPrompts}
+              inputRef={chatInputRef}
+              onChange={setBrief}
+              onChatChange={setChatInput}
+              onSubmit={handleChatSubmit}
+              onStarterPrompt={handleStarterPrompt}
+              onExtractProductUrl={handleExtractProductUrl}
+              onDeepAnalyze={handleDeepAnalyze}
+            />
 
-        <ScenePreviewWorkbench
-          scenes={previewScenes}
-          activeScene={activePreviewScene}
-          activeSceneId={activePreviewSceneId}
-          refs={readyRefs}
-          loading={conversationalPreflightLoading}
-          inserted={sceneDraftsInserted}
-          approved={preflightApproved}
-          renderSourceReady={renderSourceReady}
-          renderBlockers={renderBlockers}
-          spendPreview={spendPreview}
-          onActiveSceneChange={setActivePreviewSceneId}
-          onInsertOnly={handleInsertPreviewOnly}
-          onInsertAndUnlock={handleInsertAndUnlockRender}
-          onAddScene={handleAddSceneRequest}
-          onPolishAll={handlePolishAllScenes}
-          onCopyPrompt={handleCopyPreviewPrompt}
-          onAddReference={() => fileInputRef.current?.click()}
-        />
+            <SettingsBar
+              modelValue={videoModelChoice}
+              durationValue={durationHintS}
+              aspectRatioValue={aspectRatioChoice}
+              qualityValue={qualityPreset}
+              targetMarketValue={targetMarket}
+              selectedResolution={selectedResolution}
+              modelOptions={VIDEO_MODEL_OPTIONS}
+              durationOptions={DURATION_OPTIONS}
+              aspectRatioOptions={ASPECT_OPTIONS}
+              qualityOptions={QUALITY_OPTIONS}
+              targetMarketOptions={TARGET_MARKET_OPTIONS}
+              onModelChange={(value) => {
+                setVideoModelChoice(value as VideoModelChoice);
+                invalidateApprovalLock();
+              }}
+              onDurationChange={(value) => {
+                setDurationHintS(value);
+                invalidateApprovalLock();
+              }}
+              onAspectRatioChange={(value) => {
+                setAspectRatioChoice(value as AspectRatioChoice);
+                invalidateApprovalLock();
+              }}
+              onQualityChange={(value) => {
+                setQualityPreset(value as QualityPreset);
+                invalidateApprovalLock();
+              }}
+              onTargetMarketChange={(value) => {
+                setTargetMarket(value);
+                invalidateApprovalLock();
+              }}
+            />
 
-        <div className="mb-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_390px]">
-          <SimplePlanReviewPanel
-            preflight={conversationalPreflight}
-            loading={conversationalPreflightLoading}
-            approved={preflightApproved}
-            planVersion={planVersion}
-            revisionNotes={revisionNotes}
-            renderSourceReady={renderSourceReady}
-            onApprove={handleApprovePreflight}
+            <ReferenceTray
+              refs={refs}
+              readyRefs={readyRefs}
+              rolesConfirmed={referenceRolesConfirmed}
+              approvalLockRevision={approvalLockRevision}
+              roleOptionsForKind={roleOptionsForKind}
+              getReferenceTag={(ref) => getReferenceTag(ref, readyRefs)}
+              getPreviewUrl={(ref) => getReferencePreviewUrl(ref as ReferenceAsset)}
+              onFilesSelected={uploadReferences}
+              onRemoveReference={removeReference}
+              onConfirmRoles={confirmAllReferenceRoles}
+              onRoleChange={(id, role) => updateReferenceRole(id, role as ReferenceRole)}
+            />
+          </div>
+
+          <div className="space-y-5">
+            <PipelinePreview
+              loading={conversationalPreflightLoading || productionDecisionLoading}
+              approved={preflightApproved}
+              renderSourceReady={renderSourceReady}
+              referencesConfirmed={referenceRolesConfirmed}
+              preflight={conversationalPreflight}
+              productionDecision={productionDecision}
+              scenes={previewScenes}
+              spendPreview={spendPreview}
+            />
+
+            <RenderReviewPanel
+              approved={preflightApproved}
+              renderSourceReady={renderSourceReady}
+              loading={isGenerating}
+              planning={conversationalPreflightLoading || productionDecisionLoading}
+              renderDisabled={generateDisabled}
+              referencesConfirmed={referenceRolesConfirmed}
+              approvalLockRevision={approvalLockRevision}
+              spendPreview={spendPreview}
+              scenes={previewScenes}
+              blockers={renderBlockers}
+              onApprove={handleApprovePreflight}
+              onRender={handleAutonomousGenerate}
+            />
+          </div>
+        </div>
+
+        <div className="mb-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
+          <StoryboardTimeline
+            scenes={previewScenes}
+            activeSceneId={activePreviewSceneId}
+            onSelectScene={setActivePreviewSceneId}
+            onCopyPrompt={handleCopyPreviewPrompt}
           />
-
-          <aside className="space-y-4">
-            <RenderBlockerPanel blockers={renderBlockers} renderSourceReady={renderSourceReady} />
-            <button
-              onClick={handleAutonomousGenerate}
-              disabled={generateDisabled}
-              className="flex w-full items-center justify-center gap-2 rounded-card bg-cta-gradient px-5 py-4 text-base font-bold text-white shadow-cta-glow transition hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" />
-                  Rendering video
-                </>
-              ) : conversationalPreflightLoading || productionDecisionLoading ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" />
-                  Planning
-                </>
-              ) : !preflightApproved ? (
-                <>
-                  <BadgeCheck size={18} />
-                  Approve plan first
-                </>
-              ) : !referenceRolesConfirmed ? (
-                <>
-                  <BadgeCheck size={18} />
-                  Confirm reference roles
-                </>
-              ) : !renderSourceReady ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" />
-                  Locking plan
-                </>
-              ) : (
-                <>
-                  <Play size={18} fill="currentColor" />
-                  Generate Full Video (Autonomous)
-                  <ArrowRight size={17} />
-                </>
-              )}
-            </button>
-            {autonomousPreview && (
-              <div className="rounded-card border border-hairline bg-surface-1 p-4">
-                <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase text-text-subtle">
-                  <Sparkles size={12} className="text-accent-cyan" />
-                  Render started
-                </div>
-                <div className="grid gap-2">
-                  {autonomousPreview.hook_first_3s && <PreviewBlock label="Hook 3s" value={autonomousPreview.hook_first_3s} />}
-                  {autonomousPreview.caption_vn && <PreviewBlock label="Caption" value={autonomousPreview.caption_vn} />}
-                </div>
-              </div>
-            )}
-          </aside>
+          <PipelineTraceView
+            preflight={conversationalPreflight}
+            productionDecision={productionDecision}
+            referenceManifest={referenceManifest}
+            approvalLockRevision={approvalLockRevision}
+          />
         </div>
 
         <div className="hidden">

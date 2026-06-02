@@ -32,7 +32,7 @@ import shutil
 import tempfile
 import uuid
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional, Any, TYPE_CHECKING
 
 import httpx
 from loguru import logger
@@ -52,6 +52,10 @@ from vendors import r2_storage
 from workers.assemble_worker import AssembleWorker
 from workers import cost_gate
 from core import director_history, production_graph_store
+
+if TYPE_CHECKING:
+    from pipeline.approval_lock import ApprovalLock
+    from pipeline.contracts import SeedanceExecutionPlan
 
 
 # ============================================================
@@ -149,6 +153,49 @@ async def render_autonomous(
         "hook_first_3s": result.planner_out.hook_first_3s,
     }
     return render_result
+
+
+async def render_seedance_execution_plan(
+    execution_plan: "SeedanceExecutionPlan",
+    approval_lock: "ApprovalLock",
+    *,
+    jobs_store: Optional[dict] = None,
+    dry_run_only: bool = False,
+    cost_gate_mode: str = "off",
+    max_total_cost_usd: Optional[float] = None,
+) -> dict:
+    """Phase 3 safe render entrypoint for SeedanceExecutionPlan + ApprovalLock.
+
+    This path is intentionally separate from the legacy DirectorPlan renderer.
+    It enforces ApprovalLock through RenderExecutor before any paid vendor call.
+    """
+    from pipeline.render_execution import RenderExecutor
+
+    job_id = str(getattr(execution_plan, "execution_plan_id", "") or "seedance_execution")
+    _update_job(
+        jobs_store,
+        job_id,
+        status="dry_run" if dry_run_only else "rendering",
+        current_step="approval_lock_verify",
+        progress=5,
+    )
+    result = await asyncio.to_thread(
+        RenderExecutor().execute,
+        execution_plan=execution_plan,
+        approval_lock=approval_lock,
+        dry_run_only=dry_run_only,
+        cost_gate_mode=cost_gate_mode,
+        max_total_cost_usd=max_total_cost_usd,
+    )
+    _update_job(
+        jobs_store,
+        job_id,
+        status=result.status,
+        current_step="done" if result.status in {"dry_run", "completed"} else result.status,
+        progress=100 if result.status in {"dry_run", "completed"} else 10,
+        render_execution=result.model_dump(mode="json"),
+    )
+    return result.model_dump(mode="json")
 
 
 async def render_plan(
