@@ -76,7 +76,6 @@ _STYLE_WORDS = {
     "commercial",
     "editorial",
     "ugc",
-    "mockumentary",
 }
 
 

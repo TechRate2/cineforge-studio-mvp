@@ -180,8 +180,21 @@ def _legacy_audio_intent(audio: Mapping[str, Any]) -> str:
 
 
 def _coerce_reference_role(value: Any) -> ReferenceRole:
+    aliases = {
+        "shot_pacing": ReferenceRole.CAMERA_MOTION,
+        "beat_reference": ReferenceRole.AUDIO_BGM,
+        "lip_sync_source": ReferenceRole.AUDIO_VOICE,
+        "sfx_layer": ReferenceRole.AUDIO_SFX,
+        "portrait": ReferenceRole.CHARACTER_ANCHOR,
+        "product": ReferenceRole.PRODUCT_HERO,
+        "scene": ReferenceRole.ENVIRONMENT,
+        "style": ReferenceRole.STYLE_REFERENCE,
+    }
+    normalized = str(value or "unknown").strip().lower()
+    if normalized in aliases:
+        return aliases[normalized]
     try:
-        return ReferenceRole(str(value or "unknown"))
+        return ReferenceRole(normalized)
     except ValueError:
         return ReferenceRole.UNKNOWN
 

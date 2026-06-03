@@ -231,3 +231,34 @@ def test_phase1b_compiler_builds_execution_plan_with_rule_metadata() -> None:
     assert "Time Segments:" in plan.shots[0].compiled_prompt
     assert "no watermark" in plan.compiled_prompt
     assert plan.linter_warnings == []
+
+
+def test_model_router_uses_real_deterministic_complexity_rules() -> None:
+    """Model router should use deterministic complexity rules."""
+    from pipeline.contracts import AssetRef, CreativePlan, ReferenceRole
+    from seedance.model_router import SeedanceModelRouter
+
+    router = SeedanceModelRouter()
+    low_risk = CreativePlan(
+        analysis_id="analysis_low",
+        objective="A simple landscape sunrise",
+        duration_s=6,
+        shot_count=1,
+        metadata={"budget_tier": "draft"},
+    )
+    premium = CreativePlan(
+        analysis_id="analysis_premium",
+        target_niche="beauty",
+        objective="Premium perfume hero product ad",
+        duration_s=12,
+        shot_count=3,
+        consistency_plan={"product_lock": True},
+    )
+    product_ref = AssetRef(
+        kind="image",
+        role=ReferenceRole.PRODUCT_HERO,
+        url="https://cdn.test/p.png",
+    )
+
+    assert router.route(creative_plan=low_risk) == "seedance_2_0_fast"
+    assert router.route(creative_plan=premium, references=[product_ref]) == "seedance_2_0"

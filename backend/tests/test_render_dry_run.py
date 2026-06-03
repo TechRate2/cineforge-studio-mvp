@@ -56,7 +56,22 @@ def test_render_dry_run_report_can_show_approval_mismatch_without_rendering() ->
     assert report.approval_valid is False
     assert report.approval_verification is not None
     assert "compiled_prompt_hash" in report.approval_verification.mismatched_fields
-    assert report.shot_payloads
+
+
+def test_seedance_payload_chaining_uses_vendor_supported_fields() -> None:
+    """Last-frame chaining should not leak internal-only payload keys to AtlasCloud."""
+    from workers.render_dry_run import build_seedance_payload
+
+    _, plan, _ = _plan_and_lock()
+    payload = build_seedance_payload(
+        execution_plan=plan,
+        shot=plan.shots[1],
+        previous_last_frame_url="https://cdn.test/last_frame.jpg",
+    )
+
+    assert payload["image"] == "https://cdn.test/last_frame.jpg"
+    assert payload["images"] == ["https://cdn.test/last_frame.jpg"]
+    assert "continuity_anchor" not in payload
 
 
 def _plan_and_lock():

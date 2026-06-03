@@ -17,7 +17,6 @@ from seedance.contracts import AssetMode, CuratedExample, ExampleMetadata
 
 
 DEFAULT_EXAMPLES_PATH = Path(__file__).resolve().parent / "knowledge" / "examples.jsonl"
-LEGACY_EXAMPLES_PATH = Path(__file__).resolve().parent / "knowledge" / "curated_examples.jsonl"
 
 
 class ExampleQuery(BaseModel):
@@ -47,8 +46,6 @@ class ExampleRetriever:
         """Load examples from a JSONL file."""
         examples: list[CuratedExample] = []
         file_path = Path(path)
-        if not file_path.exists() and file_path == DEFAULT_EXAMPLES_PATH:
-            file_path = LEGACY_EXAMPLES_PATH
         if not file_path.exists():
             return cls([])
         for line in file_path.read_text(encoding="utf-8").splitlines():

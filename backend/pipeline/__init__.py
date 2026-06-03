@@ -16,7 +16,6 @@ from pipeline.contracts import (
 )
 from pipeline.creative_planning import CreativePlanner
 from pipeline.input_analysis import InputAnalyzer
-from pipeline.render_execution import RenderExecutionResult, RenderExecutor
 from pipeline.storyboard_generation import StoryboardGenerator
 from pipeline.trace import PipelineTrace, PipelineTraceEntry
 
@@ -33,8 +32,6 @@ __all__ = [
     "PipelineTraceEntry",
     "ReferenceRole",
     "RenderAssemblyPlan",
-    "RenderExecutionResult",
-    "RenderExecutor",
     "SeedanceExecutionPlan",
     "SeedanceShotPlan",
     "StoryboardContract",

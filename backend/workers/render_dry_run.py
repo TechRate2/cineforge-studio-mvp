@@ -6,12 +6,15 @@ would be used by AtlasCloud/Seedance without submitting a vendor request.
 """
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from pipeline.approval_lock import ApprovalLock, ApprovalLockVerification
 from pipeline.contracts import AssetRef, SeedanceExecutionPlan, SeedanceShotPlan
+
+logger = logging.getLogger(__name__)
 
 
 class ShotDryRunPayload(BaseModel):
@@ -62,6 +65,15 @@ class RenderDryRunService:
         """Return a full dry-run report for the supplied execution plan."""
         verification = approval_verification or ApprovalLockVerification(valid=True)
         shots = execution_plan.shots or [_plan_as_single_shot(execution_plan)]
+        logger.info(
+            "render_dry_run_report_started",
+            extra={
+                "execution_plan_id": execution_plan.execution_plan_id,
+                "approval_lock_id": approval_lock.lock_id,
+                "shot_count": len(shots),
+                "approval_valid": verification.valid,
+            },
+        )
         shot_payloads = [
             ShotDryRunPayload(
                 shot_id=shot.shot_id,
@@ -78,7 +90,7 @@ class RenderDryRunService:
             )
             for shot in shots
         ]
-        return RenderDryRunReport(
+        report = RenderDryRunReport(
             execution_plan_id=execution_plan.execution_plan_id,
             approval_lock_id=approval_lock.lock_id,
             approval_valid=verification.valid,
@@ -100,8 +112,23 @@ class RenderDryRunService:
                 + [example for shot in shots for example in shot.examples_used]
                 + list(execution_plan.metadata.get("curated_example_ids") or [])
             ),
-            warnings=list(execution_plan.linter_warnings),
+            warnings=_dedupe(
+                list(execution_plan.linter_warnings)
+                + _consistency_policy_warnings(execution_plan)
+            ),
         )
+        logger.info(
+            "render_dry_run_report_completed",
+            extra={
+                "execution_plan_id": execution_plan.execution_plan_id,
+                "approval_lock_id": approval_lock.lock_id,
+                "shot_payload_count": len(report.shot_payloads),
+                "warning_count": len(report.warnings),
+                "knowledge_rule_count": len(report.knowledge_rule_ids),
+                "curated_example_count": len(report.curated_example_ids),
+            },
+        )
+        return report
 
 
 def build_seedance_payload(
@@ -129,8 +156,19 @@ def build_seedance_payload(
     if previous_last_frame_url:
         payload["image"] = previous_last_frame_url
         payload["images"] = [previous_last_frame_url]
-        payload["continuity_anchor"] = "previous_last_frame"
     return {key: value for key, value in payload.items() if value not in (None, [], "")}
+
+
+def _consistency_policy_warnings(execution_plan: SeedanceExecutionPlan) -> list[str]:
+    action = str(execution_plan.metadata.get("consistency_policy_action") or "").strip()
+    reasons = [str(item) for item in execution_plan.metadata.get("consistency_policy_reasons") or []]
+    policy = execution_plan.metadata.get("consistency_policy") or {}
+    if isinstance(policy, dict):
+        action = action or str(policy.get("action") or "").strip()
+        reasons.extend(str(item) for item in policy.get("reason_ids") or [])
+    if action in {"requires_review", "block"}:
+        return [f"consistency_policy.{action}: " + ", ".join(_dedupe(reasons))]
+    return []
 
 
 def _plan_as_single_shot(execution_plan: SeedanceExecutionPlan) -> SeedanceShotPlan:

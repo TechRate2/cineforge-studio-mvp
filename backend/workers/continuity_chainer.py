@@ -28,7 +28,6 @@ class ContinuityChainer:
         out = dict(payload)
         out["image"] = state.previous_last_frame_url
         out["images"] = [state.previous_last_frame_url]
-        out["continuity_anchor"] = "previous_last_frame"
         return out
 
     def update_state(

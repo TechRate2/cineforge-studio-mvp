@@ -295,6 +295,96 @@ class ReferencePolicy:
                 ))
         return issues
 
+    def build_identity_anchor_requirements(
+        self,
+        *,
+        needs_character_lock: bool,
+        needs_product_lock: bool,
+    ) -> dict[str, Any]:
+        """Return Phase 7A anchor requirements without selecting assets."""
+        requirements: dict[str, Any] = {
+            "style_lock": True,
+            "required_roles": [],
+            "recommended_roles": [ReferenceRole.STYLE_REFERENCE.value],
+        }
+        if needs_character_lock:
+            requirements["required_roles"].extend([
+                ReferenceRole.CHARACTER_ANCHOR.value,
+                ReferenceRole.OUTFIT_REFERENCE.value,
+            ])
+            requirements["recommended_roles"].extend([
+                ReferenceRole.CHARACTER_ANCHOR.value,
+                ReferenceRole.SECONDARY_CHARACTER.value,
+            ])
+            requirements["character_anchor_requirements"] = [
+                "one clear face close-up",
+                "one full-body or outfit/silhouette reference",
+            ]
+        if needs_product_lock:
+            requirements["required_roles"].append(ReferenceRole.PRODUCT_HERO.value)
+            requirements["recommended_roles"].append(ReferenceRole.PRODUCT_DETAIL.value)
+            requirements["product_anchor_requirements"] = [
+                "one product hero reference",
+                "one packaging/detail reference when label or geometry matters",
+            ]
+        requirements["required_roles"] = list(dict.fromkeys(requirements["required_roles"]))
+        requirements["recommended_roles"] = list(dict.fromkeys(requirements["recommended_roles"]))
+        return requirements
+
+    def validate_identity_bible_assets(
+        self,
+        *,
+        assets: list[AssetRef],
+        needs_character_lock: bool,
+        needs_product_lock: bool,
+    ) -> list[ReferencePolicyIssue]:
+        """Validate assets against the Phase 7A identity bible requirements."""
+        issues = self.detect_identity_anchor_risks(assets)
+        character_assets = [
+            asset for asset in assets
+            if asset.role in {ReferenceRole.CHARACTER_ANCHOR, ReferenceRole.SECONDARY_CHARACTER, ReferenceRole.OUTFIT_REFERENCE}
+        ]
+        product_assets = [
+            asset for asset in assets
+            if asset.role in {ReferenceRole.PRODUCT_HERO, ReferenceRole.PRODUCT_DETAIL, ReferenceRole.BRAND_ASSET}
+        ]
+        if needs_character_lock and not character_assets:
+            issues.append(ReferencePolicyIssue(
+                rule_id="phase7a.reference.missing_character_identity_bible_anchor",
+                severity="warning",
+                message="Character consistency requires at least one character anchor asset.",
+            ))
+        if needs_product_lock and not product_assets:
+            issues.append(ReferencePolicyIssue(
+                rule_id="phase7a.reference.missing_product_identity_bible_anchor",
+                severity="warning",
+                message="Product consistency requires at least one product hero/detail asset.",
+            ))
+        return _dedupe_policy_issues(issues)
+
+    def score_reference_sufficiency(
+        self,
+        *,
+        assets: list[AssetRef],
+        needs_character_lock: bool,
+        needs_product_lock: bool,
+    ) -> dict[str, Any]:
+        """Return a simple reference sufficiency score for Phase 7A planning."""
+        issues = self.validate_identity_bible_assets(
+            assets=assets,
+            needs_character_lock=needs_character_lock,
+            needs_product_lock=needs_product_lock,
+        )
+        score = 100.0
+        for issue in issues:
+            score -= 20.0 if issue.severity == "error" else 12.0
+        return {
+            "score": max(0.0, round(score, 2)),
+            "issue_rule_ids": [issue.rule_id for issue in issues],
+            "needs_character_lock": needs_character_lock,
+            "needs_product_lock": needs_product_lock,
+        }
+
 
 def _infer_role(asset: AssetRef, *, prompt: str) -> ReferenceRole:
     text = _asset_text(asset) + " " + _norm(prompt)
@@ -383,6 +473,18 @@ def _flatten_metadata(value: Any) -> list[str]:
 
 def _norm(value: str) -> str:
     return " ".join(str(value or "").strip().lower().split())
+
+
+def _dedupe_policy_issues(issues: list[ReferencePolicyIssue]) -> list[ReferencePolicyIssue]:
+    seen: set[tuple[str, str | None]] = set()
+    out: list[ReferencePolicyIssue] = []
+    for issue in issues:
+        key = (issue.rule_id, issue.asset_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(issue)
+    return out
 
 
 __all__ = [

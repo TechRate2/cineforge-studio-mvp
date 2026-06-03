@@ -90,6 +90,7 @@ class InputAnalyzer:
             metadata={
                 "phase": "2",
                 "objective": _objective_from_idea(idea),
+                "assets": [asset.model_dump(mode="json", exclude_none=True) for asset in input_contract.assets],
                 "primary_risks": _primary_risks(warnings, asset_summary),
                 "reference_sufficiency": asset_summary.get("reference_sufficiency"),
                 "analysis_rules": [

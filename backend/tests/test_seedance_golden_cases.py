@@ -182,6 +182,24 @@ def test_phase5_knowledge_rules_jsonl_has_provenance_and_targets() -> None:
     assert "lanshu.storyboard_3_5_shot.v1" in seen_ids
 
 
+def test_phase5_knowledge_registry_loads_canonical_rules_jsonl() -> None:
+    """Runtime registry should use rules.jsonl as the single rule source."""
+    from seedance.knowledge_registry import SeedanceKnowledgeRegistry
+
+    registry = SeedanceKnowledgeRegistry.from_jsonl(RULES_PATH)
+    registry.require_rule_ids(["lanshu.formula_8_elements.v1"])
+
+    formula_rules = registry.rules_for_file("backend/seedance/prompt_formula.py")
+    function_rules = registry.rules_for_function("build_seedance_prompt_formula")
+
+    assert any(rule.rule_id == "lanshu.formula_8_elements.v1" for rule in formula_rules)
+    assert any(rule.rule_id == "dexhunter.prompt_time_segments.v1" for rule in function_rules)
+    assert {source.source_repo for source in registry.list_sources()} >= {
+        "dexhunter/seedance2-skill",
+        "cclank/lanshu-awesome-ai-video-kit",
+    }
+
+
 def test_phase5_examples_jsonl_has_metadata_and_retriever_coverage() -> None:
     """Curated examples should keep source attribution and ranking metadata."""
     from seedance.example_retriever import ExampleRetriever
@@ -223,6 +241,18 @@ def test_phase5_examples_jsonl_has_metadata_and_retriever_coverage() -> None:
     assert 2 <= len(examples) <= 4
     assert examples[0].example_id == "zerolu_perfume_multiref_ad_15s"
     assert all(example.source_repo and example.source_url for example in examples)
+
+
+def test_phase5_curated_example_store_loads_canonical_examples_jsonl() -> None:
+    """CuratedExampleStore should read examples.jsonl without legacy fallback files."""
+    from seedance.curated_examples import CuratedExampleStore
+
+    store = CuratedExampleStore.from_jsonl(EXAMPLES_PATH)
+    beauty_examples = store.by_niche("beauty")
+
+    assert store.get("zerolu_perfume_multiref_ad_15s") is not None
+    assert beauty_examples
+    assert all(example.source_repo for example in store.list_examples())
 
 
 @pytest.mark.parametrize("case", GOLDEN_CASES, ids=lambda case: case.name)

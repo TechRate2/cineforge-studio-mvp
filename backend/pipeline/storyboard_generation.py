@@ -232,6 +232,9 @@ class StoryboardGenerator:
                     "phase": "2",
                     "storyboard_method": "lanshu_3_5_shot" if shot_count > 1 else "single_shot",
                     "template_niche": _template_key(creative_plan.target_niche),
+                    "creative_strategy_id": _creative_strategy_id(creative_plan),
+                    "identity_bible_id": creative_plan.consistency_plan.get("identity_bible_id"),
+                    "consistency_score": creative_plan.consistency_plan.get("consistency_score"),
                 },
             ))
 
@@ -244,12 +247,18 @@ class StoryboardGenerator:
             summary=f"{shot_count}-shot plan for: {creative_plan.objective}",
             metadata={
                 "phase": "2",
+                "phase_extensions": ["6a", "7a"],
                 "rules_applied": [
                     "lanshu.storyboard.3_5_shot_structure" if shot_count > 1 else "phase2.storyboard.single_shot",
                     "phase2.storyboard.reference_bindings",
                     "phase2.storyboard.continuity_notes",
+                    "phase6a.storyboard.strategy_context",
+                    "phase7a.storyboard.identity_continuity_notes",
                 ],
                 "source_analysis_id": analyzed_input.analysis_id,
+                "creative_strategy_id": _creative_strategy_id(creative_plan),
+                "identity_bible_id": creative_plan.consistency_plan.get("identity_bible_id"),
+                "consistency_score": creative_plan.consistency_plan.get("consistency_score"),
             },
         )
 
@@ -315,6 +324,16 @@ def _continuity_notes(creative_plan: CreativePlan) -> str:
     if notes:
         return "; ".join(str(note) for note in notes)
     return "Maintain subject, style, lighting, and spatial continuity across the shot."
+
+
+def _creative_strategy_id(creative_plan: CreativePlan) -> str | None:
+    strategy = creative_plan.metadata.get("creative_strategy") or {}
+    if not isinstance(strategy, dict):
+        return None
+    selected = strategy.get("selected_strategy") or {}
+    if not isinstance(selected, dict):
+        return None
+    return str(selected.get("strategy_id") or "") or None
 
 
 __all__ = ["StoryboardGenerator"]

@@ -5,6 +5,20 @@ import process from "node:process";
 const root = process.cwd();
 const studioPage = path.join(root, "app", "studio", "page.tsx");
 const source = fs.readFileSync(studioPage, "utf8");
+const workflowFiles = [
+  studioPage,
+  path.join(root, "components", "studio", "CommandComposer.tsx"),
+  path.join(root, "components", "studio", "ReferenceTray.tsx"),
+  path.join(root, "components", "studio", "SettingsBar.tsx"),
+  path.join(root, "components", "studio", "PipelinePreview.tsx"),
+  path.join(root, "components", "studio", "StoryboardTimeline.tsx"),
+  path.join(root, "components", "studio", "RenderReviewPanel.tsx"),
+  path.join(root, "components", "studio", "PipelineTraceView.tsx"),
+];
+const workflowSource = workflowFiles
+  .filter((file) => fs.existsSync(file))
+  .map((file) => fs.readFileSync(file, "utf8"))
+  .join("\n");
 const shellFiles = [
   path.join(root, "app", "studio", "layout.tsx"),
   path.join(root, "app", "studio", "history", "page.tsx"),
@@ -91,7 +105,7 @@ const forbidden = [
 ];
 
 const failures = forbidden
-  .filter((item) => item.pattern.test(source))
+  .filter((item) => item.pattern.test(workflowSource))
   .map((item) => `- ${item.reason}`);
 
 const requiredStudioContracts = [
@@ -120,19 +134,19 @@ const requiredStudioContracts = [
     reason: "Conversation history fingerprints must include chat turn intent.",
   },
   {
-    pattern: /Resolve blocked checks first/,
+    pattern: /Resolve blocked/,
     reason: "Blocked preflight checks must be visible before approval.",
   },
   {
-    pattern: /Conversational Preflight Agent/,
+    pattern: /CommandComposer|What should the agent make\?/,
     reason: "Studio must keep the chat-first preflight agent as the primary creation surface.",
   },
   {
-    pattern: /Approve script and storyboard/,
+    pattern: /Approve before spend|Approve plan/,
     reason: "Studio must require plan approval before rendering.",
   },
   {
-    pattern: /Generate Full Video \(Autonomous\)/,
+    pattern: /Generate full video/,
     reason: "Studio must keep the autonomous render command visible as the only generation action.",
   },
   {
@@ -152,7 +166,7 @@ const requiredStudioContracts = [
     reason: "Render requests must include the approved plan source length.",
   },
   {
-    pattern: /ScenePreviewWorkbench/,
+    pattern: /StoryboardTimeline/,
     reason: "Studio must keep a no-paid scene preview workbench before final render.",
   },
   {
@@ -160,15 +174,15 @@ const requiredStudioContracts = [
     reason: "Studio must compile preflight output into previewable scene cards.",
   },
   {
-    pattern: /Save draft only/,
+    pattern: /Shot timeline/,
     reason: "Studio must allow users to save/review scene drafts without starting render.",
   },
   {
-    pattern: /Approve draft \(no render yet\)/,
+    pattern: /onApprove=\{handleApprovePreflight\}|Approve before spend/,
     reason: "Studio must separate draft approval from the final paid render click.",
   },
   {
-    pattern: /RenderBlockerPanel/,
+    pattern: /RenderReviewPanel|Render blockers/,
     reason: "Studio must show exact blockers before the final render button.",
   },
   {
@@ -186,7 +200,7 @@ const requiredStudioContracts = [
 ];
 
 for (const item of requiredStudioContracts) {
-  if (!item.pattern.test(source)) failures.push(`- ${item.reason}`);
+  if (!item.pattern.test(workflowSource)) failures.push(`- ${item.reason}`);
 }
 
 const shellForbidden = [

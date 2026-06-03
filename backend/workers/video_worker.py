@@ -187,15 +187,29 @@ async def render_seedance_execution_plan(
         cost_gate_mode=cost_gate_mode,
         max_total_cost_usd=max_total_cost_usd,
     )
+    final_status = "done" if result.status == "completed" else result.status
+    success_statuses = {"dry_run", "completed"}
     _update_job(
         jobs_store,
         job_id,
-        status=result.status,
-        current_step="done" if result.status in {"dry_run", "completed"} else result.status,
-        progress=100 if result.status in {"dry_run", "completed"} else 10,
+        status=final_status,
+        current_step="done" if result.status in success_statuses else result.status,
+        progress=100 if result.status in success_statuses else 10,
         render_execution=result.model_dump(mode="json"),
+        output_url=_first_seedance_output_url(result),
+        output_path=_first_seedance_output_url(result),
+        error_message=None if result.status in success_statuses else result.message,
     )
     return result.model_dump(mode="json")
+
+
+def _first_seedance_output_url(result: Any) -> Optional[str]:
+    """Return the first rendered segment URL from a RenderExecutionResult."""
+    for segment in getattr(result, "rendered_segments", []) or []:
+        url = getattr(segment, "video_url", None)
+        if url:
+            return str(url)
+    return None
 
 
 async def render_plan(
@@ -249,7 +263,7 @@ async def render_plan(
         logger.info(f"[VideoWorker V3] auto-pick → {picked}: {reasoning}")
         # Sprint2 M12 — re-compute cost estimate against the ACTUAL picked model
         # (plan.cost_estimate was built using the original user_model 'auto'
-        # placeholder $0.060/s heuristic — could be off-by-2x for premium models).
+        # original $0.060/s heuristic, which can be off-by-2x for premium models).
         rate = get_render_cost_rate(picked)
         total_dur = sum(s.duration_s for s in shots)
         new_render_cost = round(rate * total_dur, 3)

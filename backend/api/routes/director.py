@@ -1097,6 +1097,19 @@ class AutonomousGenerateRequest(BaseModel):
     approved_plan_id: Optional[str] = Field(None, max_length=80)
     approved_plan_source_hash: Optional[str] = Field(None, max_length=80)
     approved_plan_source_length: Optional[int] = Field(None, ge=0, le=2000)
+    consistency_review_approved: bool = Field(
+        False,
+        description="Explicit user approval for requires_review consistency policies before paid render.",
+    )
+    dry_run_only: bool = Field(
+        False,
+        description="When true, build the safe Seedance execution plan and dry-run report without paid vendor calls.",
+    )
+    max_total_cost_usd: Optional[float] = Field(
+        None,
+        ge=0,
+        description="Optional hard spend cap enforced before paid Seedance render.",
+    )
 
     @field_validator("reference_image_urls")
     @classmethod
@@ -1152,6 +1165,7 @@ def _approved_plan_meta_from_request(request: AutonomousGenerateRequest) -> dict
         "source_length": request.approved_plan_source_length,
         "actual_source_hash": actual_hash if request.approved_plan_source_hash else None,
         "actual_source_length": actual_length if request.approved_plan_source_length is not None else None,
+        "consistency_review_approved": bool(request.consistency_review_approved),
         "included_in_render_source": bool(
             request.approved_plan_id
             and request.approved_plan_source_hash
@@ -1163,10 +1177,11 @@ def _approved_plan_meta_from_request(request: AutonomousGenerateRequest) -> dict
 _CONFIRMED_REFERENCE_ROLES = {
     "image": {
         "character_anchor", "secondary_character", "product_hero", "product_detail",
-        "style_reference", "environment", "brand_asset",
+        "style_reference", "environment", "brand_asset", "continuity_anchor",
+        "outfit_reference", "first_frame", "last_frame",
     },
-    "video": {"camera_motion", "motion_style", "shot_pacing"},
-    "audio": {"beat_reference", "lip_sync_source", "sfx_layer"},
+    "video": {"camera_motion", "motion_style", "action_reference", "visual_effect", "shot_pacing"},
+    "audio": {"audio_bgm", "audio_voice", "audio_sfx", "beat_reference", "lip_sync_source", "sfx_layer"},
 }
 
 
@@ -2065,10 +2080,660 @@ async def autonomous_conversational_preflight(request: ConversationalPreflightRe
     )
 
 
+def _build_autonomous_seedance_execution_bundle(
+    *,
+    request: AutonomousGenerateRequest,
+    reference_image_urls: list[str],
+    pinned_refs: dict[str, Any],
+    pre_decision: dict[str, Any],
+    production_decision: dict[str, Any],
+    approved_plan_meta: dict[str, Any],
+) -> dict[str, Any]:
+    """Build the canonical autonomous paid-render bundle for Seedance.
+
+    This is the production migration boundary: `/director/autonomous` no longer
+    builds a legacy DirectorPlan for paid render. It compiles typed pipeline
+    contracts, creates an ApprovalLock, verifies it immediately, and returns the
+    exact SeedanceExecutionPlan that RenderExecutor will verify again.
+    """
+    from pipeline.adapters import build_input_contract_from_legacy_request
+    from pipeline.approval_lock import ApprovalLock
+    from pipeline.creative_planning import CreativePlanner
+    from pipeline.input_analysis import InputAnalyzer
+    from pipeline.storyboard_generation import StoryboardGenerator
+    from pipeline.trace import PipelineTrace
+    from seedance.example_retriever import ExampleRetriever
+    from seedance.prompt_compiler import SeedancePromptCompiler
+    from workers.cost_control import CostControlService
+
+    input_contract = build_input_contract_from_legacy_request(
+        user_idea=request.user_idea,
+        target_platform=request.target_platform,
+        target_market=request.target_market,
+        duration_hint_s=request.duration_hint_s,
+        aspect_ratio=request.aspect_ratio,
+        resolution=request.resolution,
+        reference_image_urls=reference_image_urls,
+        reference_video_urls=request.reference_video_urls,
+        reference_audio_urls=request.reference_audio_urls,
+        reference_manifest=request.reference_manifest,
+        settings={
+            "model": request.user_model,
+            "resolution": request.resolution,
+            "dry_run_only": request.dry_run_only,
+            "max_total_cost_usd": request.max_total_cost_usd,
+        },
+        metadata={
+            "approved_plan": approved_plan_meta,
+            "pinned_assets": pinned_refs.get("pinned_assets") or [],
+            "auto_pin_selection_enabled": bool(request.auto_select_asset_pins),
+        },
+    )
+    trace = PipelineTrace(input_id=input_contract.input_id)
+    trace.append_stage(
+        stage="input_contract",
+        stage_input=request.model_dump(mode="json"),
+        stage_output=input_contract,
+        decision="normalized autonomous request into InputContract",
+        reasoning_summary="Legacy request arrays and confirmed reference manifest were converted into typed AssetRef records.",
+        rules_applied=["phase0.contracts.input_contract", "phase0.adapters.legacy_reference_manifest"],
+    )
+
+    analyzed_input = InputAnalyzer().analyze(input_contract)
+    trace.append_stage(
+        stage="input_analysis",
+        stage_input=input_contract,
+        stage_output=analyzed_input,
+        decision=f"detected niche={analyzed_input.detected_niche}",
+        reasoning_summary="Deterministic analyzer scored niche keywords, duration, reference sufficiency, and primary risks.",
+        rules_applied=list(analyzed_input.metadata.get("analysis_rules") or []),
+        warnings=list(analyzed_input.warnings),
+    )
+
+    requested_duration_s = int(analyzed_input.duration_s or request.duration_hint_s or 8)
+    if requested_duration_s > 15:
+        raise HTTPException(
+            422,
+            {
+                "code": "long_form_seedance_pipeline_not_ready",
+                "message": "Autonomous paid render currently supports approved Seedance clips from 4-15 seconds. Choose 15s or shorter, or use the admin-only legacy route for manual rollback/debug.",
+                "strategy": "block_until_segmented_long_form_seedance_pipeline_is_approved",
+                "requested_duration_s": requested_duration_s,
+                "max_single_execution_duration_s": 15,
+                "pipeline_trace": trace.model_dump(mode="json"),
+            },
+        )
+
+    creative_plan = CreativePlanner().plan(analyzed_input)
+    creative_metadata = {
+        **creative_plan.metadata,
+        "model": None if request.user_model == "auto" else request.user_model,
+        "requested_model": request.user_model,
+        "resolution": request.resolution,
+        "pre_decision": {
+            "niche": (pre_decision.get("decision") or {}).get("niche"),
+            "target_market": (pre_decision.get("decision") or {}).get("target_market"),
+        },
+        "production_decision": {
+            "niche": (production_decision.get("decision") or {}).get("niche"),
+            "primary_model_route": (production_decision.get("decision") or {}).get("primary_model_route"),
+        },
+    }
+    creative_plan = creative_plan.model_copy(update={"metadata": creative_metadata})
+    identity_bible_payload = creative_plan.metadata.get("identity_bible") or {}
+    consistency_score_payload = creative_plan.metadata.get("consistency_score") or {}
+    baseline_consistency_score_payload = creative_plan.metadata.get("baseline_consistency_score") or {}
+    consistency_policy_payload = creative_plan.metadata.get("consistency_policy") or {}
+    if isinstance(identity_bible_payload, dict) and isinstance(consistency_score_payload, dict):
+        trace.append_stage(
+            stage="identity_consistency",
+            stage_input=analyzed_input,
+            stage_output={
+                "identity_bible": identity_bible_payload,
+                "baseline_consistency_score": baseline_consistency_score_payload,
+                "consistency_score": consistency_score_payload,
+                "consistency_delta": creative_plan.metadata.get("consistency_delta"),
+                "consistency_policy": consistency_policy_payload,
+            },
+            decision=(
+                f"consistency score={consistency_score_payload.get('overall_score')} "
+                f"policy={consistency_policy_payload.get('action')}"
+            ),
+            reasoning_summary="IdentityBibleBuilder and ConsistencyScorer converted references and intent into character, product, style, and emotion constraints before paid render.",
+            rules_applied=list(identity_bible_payload.get("rules_applied") or [])
+            + list(consistency_score_payload.get("rules_applied") or [])
+            + list(consistency_policy_payload.get("rules_applied") or []),
+            warnings=list(identity_bible_payload.get("warnings") or [])
+            + list(consistency_score_payload.get("risk_flags") or [])
+            + list(consistency_policy_payload.get("reason_ids") or []),
+        )
+    creative_strategy_payload = creative_plan.metadata.get("creative_strategy") or {}
+    if isinstance(creative_strategy_payload, dict):
+        selected_strategy = creative_strategy_payload.get("selected_strategy") or {}
+        selected_strategy_id = (
+            selected_strategy.get("strategy_id")
+            if isinstance(selected_strategy, dict)
+            else None
+        )
+        trace.append_stage(
+            stage="creative_reasoning",
+            stage_input={
+                "analysis_id": analyzed_input.analysis_id,
+                "consistency_score": consistency_score_payload,
+            },
+            stage_output=creative_strategy_payload,
+            decision=f"selected strategy={selected_strategy_id}",
+            reasoning_summary=str(creative_strategy_payload.get("reasoning_summary") or ""),
+            rules_applied=list(creative_strategy_payload.get("rules_applied") or []),
+            warnings=list(creative_strategy_payload.get("warnings") or []),
+            model_route={
+                "reasoning_mode": creative_strategy_payload.get("reasoning_mode"),
+                "llm_selector_configured": False,
+                "llm_policy_result": creative_strategy_payload.get("llm_policy_result"),
+                "candidate_rankings": (
+                    (creative_strategy_payload.get("decision_factors") or {}).get("candidate_rankings")
+                    if isinstance(creative_strategy_payload.get("decision_factors"), dict)
+                    else None
+                ),
+            },
+        )
+    trace.append_stage(
+        stage="creative_planning",
+        stage_input=analyzed_input,
+        stage_output=creative_plan,
+        decision=f"{creative_plan.metadata.get('shot_mode')} with {creative_plan.shot_count} shot(s)",
+        reasoning_summary="CreativePlanner selected shot mode, reference strategy, consistency locks, and niche playbook.",
+        rules_applied=list(creative_plan.metadata.get("planning_rules") or []),
+    )
+
+    storyboard = StoryboardGenerator().generate(creative_plan, analyzed_input)
+    trace.append_stage(
+        stage="storyboard_generation",
+        stage_input=creative_plan,
+        stage_output=storyboard,
+        decision=f"generated {len(storyboard.scenes)} storyboard scene(s)",
+        reasoning_summary="StoryboardGenerator produced typed scenes with beat, action, camera, spatial change, audio intent, references, and continuity notes.",
+        rules_applied=list(storyboard.metadata.get("rules_applied") or []),
+    )
+
+    example_tags = []
+    if creative_plan.consistency_plan.get("product_lock"):
+        example_tags.append("product_lock")
+    if creative_plan.consistency_plan.get("character_lock"):
+        example_tags.append("character_lock")
+    examples = ExampleRetriever.from_jsonl().retrieve(
+        niche=creative_plan.target_niche,
+        asset_mode=str(creative_plan.metadata.get("asset_mode") or "unknown"),
+        shot_count=creative_plan.shot_count,
+        duration_s=creative_plan.duration_s,
+        continuity_tags=example_tags,
+        limit=4,
+    )
+    example_ids = [example.example_id for example in examples]
+
+    execution_plan = SeedancePromptCompiler().compile(creative_plan, storyboard, analyzed_input)
+    rules_applied = _dedupe_strings(
+        list(analyzed_input.metadata.get("analysis_rules") or [])
+        + list(creative_plan.metadata.get("planning_rules") or [])
+        + list(storyboard.metadata.get("rules_applied") or [])
+        + ["phase3.render.approval_lock_enforced", "phase3.render.render_executor_required"]
+    )
+    shots = [
+        shot.model_copy(update={
+            "rules_applied": _dedupe_strings(shot.rules_applied + rules_applied),
+            "examples_used": _dedupe_strings(shot.examples_used + example_ids),
+        })
+        for shot in execution_plan.shots
+    ]
+    execution_plan = execution_plan.model_copy(update={
+        "shots": shots,
+        "reference_assets": input_contract.assets,
+        "rules_applied": rules_applied,
+        "examples_used": example_ids,
+        "metadata": {
+            **execution_plan.metadata,
+            "approved_idea": request.user_idea,
+            "input_contract_id": input_contract.input_id,
+            "analysis_id": analyzed_input.analysis_id,
+            "creative_plan_id": creative_plan.creative_plan_id,
+            "storyboard_id": storyboard.storyboard_id,
+            "approved_plan": approved_plan_meta,
+            "knowledge_rule_ids": rules_applied,
+            "curated_example_ids": example_ids,
+            "pipeline_migration": "director_autonomous_seedance_execution_plan",
+        },
+    })
+    cost_estimate = CostControlService().estimate_plan_cost(execution_plan)
+    execution_plan = execution_plan.model_copy(update={"cost_estimate": cost_estimate})
+    trace.append_stage(
+        stage="seedance_prompt_compile",
+        stage_input=storyboard,
+        stage_output=execution_plan,
+        decision=f"compiled SeedanceExecutionPlan {execution_plan.execution_plan_id}",
+        reasoning_summary="SeedancePromptCompiler produced the only render plan allowed on the autonomous production path.",
+        rules_applied=rules_applied,
+        examples_used=example_ids,
+        model_route={"model": execution_plan.model, "shots": [shot.model for shot in execution_plan.shots]},
+        cost_estimate=cost_estimate,
+        warnings=list(execution_plan.linter_warnings),
+    )
+
+    approval_lock = ApprovalLock.from_execution_plan(
+        idea=request.user_idea,
+        execution_plan=execution_plan,
+        reference_assets=execution_plan.reference_assets,
+        cost_estimate=execution_plan.cost_estimate,
+        approved_by="studio_user",
+        approval_source="prompt_preview",
+        metadata={
+            "approved_idea": request.user_idea,
+            "approved_plan": approved_plan_meta,
+            "consistency_policy": execution_plan.metadata.get("consistency_policy"),
+            "consistency_policy_action": execution_plan.metadata.get("consistency_policy_action"),
+            "consistency_policy_reasons": execution_plan.metadata.get("consistency_policy_reasons") or [],
+            "consistency_review_approved": bool(approved_plan_meta.get("consistency_review_approved")),
+            "consistency_review_approved_policy_action": (
+                execution_plan.metadata.get("consistency_policy_action")
+                if approved_plan_meta.get("consistency_review_approved")
+                else None
+            ),
+            "input_id": input_contract.input_id,
+            "trace_id": trace.trace_id,
+        },
+    )
+    approval_verification = approval_lock.verify_against(
+        idea=request.user_idea,
+        execution_plan=execution_plan,
+        reference_assets=execution_plan.reference_assets,
+        cost_estimate=execution_plan.cost_estimate,
+    )
+    trace.append_stage(
+        stage="approval_lock",
+        stage_input=execution_plan,
+        stage_output=approval_verification,
+        decision="approval lock verified" if approval_verification.valid else "approval lock rejected",
+        reasoning_summary="ApprovalLock was created from the approved SeedanceExecutionPlan and verified before queueing any paid render.",
+        rules_applied=["phase0.approval_lock.verify_against", "phase3.render.pre_vendor_lock"],
+        warnings=approval_verification.mismatched_fields,
+        cost_estimate=execution_plan.cost_estimate,
+    )
+    if not approval_verification.valid:
+        raise HTTPException(
+            422,
+            {
+                "code": "approval_lock_mismatch",
+                "message": "ApprovalLock verification failed before render queueing.",
+                "mismatched_fields": approval_verification.mismatched_fields,
+            },
+        )
+
+    return {
+        "input_contract": input_contract,
+        "analyzed_input": analyzed_input,
+        "creative_plan": creative_plan,
+        "storyboard": storyboard,
+        "execution_plan": execution_plan,
+        "approval_lock": approval_lock,
+        "approval_verification": approval_verification,
+        "pipeline_trace": trace,
+        "curated_examples": examples,
+        "editor_preview": _build_seedance_editor_preview(
+            request=request,
+            creative_plan=creative_plan,
+            storyboard=storyboard,
+            execution_plan=execution_plan,
+            production_decision=production_decision,
+        ),
+    }
+
+
+def _dedupe_strings(values: list[Any]) -> list[str]:
+    """Return non-empty strings in first-seen order."""
+    return list(dict.fromkeys(str(value) for value in values if str(value).strip()))
+
+
+def _build_seedance_editor_preview(
+    *,
+    request: AutonomousGenerateRequest,
+    creative_plan: Any,
+    storyboard: Any,
+    execution_plan: Any,
+    production_decision: dict[str, Any],
+) -> dict[str, Any]:
+    """Create editor metadata from the new Seedance pipeline, without legacy director calls."""
+    niche = str(getattr(creative_plan, "target_niche", "") or "video").replace("_", " ")
+    hook = str(getattr(creative_plan, "hook_pattern", "") or "").strip()
+    style = str(getattr(creative_plan, "style_direction", "") or "").strip()
+    scenes = list(getattr(storyboard, "scenes", []) or [])
+    first_beat = str(getattr(scenes[0], "beat", "") if scenes else "").strip()
+    title_en = _preview_title_from_idea(request.user_idea, fallback=f"{niche.title()} concept")
+    caption_core = first_beat or hook or title_en
+    caption_en = _bounded_preview_text(
+        f"{caption_core}. {style}" if style and style.lower() not in caption_core.lower() else caption_core,
+        240,
+    )
+    target_market = str(
+        (production_decision.get("decision") or {}).get("target_market")
+        or request.target_market
+        or "auto"
+    ).lower()
+    caption_vn = (
+        _bounded_preview_text(f"{caption_core}. Ban dung da duoc khoa truoc khi render.", 240)
+        if target_market in {"vn", "vi", "vietnam"}
+        else caption_en
+    )
+    base_tags = _dedupe_strings([
+        "CineForge",
+        "AIvideo",
+        niche.replace(" ", ""),
+        str(request.target_platform or "").replace("_", ""),
+        str(request.target_market or "").upper(),
+        *list(getattr(execution_plan, "examples_used", []) or [])[:2],
+    ])
+    hashtags_en = [f"#{token}" for token in (_hashtag_token(tag) for tag in base_tags) if token][:8]
+    hashtags_vn = list(hashtags_en) if target_market in {"vn", "vi", "vietnam"} else []
+    distribution_package = {
+        "source": "seedance_execution_plan_pipeline",
+        "status": "generated",
+        "title_en": title_en,
+        "title_vn": title_en,
+        "caption_en": caption_en,
+        "caption_vn": caption_vn,
+        "hashtags_en": hashtags_en,
+        "hashtags_vn": hashtags_vn,
+        "cover_frame_cue": first_beat or hook or "Use the strongest hero frame from shot 1.",
+        "shot_count": len(getattr(execution_plan, "shots", []) or []),
+        "duration_s": getattr(execution_plan, "duration_s", None),
+        "knowledge_rule_ids": list(getattr(execution_plan, "rules_applied", []) or []),
+        "curated_example_ids": list(getattr(execution_plan, "examples_used", []) or []),
+    }
+    return {
+        "caption_vn": caption_vn,
+        "caption_en": caption_en,
+        "hashtags_vn": hashtags_vn,
+        "hashtags_en": hashtags_en,
+        "distribution_package": distribution_package,
+        "disabled": False,
+        "source": "seedance_execution_plan_pipeline",
+    }
+
+
+def _preview_title_from_idea(idea: str, *, fallback: str) -> str:
+    """Return a compact editor title from the approved user idea."""
+    cleaned = " ".join(str(idea or "").split())
+    if not cleaned:
+        return fallback
+    return _bounded_preview_text(cleaned, 72)
+
+
+def _bounded_preview_text(value: str, limit: int) -> str:
+    """Clamp preview copy without splitting into an empty string."""
+    text = " ".join(str(value or "").split())
+    if len(text) <= limit:
+        return text
+    return text[: max(0, limit - 1)].rstrip() + "..."
+
+
+def _hashtag_token(value: str) -> str:
+    """Normalize arbitrary metadata into a conservative hashtag token."""
+    return "".join(ch for ch in str(value or "") if ch.isalnum())[:32]
+
+
 @router.post("/autonomous")
 async def autonomous_generate(
     request: AutonomousGenerateRequest,
     idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
+):
+    """Production autonomous endpoint using SeedanceExecutionPlan + ApprovalLock.
+
+    Paid render on this route is allowed only through the Phase 3 safe path:
+    SeedanceExecutionPlan -> ApprovalLock.verify_against() -> RenderExecutor.
+    The legacy DirectorPlan renderer is intentionally not called here.
+    """
+    if idempotency_key:
+        from core.idempotency import hash_body as _hash_body, lookup as _idem_lookup
+        body_hash = _hash_body(request.model_dump())
+        cached = _idem_lookup(idempotency_key, body_hash)
+        if cached:
+            if not cached["body_match"]:
+                raise HTTPException(
+                    409,
+                    "Idempotency-Key da dung voi body khac. Doi key hoac doi 24h.",
+                )
+            logger.info(f"[/director/autonomous] Idempotency replay key={idempotency_key[:16]}...")
+            return cached["response_json"]
+
+    _require_confirmed_reference_manifest_for_paid_render(request)
+
+    from agent.autonomous_production_decision import build_autonomous_production_decision
+
+    pre_decision = build_autonomous_production_decision(
+        user_idea=request.user_idea,
+        target_market=request.target_market,
+        target_platform=request.target_platform,
+        duration_hint_s=request.duration_hint_s,
+        reference_counts={
+            "images": len(request.reference_image_urls),
+            "videos": len(request.reference_video_urls),
+            "audios": len(request.reference_audio_urls),
+            "pinned_assets": len(request.pinned_asset_ids),
+        },
+        reference_image_urls=request.reference_image_urls,
+        reference_video_urls=request.reference_video_urls,
+        reference_audio_urls=request.reference_audio_urls,
+        reference_manifest=request.reference_manifest,
+    )
+    if (pre_decision.get("decision") or {}).get("niche_resolution_review_required"):
+        raise HTTPException(
+            422,
+            {
+                "code": "niche_resolution_requires_clarification",
+                "message": "Clarify the primary niche and proof target before paid autonomous render.",
+                "niche_resolution": (pre_decision.get("input_summary") or {}).get("niche_resolution"),
+            },
+        )
+    responsible_gate = pre_decision.get("responsible_content_gate") or {}
+    if not bool(responsible_gate.get("render_allowed", True)):
+        raise HTTPException(
+            422,
+            {
+                "code": "responsible_content_requires_review",
+                "message": "This prompt needs likeness, voice, or IP review before paid autonomous render.",
+                "responsible_content_gate": responsible_gate,
+            },
+        )
+
+    approved_plan_meta = _approved_plan_meta_from_request(request)
+    if not request.dry_run_only and not bool(approved_plan_meta.get("included_in_render_source")):
+        raise HTTPException(
+            422,
+            {
+                "code": "approval_lock_source_required",
+                "message": "Paid autonomous render requires an approved render source hash. Re-approve Storyboard or Prompt Preview before rendering.",
+            },
+        )
+
+    auto_pin_selection = {
+        "enabled": bool(request.auto_select_asset_pins),
+        "mode": "disabled",
+        "explicit_pin_ids": request.pinned_asset_ids,
+        "auto_selected_pin_ids": [],
+        "count": 0,
+    }
+    combined_pin_ids = list(request.pinned_asset_ids)
+    if request.auto_select_asset_pins and len(combined_pin_ids) < 12:
+        try:
+            from agent.asset_memory import select_approved_asset_pins_for_render
+            effective_target_market = str(
+                (pre_decision.get("decision") or {}).get("target_market")
+                or request.target_market
+                or "auto"
+            )
+            auto_pin_selection = select_approved_asset_pins_for_render(
+                user_idea=request.user_idea,
+                niche=str((pre_decision.get("decision") or {}).get("niche") or "any"),
+                target_market=effective_target_market,
+                series_key=request.series_key,
+                explicit_pin_ids=request.pinned_asset_ids,
+                limit=min(6, 12 - len(combined_pin_ids)),
+            )
+            for pin_id in auto_pin_selection.get("auto_selected_pin_ids") or []:
+                if pin_id not in combined_pin_ids:
+                    combined_pin_ids.append(pin_id)
+        except Exception as e:
+            logger.warning(f"[/director/autonomous] auto pin selection skipped: {_redact_error(e)}")
+
+    pinned_refs = _resolve_pinned_asset_refs(
+        reference_image_urls=request.reference_image_urls,
+        pinned_asset_ids=combined_pin_ids,
+        auto_selected_pin_ids=auto_pin_selection.get("auto_selected_pin_ids") or [],
+    )
+    reference_image_urls = pinned_refs["reference_image_urls"]
+    reference_counts = {
+        "images": len(reference_image_urls),
+        "videos": len(request.reference_video_urls),
+        "audios": len(request.reference_audio_urls),
+        "pinned_assets": len(pinned_refs["pinned_assets"]),
+    }
+    production_decision = build_autonomous_production_decision(
+        user_idea=request.user_idea,
+        target_market=request.target_market,
+        target_platform=request.target_platform,
+        duration_hint_s=request.duration_hint_s,
+        reference_counts=reference_counts,
+        reference_image_urls=reference_image_urls,
+        reference_video_urls=request.reference_video_urls,
+        reference_audio_urls=request.reference_audio_urls,
+        reference_manifest=request.reference_manifest,
+        niche_hint=str((pre_decision.get("decision") or {}).get("niche") or ""),
+        speaker_count=max(1, min(4, len(request.reference_audio_urls) or 1)),
+    )
+
+    bundle = _build_autonomous_seedance_execution_bundle(
+        request=request,
+        reference_image_urls=reference_image_urls,
+        pinned_refs=pinned_refs,
+        pre_decision=pre_decision,
+        production_decision=production_decision,
+        approved_plan_meta=approved_plan_meta,
+    )
+    execution_plan = bundle["execution_plan"]
+    approval_lock = bundle["approval_lock"]
+    pipeline_trace = bundle["pipeline_trace"]
+    approval_verification = bundle["approval_verification"]
+    editor_preview = bundle["editor_preview"]
+    job_id = execution_plan.execution_plan_id
+    plan_id = str(execution_plan.storyboard_id or execution_plan.execution_plan_id)
+
+    _JOBS_STORE[job_id] = {
+        "status": "pending",
+        "progress": 0,
+        "current_step": "queued_seedance_execution_plan",
+        "plan_id": plan_id,
+        "mode": "autonomous",
+        "execution_mode": "seedance_execution_plan",
+        "approval_lock": approval_lock.model_dump(mode="json"),
+        "approval_verification": approval_verification.model_dump(mode="json"),
+        "seedance_execution_plan": execution_plan.model_dump(mode="json"),
+        "pipeline_trace": pipeline_trace.model_dump(mode="json"),
+        "autonomous_meta": {
+            "migration": "seedance_execution_plan_render_executor",
+            "legacy_render_plan_used": False,
+            "render_executor_required": True,
+            "approved_plan": approved_plan_meta,
+            "production_decision": production_decision,
+            "pinned_assets": pinned_refs["pinned_assets"],
+            "skipped_pins": pinned_refs["skipped_pins"],
+            "auto_pin_selection": auto_pin_selection,
+            "pipeline_trace": pipeline_trace.model_dump(mode="json"),
+            "editor_preview": editor_preview,
+            "dry_run_only": request.dry_run_only,
+        },
+        "created_at": datetime.now(timezone.utc).isoformat() + "Z",
+    }
+
+    async def _run_seedance_execution_plan():
+        try:
+            await video_worker.render_seedance_execution_plan(
+                execution_plan=execution_plan,
+                approval_lock=approval_lock,
+                jobs_store=_JOBS_STORE,
+                dry_run_only=request.dry_run_only,
+                cost_gate_mode="draft_first" if not request.dry_run_only else "off",
+                max_total_cost_usd=request.max_total_cost_usd,
+            )
+        except video_worker.JobCancelledError:
+            logger.info(f"[/director/autonomous] job {job_id} cancelled gracefully")
+            await asyncio.to_thread(video_worker.cleanup_failed_job, job_id)
+        except Exception as e:
+            logger.exception(f"[/director/autonomous] job {job_id} failed")
+            _JOBS_STORE[job_id].update(status="failed", error_message=_redact_error(e))
+            await asyncio.to_thread(video_worker.cleanup_failed_job, job_id)
+
+    _spawn(_run_seedance_execution_plan())
+
+    response = {
+        "job_id": job_id,
+        "polling_url": f"/api/v1/director/jobs/{job_id}",
+        "plan_id": plan_id,
+        "mode": "autonomous",
+        "execution_mode": "seedance_execution_plan",
+        "legacy_render_plan_used": False,
+        "approval_lock_id": approval_lock.lock_id,
+        "approval_verification": approval_verification.model_dump(mode="json"),
+        "pipeline_trace": pipeline_trace.model_dump(mode="json"),
+        "seedance_execution_plan": {
+            "execution_plan_id": execution_plan.execution_plan_id,
+            "model": execution_plan.model,
+            "duration_s": execution_plan.duration_s,
+            "aspect_ratio": execution_plan.aspect_ratio,
+            "resolution": execution_plan.resolution,
+            "shot_count": len(execution_plan.shots),
+            "knowledge_rule_ids": execution_plan.rules_applied,
+            "curated_example_ids": execution_plan.examples_used,
+        },
+        "resolved_model": execution_plan.model,
+        "target_market": (production_decision.get("decision") or {}).get("target_market") or request.target_market,
+        "requested_target_market": request.target_market,
+        "estimated_duration_s": execution_plan.duration_s,
+        "estimated_cost_usd": float(
+            execution_plan.cost_estimate.get("total_cost_usd")
+            or execution_plan.cost_estimate.get("render_cost_usd")
+            or 0.0
+        ),
+        "n_shots": len(execution_plan.shots),
+        "render_strategy": "seedance_execution_plan",
+        "n_chunks": len(execution_plan.shots),
+        "production_decision": production_decision,
+        "pinned_assets": pinned_refs["pinned_assets"],
+        "skipped_pins": pinned_refs["skipped_pins"],
+        "auto_pin_selection": auto_pin_selection,
+        "approved_plan": approved_plan_meta,
+        "chain_elapsed_s": 0.0,
+        "editor_preview": editor_preview,
+        "hook_preview": {
+            "pattern": bundle["creative_plan"].hook_pattern,
+            "first_3s": bundle["storyboard"].scenes[0].beat if bundle["storyboard"].scenes else "",
+            "niche": bundle["creative_plan"].target_niche,
+            "mood": bundle["creative_plan"].style_direction,
+        },
+    }
+
+    if idempotency_key:
+        from core.idempotency import hash_body as _hash_body, store as _idem_store
+        try:
+            _idem_store(idempotency_key, _hash_body(request.model_dump()), response, status_code=201)
+        except Exception as e:
+            logger.warning(f"[/director/autonomous] idem store fail (non-fatal): {e}")
+
+    return response
+
+
+@router.post("/autonomous/legacy-director-plan")
+async def autonomous_generate_legacy_director_plan(
+    request: AutonomousGenerateRequest,
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
 ):
     """V6.1 Autonomous Director — 1-call: idea + refs → rendered MP4.
 
@@ -2082,6 +2747,7 @@ async def autonomous_generate(
     Backward compat: KHÔNG touch /director/plan (manual mode). User cũ chạy
     manual flow 100% giữ nguyên.
     """
+    _require_paid_executor_admin(x_admin_key)
     from agent.autonomous_director import AutonomousDirector, AutonomousRunRequest
 
     # ---- Idempotency replay ----
