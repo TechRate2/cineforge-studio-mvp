@@ -78,8 +78,13 @@ class Settings(BaseSettings):
     # deterministic CV signals from rendered segment videos and reference
     # images before the policy evaluator scores them.
     post_render_cv_probe_enabled: bool = True
-    post_render_cv_probe_max_frames: int = 6
+    post_render_cv_probe_max_frames: int = 8
     post_render_cv_probe_download_timeout_s: int = 30
+    post_render_cv_probe_enable_embedding: bool = True
+    post_render_cv_probe_embedding_model_path: str = ""
+    post_render_cv_probe_embedding_input_size: int = 224
+    post_render_cv_probe_max_regions: int = 8
+    post_render_cv_probe_frame_strategy: str = "smart"
 
     # Database & Cache
     database_url: str = "postgresql://postgres:mypass@localhost:5432/ugc_vn"

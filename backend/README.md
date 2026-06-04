@@ -511,24 +511,32 @@ Final video delivery strategies:
 
 ## 11.6. Post-render CV probe
 
-`backend/identity/post_render_cv_probe.py` runs a local OpenCV probe after a
-segment render when the shot has consistency policy metadata. The probe samples
-rendered video frames and compares them with image references to produce
+`backend/identity/post_render_cv_probe.py` runs a local hybrid OpenCV probe
+after a segment render when the shot has consistency policy metadata. The probe
+samples rendered video frames and compares them with image references to produce
 `face_similarity`, `product_visibility`, `logo_label_similarity`,
 `style_similarity`, and `emotion_similarity` signals where enough visual data is
-available. Missing or low-quality signals are reported as warnings; the probe
-does not fabricate scores.
+available. It combines Haar face detection, body/outfit crops, smart frame
+sampling, contour ROI search, ORB, HSV histograms, edge structure, HOG/LBP/color
+descriptors, and optional OpenCV-DNN ONNX embeddings. Missing or low-confidence
+signals are reported as warnings; the probe does not fabricate scores.
 
 ```
 POST_RENDER_CV_PROBE_ENABLED=true
-POST_RENDER_CV_PROBE_MAX_FRAMES=6
+POST_RENDER_CV_PROBE_MAX_FRAMES=8
 POST_RENDER_CV_PROBE_DOWNLOAD_TIMEOUT_S=30
+POST_RENDER_CV_PROBE_ENABLE_EMBEDDING=true
+POST_RENDER_CV_PROBE_EMBEDDING_MODEL_PATH=
+POST_RENDER_CV_PROBE_EMBEDDING_INPUT_SIZE=224
+POST_RENDER_CV_PROBE_MAX_REGIONS=8
+POST_RENDER_CV_PROBE_FRAME_STRATEGY=smart
 ```
 
 The deterministic evaluator in `backend/identity/post_render_consistency.py`
 uses `cv_probe` metrics before vendor-provided signals when both are present,
-then writes the resulting action and score into `RenderQAService` reports and
-the long-form pipeline trace.
+checks per-signal confidence, then writes the resulting action, score,
+confidence, and signal quality into `RenderQAService` reports and the long-form
+pipeline trace.
 
 ---
 

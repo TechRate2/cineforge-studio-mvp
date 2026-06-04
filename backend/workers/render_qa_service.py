@@ -29,6 +29,7 @@ class SegmentQAReport(BaseModel):
     consistency_score: float | None = None
     consistency_policy_action: str | None = None
     consistency_warnings: list[str] = Field(default_factory=list)
+    cv_probe_signals: dict[str, object] = Field(default_factory=dict)
     visual_consistency: VisualConsistencyQAReport | None = None
 
 
@@ -92,6 +93,8 @@ class RenderQAService:
                     "risk_level": visual_report.risk_level,
                     "overall_score": visual_report.overall_score,
                     "missing_signals": visual_report.missing_signals,
+                    "signal_confidence": visual_report.signal_confidence,
+                    "signal_source": visual_report.signal_source,
                     "errors": visual_report.errors,
                 },
             )
@@ -121,6 +124,7 @@ class RenderQAService:
             consistency_score=consistency_score,
             consistency_policy_action=consistency_policy_action,
             consistency_warnings=consistency_warnings,
+            cv_probe_signals=cv_probe_report,
             visual_consistency=visual_report,
         )
 

@@ -62,6 +62,8 @@ class VisualConsistencyQAReport(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
     metrics: dict[str, float] = Field(default_factory=dict)
+    signal_confidence: dict[str, float] = Field(default_factory=dict)
+    signal_quality: dict[str, Any] = Field(default_factory=dict)
     required_checks: list[str] = Field(default_factory=list)
     missing_signals: list[str] = Field(default_factory=list)
     thresholds: dict[str, Any] = Field(default_factory=dict)
@@ -72,8 +74,14 @@ class VisualConsistencyQAReport(BaseModel):
 class PostRenderConsistencyEvaluator:
     """Evaluate post-render visual consistency signals into score and action."""
 
-    def __init__(self, *, thresholds: PostRenderConsistencyThresholds | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        thresholds: PostRenderConsistencyThresholds | None = None,
+        low_confidence_threshold: float = 0.35,
+    ) -> None:
         self.thresholds = thresholds or PostRenderConsistencyThresholds()
+        self.low_confidence_threshold = max(0.0, min(1.0, float(low_confidence_threshold)))
 
     def evaluate(
         self,
@@ -85,6 +93,8 @@ class PostRenderConsistencyEvaluator:
         required_checks = _required_checks(shot_metadata)
         signal_payload = qa_signals if isinstance(qa_signals, dict) else {}
         metrics = _extract_metrics(signal_payload)
+        signal_confidence = _extract_signal_confidence(signal_payload)
+        signal_quality = _extract_signal_quality(signal_payload)
         warnings: list[str] = []
         errors: list[str] = []
         missing: list[str] = []
@@ -103,6 +113,11 @@ class PostRenderConsistencyEvaluator:
                 signal_actions[metric_name] = threshold.missing_action
                 continue
             signal_action = _action_for_metric(value=value, threshold=threshold)
+            confidence = signal_confidence.get(metric_name)
+            if confidence is not None and confidence < self.low_confidence_threshold:
+                warnings.append(f"low_confidence_{metric_name}")
+                if signal_action == "allow":
+                    signal_action = "warn"
             signal_actions[metric_name] = signal_action
             if signal_action == "block":
                 errors.append(f"{metric_name}_below_threshold")
@@ -127,6 +142,8 @@ class PostRenderConsistencyEvaluator:
             warnings=list(dict.fromkeys(warnings)),
             errors=list(dict.fromkeys(errors)),
             metrics=metrics,
+            signal_confidence=signal_confidence,
+            signal_quality=signal_quality,
             required_checks=required_checks,
             missing_signals=missing,
             thresholds=self.thresholds.model_dump(mode="json"),
@@ -136,6 +153,7 @@ class PostRenderConsistencyEvaluator:
                 "post_render_consistency.overall_score",
                 "post_render_consistency.policy_action",
                 "post_render_consistency.missing_signal_guardrail",
+                "post_render_consistency.signal_confidence_guardrail",
             ],
         )
 
@@ -270,6 +288,47 @@ def _extract_metrics(qa_signals: dict[str, Any]) -> dict[str, float]:
                 metrics[key] = value
                 break
     return metrics
+
+
+def _extract_signal_confidence(qa_signals: dict[str, Any]) -> dict[str, float]:
+    confidence: dict[str, float] = {}
+    payloads = _nested_payloads(qa_signals)
+    for payload in payloads:
+        for confidence_key in ("signal_confidence", "metric_confidence", "confidence"):
+            nested = payload.get(confidence_key)
+            if not isinstance(nested, dict):
+                continue
+            for key in (
+                "face_similarity",
+                "product_visibility",
+                "logo_label_similarity",
+                "style_similarity",
+                "emotion_similarity",
+                "body_outfit_similarity",
+            ):
+                value = _coerce_float(nested.get(key))
+                if value is not None and key not in confidence:
+                    confidence[key] = value
+    return confidence
+
+
+def _extract_signal_quality(qa_signals: dict[str, Any]) -> dict[str, Any]:
+    quality: dict[str, Any] = {}
+    for payload in _nested_payloads(qa_signals):
+        nested = payload.get("signal_quality")
+        if isinstance(nested, dict):
+            quality.update(nested)
+    return quality
+
+
+def _nested_payloads(qa_signals: dict[str, Any]) -> list[dict[str, Any]]:
+    payloads: list[dict[str, Any]] = []
+    for nested_key in ("cv_probe", "visual_consistency", "consistency_metrics", "metrics", "signals"):
+        nested = qa_signals.get(nested_key)
+        if isinstance(nested, dict):
+            payloads.append(nested)
+    payloads.append(qa_signals)
+    return payloads
 
 
 def _coerce_float(value: Any) -> float | None:
