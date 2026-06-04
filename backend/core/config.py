@@ -67,6 +67,19 @@ class Settings(BaseSettings):
     r2_secret_access_key: str = ""
     r2_bucket_name: str = "ugc-vietnam-output"
     r2_public_url: str = ""
+    r2_endpoint_url: str = ""
+    r2_presigned_url_expires_s: int = 7 * 24 * 60 * 60
+    r2_final_video_access_mode: str = "auto"  # auto | public | private
+    r2_final_video_presigned_expires_s: int = 90 * 24 * 60 * 60
+    r2_presigned_refresh_enabled: bool = True
+    r2_upload_max_attempts: int = 3
+
+    # Post-render visual consistency probe. Uses OpenCV locally to derive
+    # deterministic CV signals from rendered segment videos and reference
+    # images before the policy evaluator scores them.
+    post_render_cv_probe_enabled: bool = True
+    post_render_cv_probe_max_frames: int = 6
+    post_render_cv_probe_download_timeout_s: int = 30
 
     # Database & Cache
     database_url: str = "postgresql://postgres:mypass@localhost:5432/ugc_vn"

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Literal
+from typing import Callable, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -108,6 +108,7 @@ class LongFormRenderExecutor:
         idea: str,
         dry_run_approved: bool = False,
         trace: PipelineTrace | None = None,
+        progress_callback: Callable[[dict[str, object]], None] | None = None,
     ) -> LongFormRenderResult:
         """Render every segment in order after dry-run approval and lock verification."""
         master_plan = _require_master_plan(longform_plan)
@@ -182,10 +183,21 @@ class LongFormRenderExecutor:
         updated_segments: list[SegmentPlan] = []
         previous_last_frame_url: str | None = None
         for segment in longform_plan.segments:
+            _emit_progress(
+                progress_callback,
+                {
+                    "event": "segment_started",
+                    "segment_id": segment.segment_id,
+                    "segment_index": segment.index,
+                    "segment_count": len(longform_plan.segments),
+                    "current_step": f"rendering_segment_{segment.index + 1}_of_{len(longform_plan.segments)}",
+                },
+            )
             segment_result, segment_qa, repair_count = self._render_segment_with_repair(
                 longform_plan=longform_plan,
                 segment=segment,
                 previous_last_frame_url=previous_last_frame_url,
+                progress_callback=progress_callback,
             )
             rendered.extend(segment_result)
             qa_reports.extend(segment_qa)
@@ -204,6 +216,17 @@ class LongFormRenderExecutor:
             })
             updated_segments.append(updated_segment)
             if final_render.status != "completed":
+                _emit_progress(
+                    progress_callback,
+                    {
+                        "event": "segment_failed",
+                        "segment_id": segment.segment_id,
+                        "segment_index": segment.index,
+                        "segment_count": len(longform_plan.segments),
+                        "status": "render_failed",
+                        "error_code": final_render.error_code,
+                    },
+                )
                 return _result(
                     status="render_failed",
                     longform_plan=longform_plan.model_copy(update={"segments": updated_segments + longform_plan.segments[len(updated_segments):]}),
@@ -216,6 +239,18 @@ class LongFormRenderExecutor:
                     message=f"Long-form render failed at {segment.segment_id}.",
                 )
             if final_qa.status == "fail":
+                _emit_progress(
+                    progress_callback,
+                    {
+                        "event": "segment_failed",
+                        "segment_id": segment.segment_id,
+                        "segment_index": segment.index,
+                        "segment_count": len(longform_plan.segments),
+                        "status": "qa_failed",
+                        "warnings": final_qa.warnings,
+                        "errors": final_qa.errors,
+                    },
+                )
                 return _result(
                     status="qa_failed",
                     longform_plan=longform_plan.model_copy(update={"segments": updated_segments + longform_plan.segments[len(updated_segments):]}),
@@ -228,15 +263,38 @@ class LongFormRenderExecutor:
                     message=f"Long-form QA failed at {segment.segment_id}.",
                 )
             previous_last_frame_url = final_render.last_frame_url
+            _emit_progress(
+                progress_callback,
+                {
+                    "event": "segment_completed",
+                    "segment_id": segment.segment_id,
+                    "segment_index": segment.index,
+                    "segment_count": len(longform_plan.segments),
+                    "repair_attempts": repair_count,
+                    "video_url": final_render.video_url,
+                    "last_frame_url": final_render.last_frame_url,
+                    "qa_status": final_qa.status,
+                },
+            )
             if trace is not None:
+                visual = final_qa.visual_consistency
+                trace_warnings = list(final_qa.warnings)
+                if visual is not None and visual.action != "allow":
+                    trace_warnings.append(f"visual_consistency_action:{visual.action}")
+                    if visual.overall_score is not None:
+                        trace_warnings.append(f"visual_consistency_score:{visual.overall_score}")
                 trace.append_stage(
                     stage="longform_segment_render",
                     stage_input=segment,
                     stage_output={"render": final_render, "qa": final_qa},
                     decision=f"rendered {segment.segment_id}",
                     reasoning_summary="Segment rendered after verifying the master long-form ApprovalLock.",
-                    rules_applied=["phase9a.render.linear_segment_order", "phase9a.render.last_frame_handoff"],
-                    warnings=final_qa.warnings,
+                    rules_applied=[
+                        "phase9a.render.linear_segment_order",
+                        "phase9a.render.last_frame_handoff",
+                        "post_render_consistency.policy_action",
+                    ],
+                    warnings=trace_warnings,
                 )
 
         updated_plan = longform_plan.model_copy(update={"segments": updated_segments, "status": "completed"})
@@ -266,6 +324,7 @@ class LongFormRenderExecutor:
         longform_plan: LongFormExecutionPlan,
         segment: SegmentPlan,
         previous_last_frame_url: str | None,
+        progress_callback: Callable[[dict[str, object]], None] | None = None,
     ) -> tuple[list[SegmentRenderResult], list[SegmentQAReport], int]:
         """Render one segment and retry only that segment when repair is allowed."""
         execution_plan = _require_segment_execution_plan(segment)
@@ -289,6 +348,18 @@ class LongFormRenderExecutor:
             if attempt >= max_attempts - 1:
                 return results, qa_reports, repair_count
             repair_count += 1
+            _emit_progress(
+                progress_callback,
+                {
+                    "event": "segment_repair",
+                    "segment_id": segment.segment_id,
+                    "segment_index": segment.index,
+                    "repair_attempt": repair_count,
+                    "render_status": result.status,
+                    "qa_status": qa_report.status,
+                    "qa_errors": qa_report.errors,
+                },
+            )
             logger.warning(
                 "longform_segment_auto_repair",
                 extra={
@@ -317,6 +388,19 @@ def _require_segment_execution_plan(segment: SegmentPlan):
 
 def _dry_run_approved(*, approval_lock: ApprovalLock, explicit: bool) -> bool:
     return bool(explicit or approval_lock.metadata.get("longform_dry_run_approved"))
+
+
+def _emit_progress(
+    callback: Callable[[dict[str, object]], None] | None,
+    event: dict[str, object],
+) -> None:
+    """Send best-effort progress updates without failing the render path."""
+    if callback is None:
+        return
+    try:
+        callback(event)
+    except Exception:
+        logger.warning("longform_progress_callback_failed", exc_info=True)
 
 
 def _consistency_policy_decision(master_plan, approval_lock: ApprovalLock) -> dict[str, object]:

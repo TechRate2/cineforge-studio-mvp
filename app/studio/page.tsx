@@ -4,6 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { RotateCcw, Sparkles } from 'lucide-react';
 import { CommandComposer } from '@/components/studio/CommandComposer';
+import {
+  CommercialControls,
+  type BrandKitOption,
+  type CommercialAnalyticsSummary,
+  type CommercialTemplateOption,
+  type CommercialUsageSummary,
+} from '@/components/studio/CommercialControls';
 import { JobResultModal } from '@/components/studio/JobResultModal';
 import { PipelinePreview } from '@/components/studio/PipelinePreview';
 import { PipelineTraceView } from '@/components/studio/PipelineTraceView';
@@ -21,10 +28,12 @@ const AUTONOMOUS_MAX_VIDEOS = 3;
 const AUTONOMOUS_MAX_AUDIO = 3;
 const AUTONOMOUS_MAX_TOTAL_REFS = 12;
 const CHAT_HISTORY_LIMIT = 12;
+const CONSISTENCY_REVIEW_HISTORY_LIMIT = 10;
 const BRIEF_MAX_CHARS = 3000;
 const CHAT_INPUT_MAX_CHARS = 1000;
 const SCENE_PREVIEW_MAX = 12;
 const DEFAULT_SCENE_DURATION_S = 8;
+const COMMERCIAL_USER_ID = 'default_user';
 
 const VIDEO_MODEL_OPTIONS = [
   { value: 'auto', label: 'Auto route', hint: 'Agent selects Fast T2V/I2V/Reference from the uploaded refs.' },
@@ -49,7 +58,10 @@ const DURATION_OPTIONS = [
   { value: 0, label: 'Auto', hint: 'Agent decides' },
   { value: 8, label: '8s', hint: 'single Seedance clip' },
   { value: 12, label: '12s', hint: 'short Seedance clip' },
-  { value: 15, label: '15s', hint: 'maximum for autonomous production path' },
+  { value: 15, label: '15s', hint: 'maximum single Seedance clip' },
+  { value: 30, label: '30s', hint: 'long-form segmented, 3 clips' },
+  { value: 45, label: '45s', hint: 'long-form segmented, 4 clips' },
+  { value: 60, label: '60s', hint: 'long-form segmented, 5 clips' },
 ] as const;
 
 type QualityPreset = (typeof QUALITY_OPTIONS)[number]['value'];
@@ -347,6 +359,51 @@ interface AutonomousPreview {
     source_length?: number;
     included_in_render_source?: boolean;
   };
+  execution_mode?: string;
+  job_id?: string;
+  render_dry_run_report?: Record<string, unknown>;
+  longform_plan?: LongformPlanPreview | null;
+  requires_consistency_review?: boolean;
+  consistency_policy?: ConsistencyPolicyPreview;
+}
+
+interface LongformSegmentPreview {
+  segment_id?: string;
+  index?: number;
+  start_s?: number;
+  duration_s?: number;
+  objective?: string;
+  entry_state?: Record<string, unknown>;
+  exit_state?: Record<string, unknown>;
+  handoff_requirements?: string[];
+  status?: string;
+}
+
+interface LongformPlanPreview {
+  longform_plan_id?: string;
+  total_duration_s?: number;
+  continuity_pressure?: string;
+  segment_graph_hash?: string;
+  continuity_bible_hash?: string;
+  segments?: LongformSegmentPreview[];
+  handoffs?: Array<Record<string, unknown>>;
+  warnings?: string[];
+}
+
+interface ConsistencyPolicyPreview {
+  action?: string;
+  reasons?: string[];
+  review_approved?: boolean;
+  review_decision?: string;
+  review_reason?: string;
+  reviewed_segment_ids?: string[];
+}
+
+interface ConsistencyReviewHistoryItem {
+  decision: 'approved' | 'rejected';
+  reason: string;
+  segmentIds: string[];
+  createdAt: string;
 }
 
 interface ConversationalPreflight {
@@ -573,6 +630,17 @@ export default function StudioPage() {
   const [aspectRatioChoice, setAspectRatioChoice] = useState<AspectRatioChoice>('9:16');
   const [targetMarket, setTargetMarket] = useState<string>('auto');
   const [seriesKey, setSeriesKey] = useState<string>('');
+  const [selectedBrandKitId, setSelectedBrandKitId] = useState('');
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [brandKits, setBrandKits] = useState<BrandKitOption[]>([]);
+  const [commercialTemplates, setCommercialTemplates] = useState<CommercialTemplateOption[]>([]);
+  const [commercialUsage, setCommercialUsage] = useState<CommercialUsageSummary | null>(null);
+  const [commercialAnalytics, setCommercialAnalytics] = useState<CommercialAnalyticsSummary | null>(null);
+  const [brandDraftName, setBrandDraftName] = useState('');
+  const [brandDraftVoice, setBrandDraftVoice] = useState('');
+  const [brandDraftStyleGuide, setBrandDraftStyleGuide] = useState('');
+  const [brandDraftColors, setBrandDraftColors] = useState('');
+  const [commercialLoading, setCommercialLoading] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [revisionInput, setRevisionInput] = useState('');
   const [revisionNotes, setRevisionNotes] = useState('');
@@ -584,6 +652,14 @@ export default function StudioPage() {
   const [approvedInputKey, setApprovedInputKey] = useState('');
   const [approvalLockRevision, setApprovalLockRevision] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [dryRunLoading, setDryRunLoading] = useState(false);
+  const [dryRunPreview, setDryRunPreview] = useState<AutonomousPreview | null>(null);
+  const [approvedDryRunJobId, setApprovedDryRunJobId] = useState('');
+  const [approvedSegmentIds, setApprovedSegmentIds] = useState<string[]>([]);
+  const [consistencyReviewApproved, setConsistencyReviewApproved] = useState(false);
+  const [consistencyReviewDecision, setConsistencyReviewDecision] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  const [consistencyReviewReason, setConsistencyReviewReason] = useState('');
+  const [consistencyReviewHistory, setConsistencyReviewHistory] = useState<ConsistencyReviewHistoryItem[]>([]);
   const [autonomousPreview, setAutonomousPreview] = useState<AutonomousPreview | null>(null);
   const [productionDecision, setProductionDecision] = useState<ProductionDecision | null>(null);
   const [productionDecisionLoading, setProductionDecisionLoading] = useState(false);
@@ -622,6 +698,8 @@ export default function StudioPage() {
         aspect_ratio_choice?: AspectRatioChoice;
         target_market?: string;
         series_key?: string;
+        selected_brand_kit_id?: string;
+        selected_template_id?: string;
         revision_notes?: string;
         plan_version?: number;
         saved_at?: number;
@@ -637,6 +715,8 @@ export default function StudioPage() {
       if (isAspectRatioChoice(draft.aspect_ratio_choice)) setAspectRatioChoice(draft.aspect_ratio_choice);
       if (typeof draft.target_market === 'string') setTargetMarket(draft.target_market);
       if (typeof draft.series_key === 'string') setSeriesKey(draft.series_key);
+      if (typeof draft.selected_brand_kit_id === 'string') setSelectedBrandKitId(draft.selected_brand_kit_id);
+      if (typeof draft.selected_template_id === 'string') setSelectedTemplateId(draft.selected_template_id);
       if (typeof draft.revision_notes === 'string') setRevisionNotes(draft.revision_notes.slice(0, 1200));
       if (typeof draft.plan_version === 'number') setPlanVersion(Math.max(1, draft.plan_version));
     } catch {
@@ -658,6 +738,8 @@ export default function StudioPage() {
             aspect_ratio_choice: aspectRatioChoice,
             target_market: targetMarket,
             series_key: seriesKey.trim(),
+            selected_brand_kit_id: selectedBrandKitId,
+            selected_template_id: selectedTemplateId,
             revision_notes: revisionNotes.trim(),
             plan_version: planVersion,
             saved_at: Date.now(),
@@ -668,7 +750,7 @@ export default function StudioPage() {
       }
     }, 600);
     return () => clearTimeout(t);
-  }, [aspectRatioChoice, brief, durationHintS, planVersion, qualityPreset, revisionNotes, seriesKey, targetMarket, videoModelChoice]);
+  }, [aspectRatioChoice, brief, durationHintS, planVersion, qualityPreset, revisionNotes, selectedBrandKitId, selectedTemplateId, seriesKey, targetMarket, videoModelChoice]);
 
   useEffect(() => {
     if (jobId && !showJobModal) {
@@ -677,6 +759,40 @@ export default function StudioPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const refreshCommercialData = useCallback(async () => {
+    setCommercialLoading(true);
+    try {
+      const [brandRes, templateRes, usageRes, analyticsRes] = await Promise.all([
+        fetch(`/api/v1/director/commercial/brand-kits?owner_user_id=${encodeURIComponent(COMMERCIAL_USER_ID)}`),
+        fetch('/api/v1/director/commercial/templates'),
+        fetch(`/api/v1/director/commercial/usage/${encodeURIComponent(COMMERCIAL_USER_ID)}`),
+        fetch(`/api/v1/director/commercial/analytics/summary?user_id=${encodeURIComponent(COMMERCIAL_USER_ID)}`),
+      ]);
+      if (brandRes.ok) {
+        const data = await brandRes.json() as { brand_kits?: BrandKitOption[] };
+        setBrandKits(data.brand_kits ?? []);
+      }
+      if (templateRes.ok) {
+        const data = await templateRes.json() as { templates?: CommercialTemplateOption[] };
+        setCommercialTemplates(data.templates ?? []);
+      }
+      if (usageRes.ok) {
+        setCommercialUsage(await usageRes.json() as CommercialUsageSummary);
+      }
+      if (analyticsRes.ok) {
+        setCommercialAnalytics(await analyticsRes.json() as CommercialAnalyticsSummary);
+      }
+    } catch (error) {
+      console.warn('Commercial data refresh failed', error);
+    } finally {
+      setCommercialLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshCommercialData();
+  }, [refreshCommercialData]);
 
   const readyRefs = useMemo(
     () => refs.filter((r) => !r.uploading && r.url),
@@ -710,7 +826,7 @@ export default function StudioPage() {
     [readyRefs],
   );
   const targetPlatform = 'tiktok';
-  const targetPlatformLabel = 'Short-form vertical';
+  const targetPlatformLabel = durationHintS > 15 ? 'Segmented long-form' : 'Short-form vertical';
   const selectedQuality = QUALITY_OPTIONS.find((option) => option.value === qualityPreset) ?? QUALITY_OPTIONS[0];
   const selectedResolution = selectedQuality.resolution;
   const selectedVideoModel = VIDEO_MODEL_OPTIONS.find((option) => option.value === videoModelChoice) ?? VIDEO_MODEL_OPTIONS[0];
@@ -741,6 +857,8 @@ export default function StudioPage() {
       aspectRatioChoice,
       targetMarket,
       targetPlatform,
+      selectedBrandKitId,
+      selectedTemplateId,
       revisionNotes.trim(),
       referenceStateKey,
       conversationHistoryKey,
@@ -753,6 +871,8 @@ export default function StudioPage() {
       qualityPreset,
       referenceStateKey,
       revisionNotes,
+      selectedBrandKitId,
+      selectedTemplateId,
       selectedResolution,
       targetMarket,
       targetPlatform,
@@ -763,9 +883,26 @@ export default function StudioPage() {
     () => buildStudioPreviewScenes(conversationalPreflight, readyRefs),
     [conversationalPreflight, readyRefs],
   );
+  const reviewScenes = useMemo(
+    () => dryRunPreview?.longform_plan
+      ? buildLongformReviewScenes(dryRunPreview.longform_plan, dryRunPreview.render_dry_run_report)
+      : previewScenes,
+    [dryRunPreview, previewScenes],
+  );
   const spendPreview = useMemo(
-    () => summarizePreviewSpend(previewScenes),
-    [previewScenes],
+    () => summarizePreviewSpend(reviewScenes),
+    [reviewScenes],
+  );
+  const isLongformReview = Boolean(dryRunPreview?.longform_plan);
+  const requiresConsistencyReview = Boolean(
+    dryRunPreview?.requires_consistency_review
+    || dryRunPreview?.consistency_policy?.action === 'requires_review',
+  );
+  const consistencyReviewedSegmentIds = useMemo(
+    () => (dryRunPreview?.longform_plan?.segments ?? [])
+      .map((segment) => segment.segment_id)
+      .filter((id): id is string => Boolean(id)),
+    [dryRunPreview?.longform_plan?.segments],
   );
   const generationNeedsClarification = Boolean(productionDecision?.decision?.niche_resolution_review_required);
   const generationBlockedByResponsibleGate = Boolean(
@@ -790,7 +927,7 @@ export default function StudioPage() {
   const renderBlockers = useMemo(
     () => buildRenderBlockers({
       isGenerating,
-      planning: productionDecisionLoading || conversationalPreflightLoading,
+      planning: productionDecisionLoading || conversationalPreflightLoading || dryRunLoading,
       approved: preflightApproved,
       renderSourceReady,
       needsUserInput: conversationalPreflight?.status === 'needs_user_input',
@@ -800,20 +937,37 @@ export default function StudioPage() {
       hasBrief: Boolean(brief.trim()),
       referenceRolesConfirmed,
       uploadingRefs: refs.some((r) => r.uploading),
-      hasPreview: previewScenes.length > 0,
+      hasPreview: reviewScenes.length > 0,
       selectedModelNeedsImage,
       selectedModelLabel: selectedVideoModel.label,
+      isLongform: durationHintS > 15 || isLongformReview,
+      hasApprovedDryRun: Boolean(approvedDryRunJobId),
+      segmentReviewComplete: !isLongformReview || (
+        (dryRunPreview?.longform_plan?.segments ?? []).every((segment) => (
+          segment.segment_id ? approvedSegmentIds.includes(segment.segment_id) : true
+        ))
+      ),
+      consistencyReviewRequired: requiresConsistencyReview,
+      consistencyReviewApproved,
     }),
     [
       brief,
       conversationalPreflight?.status,
       conversationalPreflightLoading,
+      dryRunLoading,
+      dryRunPreview?.longform_plan?.segments,
+      durationHintS,
       generationBlockedByResponsibleGate,
       generationNeedsClarification,
       isGenerating,
+      isLongformReview,
+      approvedDryRunJobId,
+      approvedSegmentIds,
+      consistencyReviewApproved,
+      requiresConsistencyReview,
       preflightApproved,
       preflightHasBlockedChecks,
-      previewScenes.length,
+      reviewScenes.length,
       productionDecisionLoading,
       referenceRolesConfirmed,
       referenceImageUrls.length,
@@ -827,8 +981,14 @@ export default function StudioPage() {
     isGenerating
     || productionDecisionLoading
     || conversationalPreflightLoading
+    || dryRunLoading
     || !preflightApproved
     || !renderSourceReady
+    || ((durationHintS > 15 || isLongformReview) && !approvedDryRunJobId)
+    || (isLongformReview && !(dryRunPreview?.longform_plan?.segments ?? []).every((segment) => (
+      segment.segment_id ? approvedSegmentIds.includes(segment.segment_id) : true
+    )))
+    || (requiresConsistencyReview && !consistencyReviewApproved)
     || conversationalPreflight?.status === 'needs_user_input'
     || preflightHasBlockedChecks
     || generationNeedsClarification
@@ -848,14 +1008,14 @@ export default function StudioPage() {
   );
 
   useEffect(() => {
-    if (previewScenes.length === 0) {
+    if (reviewScenes.length === 0) {
       if (activePreviewSceneId) setActivePreviewSceneId(null);
       return;
     }
-    if (!previewScenes.some((scene) => scene.id === activePreviewSceneId)) {
-      setActivePreviewSceneId(previewScenes[0]?.id ?? null);
+    if (!reviewScenes.some((scene) => scene.id === activePreviewSceneId)) {
+      setActivePreviewSceneId(reviewScenes[0]?.id ?? null);
     }
-  }, [activePreviewSceneId, previewScenes]);
+  }, [activePreviewSceneId, reviewScenes]);
 
   useEffect(() => {
     const idea = preflightBrief;
@@ -1200,7 +1360,7 @@ export default function StudioPage() {
     targetPlatform,
   ]);
 
-  const handleApprovePreflight = useCallback(() => {
+  const handleApprovePreflight = useCallback(async () => {
     if (!conversationalPreflight || conversationalPreflight.status === 'needs_user_input') {
       const question = conversationalPreflight?.blocking_questions?.[0]?.question;
       toast.error(question || 'Add the missing detail before approval.', { duration: 6500 });
@@ -1215,10 +1375,115 @@ export default function StudioPage() {
       toast.error('Confirm each reference role first so @image/@video/@audio bindings cannot be misread before paid render.', { duration: 7000 });
       return;
     }
-    setPreflightApproved(true);
-    setApprovedInputKey(currentInputKey);
-    toast.success('Plan approved. Locking render source.');
-  }, [conversationalPreflight, currentInputKey, referenceRolesConfirmed]);
+    setDryRunLoading(true);
+    setDryRunPreview(null);
+    setApprovedDryRunJobId('');
+    setApprovedSegmentIds([]);
+    setConsistencyReviewApproved(false);
+    setConsistencyReviewDecision('pending');
+    setConsistencyReviewReason('');
+    setConsistencyReviewHistory([]);
+    try {
+      const res = await fetch('/api/v1/director/autonomous', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_idea: conversationalPreflight?.approved_brief?.trim() || brief.trim(),
+          user_id: COMMERCIAL_USER_ID,
+          brand_kit_id: selectedBrandKitId || undefined,
+          template_id: selectedTemplateId || undefined,
+          reference_image_urls: referenceImageUrls,
+          reference_video_urls: referenceVideoUrls,
+          reference_audio_urls: referenceAudioUrls,
+          pinned_asset_ids: [],
+          auto_select_asset_pins: true,
+          series_key: seriesKey.trim(),
+          target_platform: targetPlatform,
+          target_market: targetMarket,
+          duration_hint_s: durationHintS || undefined,
+          user_model: videoModelChoice,
+          resolution: selectedResolution,
+          aspect_ratio: renderAspectRatio,
+          use_vision_llm_for_tagging: referenceImageUrls.length > 0,
+          reference_manifest: referenceManifest,
+          approved_plan_id: conversationalPreflight?.approved_plan?.id,
+          approved_plan_source_hash: conversationalPreflight?.approved_plan?.source_hash,
+          approved_plan_source_length: conversationalPreflight?.approved_plan?.source_length,
+          dry_run_only: true,
+        }),
+      });
+      if (!res.ok) {
+        const detail = await res.text();
+        throw new Error(`${res.status}: ${detail.slice(0, 220)}`);
+      }
+      const data = await res.json() as AutonomousPreview & { job_id?: string; execution_mode?: string };
+      const segmentIds = (data.longform_plan?.segments ?? [])
+        .map((segment) => segment.segment_id)
+        .filter((id): id is string => Boolean(id));
+      setDryRunPreview(data);
+      setApprovedDryRunJobId(data.execution_mode === 'long_form_segmented' ? String(data.job_id || '') : '');
+      setApprovedSegmentIds(segmentIds);
+      const needsReview = data.requires_consistency_review || data.consistency_policy?.action === 'requires_review';
+      setConsistencyReviewApproved(!needsReview);
+      setConsistencyReviewDecision(needsReview ? 'pending' : 'approved');
+      setPreflightApproved(true);
+      setApprovedInputKey(currentInputKey);
+      toast.success(
+        data.execution_mode === 'long_form_segmented'
+          ? `Long-form dry-run ready with ${segmentIds.length} segments.`
+          : 'Dry-run ready. Render source locked.',
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(`Dry-run failed: ${msg}`, { duration: 8000 });
+    } finally {
+      setDryRunLoading(false);
+    }
+  }, [brief, conversationalPreflight, currentInputKey, durationHintS, referenceAudioUrls, referenceImageUrls, referenceManifest, referenceRolesConfirmed, referenceVideoUrls, renderAspectRatio, selectedBrandKitId, selectedResolution, selectedTemplateId, seriesKey, targetMarket, targetPlatform, videoModelChoice]);
+
+  const handleConsistencyReviewApprove = useCallback(() => {
+    const reason = consistencyReviewReason.trim();
+    if (reason.length < 3) {
+      toast.error('Add a short consistency review note before approving.', { duration: 6000 });
+      return;
+    }
+    const segmentIds = consistencyReviewedSegmentIds.length > 0 ? consistencyReviewedSegmentIds : approvedSegmentIds;
+    const entry: ConsistencyReviewHistoryItem = {
+      decision: 'approved',
+      reason,
+      segmentIds,
+      createdAt: new Date().toISOString(),
+    };
+    setConsistencyReviewApproved(true);
+    setConsistencyReviewDecision('approved');
+    setConsistencyReviewHistory((current) => [
+      ...current,
+      entry,
+    ].slice(-CONSISTENCY_REVIEW_HISTORY_LIMIT));
+    toast.success('Consistency review approved for paid render.');
+  }, [approvedSegmentIds, consistencyReviewReason, consistencyReviewedSegmentIds]);
+
+  const handleConsistencyReviewReject = useCallback(() => {
+    const reason = consistencyReviewReason.trim();
+    if (reason.length < 3) {
+      toast.error('Add a rejection reason first.', { duration: 6000 });
+      return;
+    }
+    const segmentIds = consistencyReviewedSegmentIds.length > 0 ? consistencyReviewedSegmentIds : approvedSegmentIds;
+    const entry: ConsistencyReviewHistoryItem = {
+      decision: 'rejected',
+      reason,
+      segmentIds,
+      createdAt: new Date().toISOString(),
+    };
+    setConsistencyReviewApproved(false);
+    setConsistencyReviewDecision('rejected');
+    setConsistencyReviewHistory((current) => [
+      ...current,
+      entry,
+    ].slice(-CONSISTENCY_REVIEW_HISTORY_LIMIT));
+    toast.error('Consistency review rejected. Adjust the plan before paid render.', { duration: 7000 });
+  }, [approvedSegmentIds, consistencyReviewReason, consistencyReviewedSegmentIds]);
 
   const handleCopyPreviewPrompt = useCallback(async (prompt: string) => {
     try {
@@ -1268,6 +1533,14 @@ export default function StudioPage() {
     setPreflightApproved(false);
     setApprovedInputKey('');
     setApprovalLockRevision(0);
+    setDryRunLoading(false);
+    setDryRunPreview(null);
+    setApprovedDryRunJobId('');
+    setApprovedSegmentIds([]);
+    setConsistencyReviewApproved(false);
+    setConsistencyReviewDecision('pending');
+    setConsistencyReviewReason('');
+    setConsistencyReviewHistory([]);
     setAutonomousPreview(null);
     setProductionDecision(null);
     setProductionDecisionLoading(false);
@@ -1286,9 +1559,72 @@ export default function StudioPage() {
   const invalidateApprovalLock = useCallback((message?: string) => {
     setPreflightApproved(false);
     setApprovedInputKey('');
+    setDryRunPreview(null);
+    setApprovedDryRunJobId('');
+    setApprovedSegmentIds([]);
+    setConsistencyReviewApproved(false);
+    setConsistencyReviewDecision('pending');
+    setConsistencyReviewReason('');
+    setConsistencyReviewHistory([]);
     setApprovalLockRevision((revision) => revision + 1);
     if (message) toast.info(message, { duration: 4200 });
   }, []);
+
+  const handleSaveBrandKit = useCallback(async () => {
+    const name = brandDraftName.trim();
+    if (name.length < 2) {
+      toast.error('Add a brand name before saving.');
+      return;
+    }
+    const primaryColors = brandDraftColors
+      .split(/[\s,]+/)
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .slice(0, 8);
+    setCommercialLoading(true);
+    try {
+      const response = await fetch('/api/v1/director/commercial/brand-kits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          owner_user_id: COMMERCIAL_USER_ID,
+          name,
+          logo_urls: referenceImageUrls.slice(0, 3),
+          primary_colors: primaryColors,
+          fonts: [],
+          voice: brandDraftVoice.trim(),
+          style_guide: brandDraftStyleGuide.trim(),
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${(await response.text()).slice(0, 180)}`);
+      }
+      const data = await response.json() as { brand_kit?: BrandKitOption };
+      const saved = data.brand_kit;
+      if (saved?.brand_id) {
+        setSelectedBrandKitId(saved.brand_id);
+        invalidateApprovalLock('Brand kit changed. Review the pipeline again before paid render.');
+      }
+      setBrandDraftName('');
+      setBrandDraftVoice('');
+      setBrandDraftStyleGuide('');
+      setBrandDraftColors('');
+      await refreshCommercialData();
+      toast.success('Brand kit saved and applied.');
+    } catch (error) {
+      toast.error(`Brand kit save failed: ${error instanceof Error ? error.message : String(error)}`, { duration: 7500 });
+    } finally {
+      setCommercialLoading(false);
+    }
+  }, [
+    brandDraftColors,
+    brandDraftName,
+    brandDraftStyleGuide,
+    brandDraftVoice,
+    invalidateApprovalLock,
+    referenceImageUrls,
+    refreshCommercialData,
+  ]);
 
   const uploadReferences = useCallback(async (files: FileList | File[]) => {
     const detected = Array.from(files).map((file) => ({ file, kind: detectReferenceKind(file) }));
@@ -1428,6 +1764,19 @@ export default function StudioPage() {
       toast.info('Wait for the approved render source to lock, then render.');
       return;
     }
+    if ((durationHintS > 15 || dryRunPreview?.execution_mode === 'long_form_segmented') && !approvedDryRunJobId) {
+      toast.error('Run and approve the long-form dry-run before paid segmented render.', { duration: 7000 });
+      return;
+    }
+    if (requiresConsistencyReview && !consistencyReviewApproved) {
+      toast.error(
+        consistencyReviewDecision === 'rejected'
+          ? 'Consistency review was rejected. Adjust the plan before paid render.'
+          : 'Approve the consistency review step before paid render.',
+        { duration: 7000 },
+      );
+      return;
+    }
     if (productionDecision?.decision?.niche_resolution_review_required) {
       const question = productionDecision.input_summary?.niche_resolution?.clarifying_questions?.[0];
       toast.error(question || 'Clarify the primary niche before render.', { duration: 7000 });
@@ -1450,6 +1799,9 @@ export default function StudioPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_idea: conversationalPreflight?.approved_brief?.trim() || brief.trim(),
+          user_id: COMMERCIAL_USER_ID,
+          brand_kit_id: selectedBrandKitId || undefined,
+          template_id: selectedTemplateId || undefined,
           reference_image_urls: referenceImageUrls,
           reference_video_urls: referenceVideoUrls,
           reference_audio_urls: referenceAudioUrls,
@@ -1467,6 +1819,12 @@ export default function StudioPage() {
           approved_plan_id: conversationalPreflight?.approved_plan?.id,
           approved_plan_source_hash: conversationalPreflight?.approved_plan?.source_hash,
           approved_plan_source_length: conversationalPreflight?.approved_plan?.source_length,
+          approved_dry_run_job_id: approvedDryRunJobId || undefined,
+          approved_segment_ids: approvedSegmentIds,
+          consistency_review_approved: consistencyReviewApproved,
+          consistency_review_decision: consistencyReviewDecision === 'approved' ? 'approved' : consistencyReviewDecision === 'rejected' ? 'rejected' : undefined,
+          consistency_review_reason: consistencyReviewReason.trim() || undefined,
+          consistency_reviewed_segment_ids: consistencyReviewedSegmentIds.length > 0 ? consistencyReviewedSegmentIds : approvedSegmentIds,
         }),
       });
       if (!res.ok) {
@@ -1534,6 +1892,8 @@ export default function StudioPage() {
 
       const data = await res.json();
       setAutonomousPreview({
+        job_id: data.job_id,
+        execution_mode: data.execution_mode,
         caption_vn: data.editor_preview?.caption_vn,
         hashtags_vn: data.editor_preview?.hashtags_vn,
         distribution_package: data.editor_preview?.distribution_package,
@@ -1544,6 +1904,10 @@ export default function StudioPage() {
         autonomous_preflight: data.autonomous_preflight,
         auto_pin_selection: data.auto_pin_selection,
         approved_plan: data.approved_plan,
+        longform_plan: data.longform_plan,
+        render_dry_run_report: data.render_dry_run_report,
+        consistency_policy: data.consistency_policy,
+        requires_consistency_review: data.requires_consistency_review,
       });
       setJobId(data.job_id);
       setShowJobModal(true);
@@ -1557,7 +1921,7 @@ export default function StudioPage() {
     } finally {
       setIsGenerating(false);
     }
-  }, [brief, conversationalPreflight, conversationalPreflightLoading, durationHintS, preflightApproved, productionDecision, productionDecisionLoading, referenceAudioUrls, referenceImageUrls, referenceManifest, referenceVideoUrls, refs, renderAspectRatio, renderSourceReady, selectedResolution, seriesKey, setJobId, targetMarket, targetPlatform, videoModelChoice]);
+  }, [approvedDryRunJobId, approvedSegmentIds, brief, consistencyReviewApproved, consistencyReviewDecision, consistencyReviewReason, consistencyReviewedSegmentIds, conversationalPreflight, conversationalPreflightLoading, dryRunPreview?.execution_mode, durationHintS, preflightApproved, productionDecision, productionDecisionLoading, referenceAudioUrls, referenceImageUrls, referenceManifest, referenceVideoUrls, refs, renderAspectRatio, renderSourceReady, requiresConsistencyReview, selectedBrandKitId, selectedResolution, selectedTemplateId, seriesKey, setJobId, targetMarket, targetPlatform, videoModelChoice]);
 
   const refCounts = countReferenceKinds(refs.filter((r) => !r.uploading));
   const showStarterPrompts = !brief.trim() && chatMessages.length <= 1;
@@ -1626,7 +1990,7 @@ export default function StudioPage() {
           refCount={readyRefs.length}
           referenceRolesConfirmed={referenceRolesConfirmed}
           hasPlan={Boolean(conversationalPreflight?.creative_plan)}
-          hasPreview={previewScenes.length > 0}
+          hasPreview={reviewScenes.length > 0}
           needsInput={conversationalPreflight?.status === 'needs_user_input'}
           loading={conversationalPreflightLoading || productionDecisionLoading}
           approved={preflightApproved}
@@ -1691,6 +2055,33 @@ export default function StudioPage() {
               }}
             />
 
+            <CommercialControls
+              brandKits={brandKits}
+              templates={commercialTemplates}
+              selectedBrandKitId={selectedBrandKitId}
+              selectedTemplateId={selectedTemplateId}
+              usage={commercialUsage}
+              analytics={commercialAnalytics}
+              loading={commercialLoading}
+              brandDraftName={brandDraftName}
+              brandDraftVoice={brandDraftVoice}
+              brandDraftStyleGuide={brandDraftStyleGuide}
+              brandDraftColors={brandDraftColors}
+              onBrandKitChange={(brandId) => {
+                setSelectedBrandKitId(brandId);
+                invalidateApprovalLock('Brand kit changed. Review the pipeline again before paid render.');
+              }}
+              onTemplateChange={(templateId) => {
+                setSelectedTemplateId(templateId);
+                invalidateApprovalLock('Template changed. Review the pipeline again before paid render.');
+              }}
+              onBrandDraftNameChange={setBrandDraftName}
+              onBrandDraftVoiceChange={setBrandDraftVoice}
+              onBrandDraftStyleGuideChange={setBrandDraftStyleGuide}
+              onBrandDraftColorsChange={setBrandDraftColors}
+              onSaveBrandKit={handleSaveBrandKit}
+            />
+
             <ReferenceTray
               refs={refs}
               readyRefs={readyRefs}
@@ -1714,7 +2105,7 @@ export default function StudioPage() {
               referencesConfirmed={referenceRolesConfirmed}
               preflight={conversationalPreflight}
               productionDecision={productionDecision}
-              scenes={previewScenes}
+              scenes={reviewScenes}
               spendPreview={spendPreview}
             />
 
@@ -1722,13 +2113,51 @@ export default function StudioPage() {
               approved={preflightApproved}
               renderSourceReady={renderSourceReady}
               loading={isGenerating}
-              planning={conversationalPreflightLoading || productionDecisionLoading}
+              planning={conversationalPreflightLoading || productionDecisionLoading || dryRunLoading}
               renderDisabled={generateDisabled}
               referencesConfirmed={referenceRolesConfirmed}
               approvalLockRevision={approvalLockRevision}
               spendPreview={spendPreview}
-              scenes={previewScenes}
+              scenes={reviewScenes}
               blockers={renderBlockers}
+              dryRunReport={dryRunPreview?.render_dry_run_report ?? null}
+              longformPlan={dryRunPreview?.longform_plan ?? null}
+              consistencyPolicy={dryRunPreview?.consistency_policy ?? null}
+              consistencyReviewApproved={consistencyReviewApproved}
+              consistencyReviewDecision={consistencyReviewDecision}
+              consistencyReviewReason={consistencyReviewReason}
+              consistencyReviewHistory={consistencyReviewHistory}
+              approvedSegmentIds={approvedSegmentIds}
+              onToggleSegmentApproval={(segmentId) => {
+                setApprovedSegmentIds((current) => (
+                  current.includes(segmentId)
+                    ? current.filter((id) => id !== segmentId)
+                    : [...current, segmentId]
+                ));
+                if (requiresConsistencyReview) {
+                  setConsistencyReviewApproved(false);
+                  setConsistencyReviewDecision('pending');
+                }
+              }}
+              onApproveAllSegments={() => {
+                const segmentIds = (dryRunPreview?.longform_plan?.segments ?? [])
+                  .map((segment) => segment.segment_id)
+                  .filter((id): id is string => Boolean(id));
+                setApprovedSegmentIds(segmentIds);
+                if (requiresConsistencyReview) {
+                  setConsistencyReviewApproved(false);
+                  setConsistencyReviewDecision('pending');
+                }
+              }}
+              onConsistencyReviewReasonChange={(reason) => {
+                setConsistencyReviewReason(reason.slice(0, 1000));
+                if (consistencyReviewDecision === 'approved') {
+                  setConsistencyReviewApproved(false);
+                  setConsistencyReviewDecision('pending');
+                }
+              }}
+              onConsistencyReviewApprove={handleConsistencyReviewApprove}
+              onConsistencyReviewReject={handleConsistencyReviewReject}
               onApprove={handleApprovePreflight}
               onRender={handleAutonomousGenerate}
             />
@@ -1737,7 +2166,7 @@ export default function StudioPage() {
 
         <div className="mb-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
           <StoryboardTimeline
-            scenes={previewScenes}
+            scenes={reviewScenes}
             activeSceneId={activePreviewSceneId}
             onSelectScene={setActivePreviewSceneId}
             onCopyPrompt={handleCopyPreviewPrompt}
@@ -2019,6 +2448,42 @@ function buildStudioPreviewScenes(
   return [];
 }
 
+function buildLongformReviewScenes(
+  longformPlan: LongformPlanPreview,
+  dryRunReport?: Record<string, unknown>,
+): StudioPreviewScene[] {
+  const shotPayloads = Array.isArray(dryRunReport?.shot_payloads)
+    ? dryRunReport.shot_payloads as Array<Record<string, unknown>>
+    : [];
+  return (longformPlan.segments ?? []).slice(0, SCENE_PREVIEW_MAX).map((segment, index) => {
+    const payload = shotPayloads[index] ?? {};
+    const prompt = cleanPreviewText(String(payload.prompt || segment.objective || ''), 1200);
+    const handoff = (segment.handoff_requirements ?? []).join(' | ');
+    return {
+      id: segment.segment_id || `longform-${index + 1}`,
+      label: `Segment ${index + 1}`,
+      durationS: normalizePreviewDuration(segment.duration_s),
+      prompt,
+      visual: cleanPreviewText(segment.objective || prompt, 260),
+      camera: cleanPreviewText(`Continuity handoff: ${handoff || 'preserve identity, style, emotion, and last frame.'}`, 220),
+      audio: cleanPreviewText(`Entry: ${compactPreviewState(segment.entry_state)} | Exit: ${compactPreviewState(segment.exit_state)}`, 220),
+      modelKey: String((payload.payload as Record<string, unknown> | undefined)?.model_key || dryRunReport?.model || 'seedance_2_0'),
+      renderMode: 'long_form_segment',
+      refs: [],
+      status: segment.status === 'completed' ? 'locked' : 'needs-review',
+      spendUsd: estimateSceneSpendUsd(String(dryRunReport?.model || 'seedance_2_0'), normalizePreviewDuration(segment.duration_s), 'long_form_segment'),
+    };
+  });
+}
+
+function compactPreviewState(value?: Record<string, unknown>): string {
+  if (!value) return 'none';
+  const parts = Object.entries(value)
+    .filter(([, item]) => item !== undefined && item !== null && item !== '')
+    .map(([key, item]) => `${key}=${String(item).slice(0, 60)}`);
+  return parts.length > 0 ? parts.join(', ') : 'none';
+}
+
 function summarizePreviewSpend(scenes: StudioPreviewScene[]): SpendPreview {
   const base = scenes.reduce((sum, scene) => sum + scene.spendUsd, 0);
   return {
@@ -2062,6 +2527,11 @@ function buildRenderBlockers({
   hasPreview,
   selectedModelNeedsImage,
   selectedModelLabel,
+  isLongform,
+  hasApprovedDryRun,
+  segmentReviewComplete,
+  consistencyReviewRequired,
+  consistencyReviewApproved,
 }: {
   isGenerating: boolean;
   planning: boolean;
@@ -2077,6 +2547,11 @@ function buildRenderBlockers({
   hasPreview: boolean;
   selectedModelNeedsImage: boolean;
   selectedModelLabel: string;
+  isLongform: boolean;
+  hasApprovedDryRun: boolean;
+  segmentReviewComplete: boolean;
+  consistencyReviewRequired: boolean;
+  consistencyReviewApproved: boolean;
 }): RenderBlocker[] {
   const blockers: RenderBlocker[] = [];
   if (!hasBrief) {
@@ -2124,6 +2599,30 @@ function buildRenderBlockers({
       key: 'blocked-checks',
       label: 'Pre-render checklist has a blocked item',
       detail: 'Resolve blocked script, safety, continuity or reference checks before approval.',
+      severity: 'hard',
+    });
+  }
+  if (isLongform && approved && !hasApprovedDryRun) {
+    blockers.push({
+      key: 'longform-dry-run',
+      label: 'Long-form dry-run is required',
+      detail: 'Run the full segmented dry-run and review every payload before starting paid render.',
+      severity: 'hard',
+    });
+  }
+  if (isLongform && hasApprovedDryRun && !segmentReviewComplete) {
+    blockers.push({
+      key: 'longform-segment-review',
+      label: 'Segment review is incomplete',
+      detail: 'Approve or reject each segment in the long-form dry-run before paid render.',
+      severity: 'hard',
+    });
+  }
+  if (consistencyReviewRequired && !consistencyReviewApproved) {
+    blockers.push({
+      key: 'consistency-review',
+      label: 'Consistency review required',
+      detail: 'The identity or product consistency policy requires explicit review approval before paid render.',
       severity: 'hard',
     });
   }

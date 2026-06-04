@@ -469,29 +469,70 @@ Mở rộng dễ: edit `workers/video_worker.py::_apply_color_consistency`.
 
 ## 11.5. Cloudflare R2 storage
 
-`backend/vendors/r2_storage.py` uploads the final MP4 (and refined shots) to R2
-via boto3 (S3-compatible API). Configured via these env vars:
+`backend/vendors/r2_storage.py` uploads MP4 outputs to Cloudflare R2 via the
+S3-compatible API. Phase 10 long-form final assembly uploads the assembled MP4
+to `longform/{job_id}/final.mp4` and `/api/v1/director/jobs/{job_id}/final-video`
+returns a presigned URL instead of serving local files from the API server.
 
 ```
 R2_ACCOUNT_ID=xxxxxxxx
 R2_ACCESS_KEY_ID=xxxxxxxx
 R2_SECRET_ACCESS_KEY=xxxxxxxx
 R2_BUCKET_NAME=ugc-vietnam-output
+R2_ENDPOINT_URL=https://<account-id>.r2.cloudflarestorage.com  # optional override
 R2_PUBLIC_URL=https://cdn.yourdomain.com   # optional custom domain
+R2_PRESIGNED_URL_EXPIRES_S=604800          # default: 7 days
+R2_FINAL_VIDEO_ACCESS_MODE=auto            # auto | public | private
+R2_FINAL_VIDEO_PRESIGNED_EXPIRES_S=7776000 # default: 90 days
+R2_PRESIGNED_REFRESH_ENABLED=true
+R2_UPLOAD_MAX_ATTEMPTS=3
 ```
 
-**Graceful fallback**: if any required var is missing, the worker returns a
+**Compatibility fallback for short/refine helpers**: if any required var is missing, the worker returns a
 `file://` URL pointing at the local clip — local dev works without Cloudflare.
 Upload errors are caught and also fall back to `file://` (so a flaky R2 won't
-kill the whole render).
+kill the whole render). Long-form final assembly is stricter: a missing or
+failed R2/S3 upload fails the assembly step so production never returns a local
+server file as the final video artifact.
 
 The R2 object key is `video/{job_id}/final.mp4` for full renders and
-`refine/{job_id}/{shot_id}.mp4` for single-shot refines. Set the bucket public
-or front it with a Cloudflare Worker / custom domain to serve clips to users.
+`refine/{job_id}/{shot_id}.mp4` for single-shot refines. Long-form assembly uses
+`longform/{job_id}/final.mp4`. Set `R2_PUBLIC_URL` when the bucket is fronted by
+a public custom domain; otherwise clients should use the presigned URL.
+
+Final video delivery strategies:
+
+- `auto`: use `R2_PUBLIC_URL` as a stable CDN/public URL when configured; otherwise
+  generate a private presigned URL.
+- `public`: require `R2_PUBLIC_URL` and expose the stable public/CDN URL.
+- `private`: keep the object private and expose a long-lived presigned URL. Clients
+  can refresh it through `/api/v1/director/jobs/{job_id}/final-video?refresh=true`
+  while `R2_PRESIGNED_REFRESH_ENABLED=true`.
+
+## 11.6. Post-render CV probe
+
+`backend/identity/post_render_cv_probe.py` runs a local OpenCV probe after a
+segment render when the shot has consistency policy metadata. The probe samples
+rendered video frames and compares them with image references to produce
+`face_similarity`, `product_visibility`, `logo_label_similarity`,
+`style_similarity`, and `emotion_similarity` signals where enough visual data is
+available. Missing or low-quality signals are reported as warnings; the probe
+does not fabricate scores.
+
+```
+POST_RENDER_CV_PROBE_ENABLED=true
+POST_RENDER_CV_PROBE_MAX_FRAMES=6
+POST_RENDER_CV_PROBE_DOWNLOAD_TIMEOUT_S=30
+```
+
+The deterministic evaluator in `backend/identity/post_render_consistency.py`
+uses `cv_probe` metrics before vendor-provided signals when both are present,
+then writes the resulting action and score into `RenderQAService` reports and
+the long-form pipeline trace.
 
 ---
 
-## 11.6. Autonomous Reference Manifest
+## 11.7. Autonomous Reference Manifest
 
 The frontend `/studio` Autonomous Agent upload surface builds a confirmed
 reference manifest from image/video/audio assets before paid render:

@@ -33,6 +33,8 @@ from fastapi.responses import StreamingResponse
 from loguru import logger
 from pydantic import BaseModel, Field, field_validator
 
+from vendors import r2_storage
+
 
 # Sprint2 M2 — Per-image size cap to prevent OOM via base64 upload spam.
 # 10MB raw decodes to ~13MB base64 chars; users uploading > this should
@@ -1087,6 +1089,9 @@ class AutonomousGenerateRequest(BaseModel):
         description="When true, backend may add high-priority approved pins for the inferred niche/market/series.",
     )
     series_key: str = Field("", max_length=120, description="Optional brand/series/campaign memory scope.")
+    user_id: str = Field("default_user", max_length=120, description="Commercial user/account id for usage and quota tracking.")
+    brand_kit_id: Optional[str] = Field(None, max_length=120, description="Optional Brand Kit id to apply to strategy and prompts.")
+    template_id: Optional[str] = Field(None, max_length=120, description="Optional commercial template id to apply to strategy and prompts.")
     target_platform: str = Field("tiktok", description="tiktok|reels|youtube_short|youtube_long|universal")
     target_market: str = Field("auto", description="auto|vn|us|sea|jp|kr|global")
     duration_hint_s: Optional[int] = Field(None, ge=4, le=1800)
@@ -1100,6 +1105,31 @@ class AutonomousGenerateRequest(BaseModel):
     consistency_review_approved: bool = Field(
         False,
         description="Explicit user approval for requires_review consistency policies before paid render.",
+    )
+    consistency_review_decision: str = Field(
+        "",
+        max_length=24,
+        description="Human consistency review decision: approved or rejected.",
+    )
+    consistency_review_reason: str = Field(
+        "",
+        max_length=1000,
+        description="Human-entered reason for approving or rejecting a requires_review consistency policy.",
+    )
+    consistency_reviewed_segment_ids: list[str] = Field(
+        default_factory=list,
+        max_length=5,
+        description="Segment ids included in the consistency review decision.",
+    )
+    approved_dry_run_job_id: Optional[str] = Field(
+        None,
+        max_length=120,
+        description="Dry-run job id whose exact long-form plan was approved before paid render.",
+    )
+    approved_segment_ids: list[str] = Field(
+        default_factory=list,
+        max_length=5,
+        description="Optional approved long-form segment ids from the review UI.",
     )
     dry_run_only: bool = Field(
         False,
@@ -1120,6 +1150,91 @@ class AutonomousGenerateRequest(BaseModel):
     @classmethod
     def _check_aspect_ratio(cls, v: Optional[str]) -> Optional[str]:
         return _validate_optional_aspect_ratio(v)
+
+
+class BrandKitUpsertRequest(BaseModel):
+    """User-facing Brand Kit mutation payload."""
+
+    owner_user_id: str = Field("default_user", max_length=120)
+    brand_id: Optional[str] = Field(None, max_length=120)
+    name: str = Field(..., min_length=1, max_length=120)
+    logo_urls: list[str] = Field(default_factory=list, max_length=12)
+    primary_colors: list[str] = Field(default_factory=list, max_length=12)
+    fonts: list[str] = Field(default_factory=list, max_length=8)
+    voice: str = Field("", max_length=600)
+    style_guide: str = Field("", max_length=2000)
+    negative_constraints: list[str] = Field(default_factory=list, max_length=20)
+
+
+@router.post("/commercial/brand-kits")
+async def upsert_commercial_brand_kit(request: BrandKitUpsertRequest):
+    """Create or update a persistent Brand Kit used by autonomous renders."""
+    from commercial import commercial_store
+
+    try:
+        kit = commercial_store.upsert_brand_kit(**request.model_dump())
+    except Exception as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return kit.model_dump(mode="json")
+
+
+@router.get("/commercial/brand-kits")
+async def list_commercial_brand_kits(owner_user_id: str = "default_user"):
+    """List Brand Kits for a user/account."""
+    from commercial import commercial_store
+
+    return {
+        "brand_kits": [kit.model_dump(mode="json") for kit in commercial_store.list_brand_kits(owner_user_id)],
+    }
+
+
+@router.get("/commercial/templates")
+async def list_commercial_templates():
+    """List active commercial templates."""
+    from commercial import commercial_store
+
+    return {
+        "templates": [template.model_dump(mode="json") for template in commercial_store.list_templates()],
+    }
+
+
+@router.get("/commercial/usage/{user_id}")
+async def get_commercial_usage(user_id: str):
+    """Return credit balance and recent usage history for a user/account."""
+    from commercial import commercial_store
+
+    try:
+        return commercial_store.credit_balance(user_id)
+    except Exception as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@router.get("/commercial/analytics/summary")
+async def get_commercial_analytics_summary(user_id: Optional[str] = None, brand_id: Optional[str] = None):
+    """Return basic render/usage analytics from the commercial ledger."""
+    from commercial import commercial_store
+
+    try:
+        return commercial_store.analytics_summary(user_id=user_id, brand_id=brand_id)
+    except Exception as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@router.get("/monitoring/longform/summary")
+async def get_longform_monitoring_summary(limit: int = 100):
+    """Return recent long-form operational metrics and alerts."""
+    from monitoring import longform_monitor
+
+    longform_monitor.evaluate_stuck_jobs()
+    return longform_monitor.monitoring_summary(limit=limit)
+
+
+@router.get("/monitoring/longform/alerts")
+async def get_longform_monitoring_alerts(limit: int = 50):
+    """Return recent long-form monitoring alerts."""
+    from monitoring import longform_monitor
+
+    return {"alerts": longform_monitor.list_alerts(limit=limit)}
 
 
 def _approved_plan_meta_from_request(request: AutonomousGenerateRequest) -> dict[str, Any]:
@@ -2105,6 +2220,11 @@ def _build_autonomous_seedance_execution_bundle(
     from seedance.example_retriever import ExampleRetriever
     from seedance.prompt_compiler import SeedancePromptCompiler
     from workers.cost_control import CostControlService
+    from commercial import commercial_store
+    from commercial.commercial_overrides import (
+        apply_commercial_context_to_creative_plan,
+        apply_commercial_context_to_execution_plan,
+    )
 
     input_contract = build_input_contract_from_legacy_request(
         user_idea=request.user_idea,
@@ -2151,20 +2271,39 @@ def _build_autonomous_seedance_execution_bundle(
     )
 
     requested_duration_s = int(analyzed_input.duration_s or request.duration_hint_s or 8)
-    if requested_duration_s > 15:
+    if requested_duration_s > 60:
         raise HTTPException(
             422,
             {
-                "code": "long_form_seedance_pipeline_not_ready",
-                "message": "Autonomous paid render currently supports approved Seedance clips from 4-15 seconds. Choose 15s or shorter, or use the admin-only legacy route for manual rollback/debug.",
-                "strategy": "block_until_segmented_long_form_seedance_pipeline_is_approved",
+                "code": "autonomous_duration_too_long",
+                "message": "Long-form autonomous production currently supports 30-60 seconds. Use 60s or shorter for the production path.",
+                "strategy": "phase10_fail_safe_duration_cap",
                 "requested_duration_s": requested_duration_s,
-                "max_single_execution_duration_s": 15,
+                "max_long_form_duration_s": 60,
                 "pipeline_trace": trace.model_dump(mode="json"),
             },
         )
+    if 15 < requested_duration_s < 30:
+        raise HTTPException(
+            422,
+            {
+                "code": "autonomous_duration_gap_not_supported",
+                "message": "Choose 15s or shorter for a single Seedance clip, or 30-60s for long-form segmented production.",
+                "strategy": "phase10_short_or_long_form_only",
+                "requested_duration_s": requested_duration_s,
+                "short_form_max_duration_s": 15,
+                "long_form_min_duration_s": 30,
+            },
+        )
+    is_longform = requested_duration_s > 15
 
     creative_plan = CreativePlanner().plan(analyzed_input)
+    brand_kit = commercial_store.load_brand_kit(request.brand_kit_id)
+    template = commercial_store.load_template(request.template_id)
+    if request.brand_kit_id and brand_kit is None:
+        raise HTTPException(422, {"code": "brand_kit_not_found", "message": "The requested Brand Kit was not found."})
+    if request.template_id and template is None:
+        raise HTTPException(422, {"code": "template_not_found", "message": "The requested commercial template was not found."})
     creative_metadata = {
         **creative_plan.metadata,
         "model": None if request.user_model == "auto" else request.user_model,
@@ -2180,6 +2319,27 @@ def _build_autonomous_seedance_execution_bundle(
         },
     }
     creative_plan = creative_plan.model_copy(update={"metadata": creative_metadata})
+    creative_plan = apply_commercial_context_to_creative_plan(
+        creative_plan,
+        brand_kit=brand_kit,
+        template=template,
+    )
+    if brand_kit is not None or template is not None:
+        trace.append_stage(
+            stage="commercial_context",
+            stage_input={
+                "brand_kit_id": request.brand_kit_id,
+                "template_id": request.template_id,
+                "user_id": request.user_id,
+            },
+            stage_output={
+                "brand_kit": brand_kit.model_dump(mode="json") if brand_kit is not None else None,
+                "template": template.model_dump(mode="json") if template is not None else None,
+            },
+            decision="applied commercial Brand Kit and/or template",
+            reasoning_summary="Commercial context overrides creative style, hook/template structure, prompt constraints, and downstream render metadata.",
+            rules_applied=["phase13.commercial.brand_template_override"],
+        )
     identity_bible_payload = creative_plan.metadata.get("identity_bible") or {}
     consistency_score_payload = creative_plan.metadata.get("consistency_score") or {}
     baseline_consistency_score_payload = creative_plan.metadata.get("baseline_consistency_score") or {}
@@ -2271,52 +2431,173 @@ def _build_autonomous_seedance_execution_bundle(
     )
     example_ids = [example.example_id for example in examples]
 
-    execution_plan = SeedancePromptCompiler().compile(creative_plan, storyboard, analyzed_input)
     rules_applied = _dedupe_strings(
         list(analyzed_input.metadata.get("analysis_rules") or [])
         + list(creative_plan.metadata.get("planning_rules") or [])
         + list(storyboard.metadata.get("rules_applied") or [])
         + ["phase3.render.approval_lock_enforced", "phase3.render.render_executor_required"]
     )
-    shots = [
-        shot.model_copy(update={
-            "rules_applied": _dedupe_strings(shot.rules_applied + rules_applied),
-            "examples_used": _dedupe_strings(shot.examples_used + example_ids),
+    longform_plan = None
+    if is_longform:
+        from longform.longform_planner import LongFormPlanner
+        from longform.segment_prompt_compiler import SegmentPromptCompiler
+
+        rules_applied = _dedupe_strings(rules_applied + [
+            "phase9a.longform.segmented_orchestration",
+            "phase10.longform.production_endpoint_enabled",
+            "phase10.longform.final_assembly_required",
+        ])
+        longform_plan = LongFormPlanner().plan(
+            creative_plan=creative_plan,
+            analyzed_input=analyzed_input,
+        ).model_copy(update={"source_storyboard_id": storyboard.storyboard_id})
+        trace.append_stage(
+            stage="longform_planning",
+            stage_input=creative_plan,
+            stage_output=longform_plan,
+            decision=f"planned {len(longform_plan.segments)} long-form segment(s)",
+            reasoning_summary="Phase 10 routes 30-60s requests through segmented Seedance orchestration instead of a single long render.",
+            rules_applied=list(longform_plan.rules_applied),
+            warnings=list(longform_plan.warnings),
+        )
+        longform_plan = SegmentPromptCompiler().compile(
+            longform_plan=longform_plan,
+            creative_plan=creative_plan,
+            analyzed_input=analyzed_input,
+        )
+        if brand_kit is not None or template is not None:
+            longform_plan = longform_plan.model_copy(update={
+                "segments": [
+                    segment.model_copy(update={
+                        "seedance_execution_plan": apply_commercial_context_to_execution_plan(
+                            segment.seedance_execution_plan,
+                            brand_kit=brand_kit,
+                            template=template,
+                        ) if segment.seedance_execution_plan is not None else None,
+                    })
+                    for segment in longform_plan.segments
+                ],
+            })
+        if longform_plan.master_execution_plan is None:
+            raise HTTPException(500, "Long-form compiler did not produce a master SeedanceExecutionPlan.")
+        execution_plan = longform_plan.master_execution_plan
+        execution_plan = apply_commercial_context_to_execution_plan(
+            execution_plan,
+            brand_kit=brand_kit,
+            template=template,
+        )
+        shots = [
+            shot.model_copy(update={
+                "rules_applied": _dedupe_strings(shot.rules_applied + rules_applied),
+                "examples_used": _dedupe_strings(shot.examples_used + example_ids),
+            })
+            for shot in execution_plan.shots
+        ]
+        execution_plan = execution_plan.model_copy(update={
+            "shots": shots,
+            "reference_assets": input_contract.assets,
+            "rules_applied": rules_applied,
+            "examples_used": example_ids,
+            "metadata": {
+                **execution_plan.metadata,
+                "approved_idea": request.user_idea,
+                "input_contract_id": input_contract.input_id,
+                "analysis_id": analyzed_input.analysis_id,
+                "creative_plan_id": creative_plan.creative_plan_id,
+                "storyboard_id": storyboard.storyboard_id,
+                "approved_plan": approved_plan_meta,
+                "commercial_user_id": request.user_id,
+                "brand_kit_id": request.brand_kit_id,
+                "template_id": request.template_id,
+                "knowledge_rule_ids": rules_applied,
+                "curated_example_ids": example_ids,
+                "pipeline_migration": "director_autonomous_longform_segmented_execution_plan",
+                "render_path": "long_form_segmented",
+                "longform_plan_id": longform_plan.longform_plan_id,
+                "segment_count": len(longform_plan.segments),
+                "segment_ids": [segment.segment_id for segment in longform_plan.segments],
+                "segment_graph_hash": longform_plan.segment_graph_hash,
+                "continuity_bible_hash": longform_plan.continuity_bible.continuity_hash,
+                "final_assembly_required": True,
+            },
         })
-        for shot in execution_plan.shots
-    ]
-    execution_plan = execution_plan.model_copy(update={
-        "shots": shots,
-        "reference_assets": input_contract.assets,
-        "rules_applied": rules_applied,
-        "examples_used": example_ids,
-        "metadata": {
-            **execution_plan.metadata,
-            "approved_idea": request.user_idea,
-            "input_contract_id": input_contract.input_id,
-            "analysis_id": analyzed_input.analysis_id,
-            "creative_plan_id": creative_plan.creative_plan_id,
-            "storyboard_id": storyboard.storyboard_id,
-            "approved_plan": approved_plan_meta,
-            "knowledge_rule_ids": rules_applied,
-            "curated_example_ids": example_ids,
-            "pipeline_migration": "director_autonomous_seedance_execution_plan",
-        },
-    })
-    cost_estimate = CostControlService().estimate_plan_cost(execution_plan)
-    execution_plan = execution_plan.model_copy(update={"cost_estimate": cost_estimate})
-    trace.append_stage(
-        stage="seedance_prompt_compile",
-        stage_input=storyboard,
-        stage_output=execution_plan,
-        decision=f"compiled SeedanceExecutionPlan {execution_plan.execution_plan_id}",
-        reasoning_summary="SeedancePromptCompiler produced the only render plan allowed on the autonomous production path.",
-        rules_applied=rules_applied,
-        examples_used=example_ids,
-        model_route={"model": execution_plan.model, "shots": [shot.model for shot in execution_plan.shots]},
-        cost_estimate=cost_estimate,
-        warnings=list(execution_plan.linter_warnings),
-    )
+        execution_plan = execution_plan.model_copy(update={
+            "cost_estimate": CostControlService().estimate_plan_cost(execution_plan),
+        })
+        longform_plan = longform_plan.model_copy(update={
+            "master_execution_plan": execution_plan,
+            "rules_applied": rules_applied,
+            "metadata": {
+                **longform_plan.metadata,
+                "phase10_production_enabled": True,
+                "final_assembly_required": True,
+                "approved_segment_ids": request.approved_segment_ids,
+                "commercial_user_id": request.user_id,
+                "brand_kit_id": request.brand_kit_id,
+                "template_id": request.template_id,
+            },
+        })
+        trace.append_stage(
+            stage="longform_segment_compile",
+            stage_input=longform_plan,
+            stage_output=execution_plan,
+            decision=f"compiled master long-form execution plan {execution_plan.execution_plan_id}",
+            reasoning_summary="Every long-form segment remains a normal Seedance clip, while one master plan protects graph and continuity hashes.",
+            rules_applied=rules_applied,
+            examples_used=example_ids,
+            model_route={"model": execution_plan.model, "segments": [shot.model for shot in execution_plan.shots]},
+            cost_estimate=execution_plan.cost_estimate,
+            warnings=list(execution_plan.linter_warnings) + list(longform_plan.warnings),
+        )
+    else:
+        execution_plan = SeedancePromptCompiler().compile(creative_plan, storyboard, analyzed_input)
+        execution_plan = apply_commercial_context_to_execution_plan(
+            execution_plan,
+            brand_kit=brand_kit,
+            template=template,
+        )
+        shots = [
+            shot.model_copy(update={
+                "rules_applied": _dedupe_strings(shot.rules_applied + rules_applied),
+                "examples_used": _dedupe_strings(shot.examples_used + example_ids),
+            })
+            for shot in execution_plan.shots
+        ]
+        execution_plan = execution_plan.model_copy(update={
+            "shots": shots,
+            "reference_assets": input_contract.assets,
+            "rules_applied": rules_applied,
+            "examples_used": example_ids,
+            "metadata": {
+                **execution_plan.metadata,
+                "approved_idea": request.user_idea,
+                "input_contract_id": input_contract.input_id,
+                "analysis_id": analyzed_input.analysis_id,
+                "creative_plan_id": creative_plan.creative_plan_id,
+                "storyboard_id": storyboard.storyboard_id,
+                "approved_plan": approved_plan_meta,
+                "commercial_user_id": request.user_id,
+                "brand_kit_id": request.brand_kit_id,
+                "template_id": request.template_id,
+                "knowledge_rule_ids": rules_applied,
+                "curated_example_ids": example_ids,
+                "pipeline_migration": "director_autonomous_seedance_execution_plan",
+            },
+        })
+        cost_estimate = CostControlService().estimate_plan_cost(execution_plan)
+        execution_plan = execution_plan.model_copy(update={"cost_estimate": cost_estimate})
+        trace.append_stage(
+            stage="seedance_prompt_compile",
+            stage_input=storyboard,
+            stage_output=execution_plan,
+            decision=f"compiled SeedanceExecutionPlan {execution_plan.execution_plan_id}",
+            reasoning_summary="SeedancePromptCompiler produced the only render plan allowed on the autonomous production path.",
+            rules_applied=rules_applied,
+            examples_used=example_ids,
+            model_route={"model": execution_plan.model, "shots": [shot.model for shot in execution_plan.shots]},
+            cost_estimate=cost_estimate,
+            warnings=list(execution_plan.linter_warnings),
+        )
 
     approval_lock = ApprovalLock.from_execution_plan(
         idea=request.user_idea,
@@ -2324,10 +2605,16 @@ def _build_autonomous_seedance_execution_bundle(
         reference_assets=execution_plan.reference_assets,
         cost_estimate=execution_plan.cost_estimate,
         approved_by="studio_user",
-        approval_source="prompt_preview",
+        approval_source="longform_dry_run_preview" if is_longform else "prompt_preview",
         metadata={
             "approved_idea": request.user_idea,
             "approved_plan": approved_plan_meta,
+            "render_path": "long_form_segmented" if is_longform else "short_form_seedance",
+            "longform_plan_id": getattr(longform_plan, "longform_plan_id", None),
+            "longform_dry_run_approved": bool(is_longform and (request.dry_run_only or request.approved_dry_run_job_id)),
+            "approved_segment_ids": request.approved_segment_ids,
+            "segment_graph_hash": execution_plan.metadata.get("segment_graph_hash"),
+            "continuity_bible_hash": execution_plan.metadata.get("continuity_bible_hash"),
             "consistency_policy": execution_plan.metadata.get("consistency_policy"),
             "consistency_policy_action": execution_plan.metadata.get("consistency_policy_action"),
             "consistency_policy_reasons": execution_plan.metadata.get("consistency_policy_reasons") or [],
@@ -2377,6 +2664,8 @@ def _build_autonomous_seedance_execution_bundle(
         "approval_verification": approval_verification,
         "pipeline_trace": trace,
         "curated_examples": examples,
+        "longform_plan": longform_plan,
+        "render_path": "long_form_segmented" if is_longform else "short_form_seedance",
         "editor_preview": _build_seedance_editor_preview(
             request=request,
             creative_plan=creative_plan,
@@ -2390,6 +2679,335 @@ def _build_autonomous_seedance_execution_bundle(
 def _dedupe_strings(values: list[Any]) -> list[str]:
     """Return non-empty strings in first-seen order."""
     return list(dict.fromkeys(str(value) for value in values if str(value).strip()))
+
+
+def _charge_commercial_usage_for_render(
+    *,
+    request: AutonomousGenerateRequest,
+    job_id: str,
+    execution_plan: Any,
+    render_path: str,
+):
+    """Deduct commercial credits for a paid autonomous render."""
+    from commercial import commercial_store
+
+    estimated_cost = float(
+        (execution_plan.cost_estimate or {}).get("total_cost_usd")
+        or (execution_plan.cost_estimate or {}).get("render_cost_usd")
+        or 0.0
+    )
+    credits = commercial_store.credits_for_render(
+        estimated_cost_usd=estimated_cost,
+        duration_s=int(getattr(execution_plan, "duration_s", 0) or 0),
+        segment_count=len(getattr(execution_plan, "shots", []) or []),
+        is_longform=render_path == "long_form_segmented",
+    )
+    try:
+        return commercial_store.charge_credits(
+            user_id=request.user_id,
+            job_id=job_id,
+            credits=credits,
+            estimated_cost_usd=estimated_cost,
+            model=str(getattr(execution_plan, "model", "") or ""),
+            segment_count=len(getattr(execution_plan, "shots", []) or []),
+            render_path=render_path,
+            metadata={
+                "brand_id": request.brand_kit_id,
+                "template_id": request.template_id,
+                "duration_s": getattr(execution_plan, "duration_s", None),
+            },
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            402,
+            {
+                "code": "insufficient_credits",
+                "message": str(exc),
+                "required_credits": credits,
+                "user_id": request.user_id,
+            },
+        ) from exc
+
+
+def _longform_response_summary(longform_plan: Any | None) -> dict[str, Any] | None:
+    """Return UI-safe long-form plan fields without duplicating full prompts."""
+    if longform_plan is None:
+        return None
+    return {
+        "longform_plan_id": getattr(longform_plan, "longform_plan_id", None),
+        "total_duration_s": getattr(longform_plan, "total_duration_s", None),
+        "status": getattr(longform_plan, "status", None),
+        "segment_graph_hash": getattr(longform_plan, "segment_graph_hash", None),
+        "continuity_bible_hash": getattr(getattr(longform_plan, "continuity_bible", None), "continuity_hash", None),
+        "continuity_pressure": getattr(getattr(longform_plan, "continuity_bible", None), "continuity_pressure", None),
+        "segments": [
+            {
+                "segment_id": segment.segment_id,
+                "index": segment.index,
+                "start_s": segment.start_s,
+                "duration_s": segment.duration_s,
+                "objective": segment.objective,
+                "entry_state": segment.entry_state,
+                "exit_state": segment.exit_state,
+                "last_frame_anchor": segment.last_frame_anchor,
+                "handoff_requirements": segment.handoff_requirements,
+                "status": segment.status,
+            }
+            for segment in (getattr(longform_plan, "segments", None) or [])
+        ],
+        "handoffs": [
+            handoff.model_dump(mode="json") if hasattr(handoff, "model_dump") else handoff
+            for handoff in (getattr(longform_plan, "segment_graph", None) or [])
+        ],
+        "warnings": list(getattr(longform_plan, "warnings", None) or []),
+    }
+
+
+def _consistency_review_record_from_request(
+    *,
+    request: AutonomousGenerateRequest,
+    action: str,
+    segment_ids: list[str],
+) -> dict[str, Any]:
+    """Normalize human consistency review metadata for trace and ApprovalLock."""
+    raw_decision = str(request.consistency_review_decision or "").strip().lower()
+    if not raw_decision and request.consistency_review_approved:
+        raw_decision = "approved"
+    if raw_decision not in {"", "approved", "rejected"}:
+        raw_decision = "rejected"
+    reviewed_ids = [
+        str(item).strip()
+        for item in (request.consistency_reviewed_segment_ids or request.approved_segment_ids or segment_ids)
+        if str(item).strip()
+    ]
+    return {
+        "schema_version": "cineforge.consistency_review.v1",
+        "decision": raw_decision or "not_submitted",
+        "reason": str(request.consistency_review_reason or "").strip()[:1000],
+        "policy_action": action or "allow",
+        "reviewed_segment_ids": reviewed_ids,
+        "segment_count": len(segment_ids),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def _load_approved_longform_bundle(
+    *,
+    request: AutonomousGenerateRequest,
+    approved_plan_meta: dict[str, Any],
+    production_decision: dict[str, Any],
+) -> dict[str, Any]:
+    """Load the exact dry-run-approved long-form bundle for paid render."""
+    from longform.contracts import LongFormExecutionPlan
+    from pipeline.approval_lock import ApprovalLock
+    from pipeline.contracts import AnalyzedInput, CreativePlan, InputContract, SeedanceExecutionPlan, StoryboardContract
+    from pipeline.trace import PipelineTrace
+    from seedance.contracts import CuratedExample
+
+    dry_run_job_id = str(request.approved_dry_run_job_id or "").strip()
+    if not dry_run_job_id:
+        raise HTTPException(
+            422,
+            {
+                "code": "long_form_dry_run_required",
+                "message": "Long-form paid render requires an approved dry-run preview first.",
+                "strategy": "dry_run_approve_then_paid_render",
+            },
+        )
+    stored = _JOBS_STORE.get(dry_run_job_id)
+    if not stored:
+        raise HTTPException(
+            422,
+            {
+                "code": "approved_dry_run_job_not_found",
+                "message": "The approved long-form dry-run job was not found. Re-run the dry-run preview.",
+                "approved_dry_run_job_id": dry_run_job_id,
+            },
+        )
+    if stored.get("execution_mode") != "long_form_segmented":
+        raise HTTPException(
+            422,
+            {
+                "code": "approved_dry_run_job_wrong_mode",
+                "message": "The approved dry-run job is not a long-form segmented plan.",
+                "approved_dry_run_job_id": dry_run_job_id,
+            },
+        )
+    meta = stored.get("autonomous_meta") or {}
+    stored_approved = meta.get("approved_plan") or {}
+    if stored_approved.get("source_hash") != approved_plan_meta.get("source_hash"):
+        raise HTTPException(
+            422,
+            {
+                "code": "approved_dry_run_source_hash_mismatch",
+                "message": "The dry-run plan was approved for a different render source. Re-run dry-run after edits.",
+                "approved_dry_run_job_id": dry_run_job_id,
+            },
+        )
+
+    execution_plan = SeedanceExecutionPlan.model_validate(stored["seedance_execution_plan"])
+    longform_plan = LongFormExecutionPlan.model_validate(stored["longform_plan"])
+    approval_lock = ApprovalLock.model_validate(stored["approval_lock"])
+    input_contract = InputContract.model_validate(stored["input_contract"])
+    analyzed_input = AnalyzedInput.model_validate(stored["analyzed_input"])
+    creative_plan = CreativePlan.model_validate(stored["creative_plan"])
+    storyboard = StoryboardContract.model_validate(stored["storyboard"])
+    pipeline_trace = PipelineTrace.model_validate(stored["pipeline_trace"])
+    curated_examples = [
+        CuratedExample.model_validate(item)
+        for item in stored.get("curated_examples") or []
+        if isinstance(item, dict)
+    ]
+
+    action = str(execution_plan.metadata.get("consistency_policy_action") or "").strip()
+    consistency_review_record = _consistency_review_record_from_request(
+        request=request,
+        action=action,
+        segment_ids=[segment.segment_id for segment in longform_plan.segments],
+    )
+    if action == "requires_review" and consistency_review_record["decision"] == "rejected":
+        raise HTTPException(
+            422,
+            {
+                "code": "consistency_review_rejected",
+                "message": "The consistency review was rejected. Adjust references, segment plan, or prompts before paid render.",
+                "consistency_policy_action": action,
+                "consistency_policy_reasons": execution_plan.metadata.get("consistency_policy_reasons") or [],
+                "review_reason": consistency_review_record.get("reason"),
+                "approved_dry_run_job_id": dry_run_job_id,
+            },
+        )
+    if action == "requires_review" and not request.consistency_review_approved:
+        raise HTTPException(
+            422,
+            {
+                "code": "consistency_review_required",
+                "message": "This long-form plan requires explicit consistency review approval before paid render.",
+                "consistency_policy_action": action,
+                "consistency_policy_reasons": execution_plan.metadata.get("consistency_policy_reasons") or [],
+                "approved_dry_run_job_id": dry_run_job_id,
+            },
+        )
+    if action == "requires_review" and consistency_review_record["decision"] != "approved":
+        raise HTTPException(
+            422,
+            {
+                "code": "consistency_review_decision_required",
+                "message": "Submit an approved consistency review decision before paid render.",
+                "consistency_policy_action": action,
+                "approved_dry_run_job_id": dry_run_job_id,
+            },
+        )
+    if action == "requires_review" and not consistency_review_record.get("reason"):
+        raise HTTPException(
+            422,
+            {
+                "code": "consistency_review_reason_required",
+                "message": "Enter a short reason for approving the consistency review before paid render.",
+                "consistency_policy_action": action,
+                "approved_dry_run_job_id": dry_run_job_id,
+            },
+        )
+    approved_segment_ids = list(request.approved_segment_ids)
+    if not approved_segment_ids:
+        raise HTTPException(
+            422,
+            {
+                "code": "long_form_segment_review_required",
+                "message": "Approve the reviewed long-form segments before paid render.",
+                "segment_ids": [segment.segment_id for segment in longform_plan.segments],
+            },
+        )
+    missing_segments = [
+        segment.segment_id
+        for segment in longform_plan.segments
+        if segment.segment_id not in approved_segment_ids
+    ]
+    if missing_segments:
+        raise HTTPException(
+            422,
+            {
+                "code": "long_form_segment_review_incomplete",
+                "message": "Approve every long-form segment before paid render.",
+                "missing_segment_ids": missing_segments,
+            },
+        )
+
+    approval_lock = approval_lock.model_copy(update={
+        "metadata": {
+            **approval_lock.metadata,
+            "longform_dry_run_approved": True,
+            "approved_dry_run_job_id": dry_run_job_id,
+            "approved_segment_ids": approved_segment_ids,
+            "consistency_review_approved": bool(request.consistency_review_approved),
+            "consistency_review_approved_policy_action": action if request.consistency_review_approved else None,
+            "consistency_review": consistency_review_record if action == "requires_review" else None,
+            "consistency_review_history": (
+                list(approval_lock.metadata.get("consistency_review_history") or [])
+                + ([consistency_review_record] if action == "requires_review" else [])
+            )[-20:],
+        }
+    })
+    verification = approval_lock.verify_against(
+        idea=request.user_idea,
+        execution_plan=execution_plan,
+        reference_assets=execution_plan.reference_assets,
+        cost_estimate=execution_plan.cost_estimate,
+    )
+    if not verification.valid:
+        raise HTTPException(
+            422,
+            {
+                "code": "approved_dry_run_lock_mismatch",
+                "message": "The approved dry-run lock no longer matches this render request.",
+                "mismatched_fields": verification.mismatched_fields,
+            },
+        )
+    pipeline_trace.append_stage(
+        stage="longform_approved_dry_run_loaded",
+        stage_input={"approved_dry_run_job_id": dry_run_job_id},
+        stage_output=verification,
+        decision="loaded approved long-form dry-run bundle",
+        reasoning_summary="Paid long-form render reuses the exact dry-run-approved master execution plan and ApprovalLock snapshot.",
+        rules_applied=["phase10.longform.approved_dry_run_snapshot_required"],
+        warnings=verification.mismatched_fields,
+        cost_estimate=execution_plan.cost_estimate,
+    )
+    if action == "requires_review":
+        pipeline_trace.append_stage(
+            stage="consistency_review_approval",
+            stage_input={
+                "approved_dry_run_job_id": dry_run_job_id,
+                "consistency_policy_action": action,
+                "segment_ids": [segment.segment_id for segment in longform_plan.segments],
+            },
+            stage_output=consistency_review_record,
+            decision=f"consistency review {consistency_review_record['decision']}",
+            reasoning_summary="Human review approval is captured before paid long-form render for requires_review consistency policies.",
+            rules_applied=["phase10.consistency_review.human_approval_required"],
+            warnings=list(execution_plan.metadata.get("consistency_policy_reasons") or []),
+            cost_estimate=execution_plan.cost_estimate,
+        )
+    return {
+        "input_contract": input_contract,
+        "analyzed_input": analyzed_input,
+        "creative_plan": creative_plan,
+        "storyboard": storyboard,
+        "execution_plan": execution_plan,
+        "approval_lock": approval_lock,
+        "approval_verification": verification,
+        "pipeline_trace": pipeline_trace,
+        "curated_examples": curated_examples,
+        "longform_plan": longform_plan,
+        "render_path": "long_form_segmented",
+        "editor_preview": meta.get("editor_preview") or _build_seedance_editor_preview(
+            request=request,
+            creative_plan=creative_plan,
+            storyboard=storyboard,
+            execution_plan=execution_plan,
+            production_decision=production_decision,
+        ),
+    }
 
 
 def _build_seedance_editor_preview(
@@ -2609,38 +3227,153 @@ async def autonomous_generate(
         speaker_count=max(1, min(4, len(request.reference_audio_urls) or 1)),
     )
 
-    bundle = _build_autonomous_seedance_execution_bundle(
-        request=request,
-        reference_image_urls=reference_image_urls,
-        pinned_refs=pinned_refs,
-        pre_decision=pre_decision,
-        production_decision=production_decision,
-        approved_plan_meta=approved_plan_meta,
+    paid_duration_s = int(
+        request.duration_hint_s
+        or ((production_decision.get("decision") or {}).get("target_duration_s") or 0)
+        or 8
     )
+    if paid_duration_s > 60:
+        raise HTTPException(
+            422,
+            {
+                "code": "autonomous_duration_too_long",
+                "message": "Long-form autonomous production currently supports 30-60 seconds. Use 60s or shorter.",
+                "requested_duration_s": paid_duration_s,
+                "max_long_form_duration_s": 60,
+            },
+        )
+    if 15 < paid_duration_s < 30:
+        raise HTTPException(
+            422,
+            {
+                "code": "autonomous_duration_gap_not_supported",
+                "message": "Choose 15s or shorter for a single Seedance clip, or 30-60s for long-form segmented production.",
+                "requested_duration_s": paid_duration_s,
+                "short_form_max_duration_s": 15,
+                "long_form_min_duration_s": 30,
+            },
+        )
+    if paid_duration_s > 15 and not request.dry_run_only and not request.approved_dry_run_job_id:
+        raise HTTPException(
+            422,
+            {
+                "code": "long_form_dry_run_required",
+                "message": "Run and approve the full long-form dry-run before starting paid segmented render.",
+                "strategy": "dry_run_approve_then_paid_render",
+                "requested_duration_s": paid_duration_s,
+            },
+        )
+
+    if request.approved_dry_run_job_id and not request.dry_run_only:
+        bundle = _load_approved_longform_bundle(
+            request=request,
+            approved_plan_meta=approved_plan_meta,
+            production_decision=production_decision,
+        )
+    else:
+        bundle = _build_autonomous_seedance_execution_bundle(
+            request=request,
+            reference_image_urls=reference_image_urls,
+            pinned_refs=pinned_refs,
+            pre_decision=pre_decision,
+            production_decision=production_decision,
+            approved_plan_meta=approved_plan_meta,
+        )
     execution_plan = bundle["execution_plan"]
     approval_lock = bundle["approval_lock"]
     pipeline_trace = bundle["pipeline_trace"]
     approval_verification = bundle["approval_verification"]
     editor_preview = bundle["editor_preview"]
-    job_id = execution_plan.execution_plan_id
+    longform_plan = bundle.get("longform_plan")
+    is_longform = bundle.get("render_path") == "long_form_segmented"
+    job_id = longform_plan.longform_plan_id if is_longform and longform_plan is not None else execution_plan.execution_plan_id
     plan_id = str(execution_plan.storyboard_id or execution_plan.execution_plan_id)
+    from workers.render_dry_run import RenderDryRunService
+    render_dry_run_report = RenderDryRunService().generate_dry_run_report(
+        execution_plan,
+        approval_lock,
+        approval_verification=approval_verification,
+    )
+    if is_longform and request.dry_run_only:
+        pipeline_trace.append_stage(
+            stage="longform_dry_run",
+            stage_input=execution_plan,
+            stage_output=render_dry_run_report,
+            decision="long-form dry-run generated",
+            reasoning_summary="Full segmented payload preview was generated synchronously; no paid vendor call was made.",
+            rules_applied=["phase10.longform.dry_run_required", "phase10.longform.no_paid_vendor_call_on_preview"],
+            warnings=list(render_dry_run_report.warnings),
+            cost_estimate=execution_plan.cost_estimate,
+        )
+    commercial_usage_entry = None
+    if not request.dry_run_only:
+        commercial_usage_entry = _charge_commercial_usage_for_render(
+            request=request,
+            job_id=job_id,
+            execution_plan=execution_plan,
+            render_path="long_form_segmented" if is_longform else "seedance_execution_plan",
+        )
+        pipeline_trace.append_stage(
+            stage="commercial_usage",
+            stage_input={
+                "user_id": request.user_id,
+                "job_id": job_id,
+                "render_path": "long_form_segmented" if is_longform else "seedance_execution_plan",
+            },
+            stage_output=commercial_usage_entry,
+            decision="charged render credits before paid queue",
+            reasoning_summary="Credit usage was deducted before spawning any paid render worker.",
+            rules_applied=["phase13.credits.prepaid_render_gate"],
+            cost_estimate=execution_plan.cost_estimate,
+        )
 
     _JOBS_STORE[job_id] = {
-        "status": "pending",
-        "progress": 0,
-        "current_step": "queued_seedance_execution_plan",
+        "status": "dry_run" if is_longform and request.dry_run_only else "pending",
+        "progress": 100 if is_longform and request.dry_run_only else 0,
+        "current_step": (
+            "longform_dry_run_ready"
+            if is_longform and request.dry_run_only
+            else "queued_longform_execution_plan"
+            if is_longform
+            else "queued_seedance_execution_plan"
+        ),
         "plan_id": plan_id,
         "mode": "autonomous",
-        "execution_mode": "seedance_execution_plan",
+        "execution_mode": "long_form_segmented" if is_longform else "seedance_execution_plan",
         "approval_lock": approval_lock.model_dump(mode="json"),
         "approval_verification": approval_verification.model_dump(mode="json"),
         "seedance_execution_plan": execution_plan.model_dump(mode="json"),
+        "longform_plan": longform_plan.model_dump(mode="json") if longform_plan is not None else None,
+        "render_dry_run_report": render_dry_run_report.model_dump(mode="json"),
+        "longform_render_execution": (
+            {
+                "status": "dry_run",
+                "longform_plan_id": job_id,
+                "approval_lock_id": approval_lock.lock_id,
+                "approval_verification": approval_verification.model_dump(mode="json"),
+                "dry_run_report": render_dry_run_report.model_dump(mode="json"),
+                "message": "Long-form dry-run generated; no paid vendor call was made.",
+            }
+            if is_longform and request.dry_run_only
+            else None
+        ),
+        "input_contract": bundle["input_contract"].model_dump(mode="json"),
+        "analyzed_input": bundle["analyzed_input"].model_dump(mode="json"),
+        "creative_plan": bundle["creative_plan"].model_dump(mode="json"),
+        "storyboard": bundle["storyboard"].model_dump(mode="json"),
+        "curated_examples": [
+            example.model_dump(mode="json") if hasattr(example, "model_dump") else example
+            for example in (bundle.get("curated_examples") or [])
+        ],
         "pipeline_trace": pipeline_trace.model_dump(mode="json"),
         "autonomous_meta": {
-            "migration": "seedance_execution_plan_render_executor",
+            "migration": "long_form_segmented_render_executor" if is_longform else "seedance_execution_plan_render_executor",
             "legacy_render_plan_used": False,
             "render_executor_required": True,
+            "final_assembly_required": bool(is_longform),
             "approved_plan": approved_plan_meta,
+            "approved_dry_run_job_id": request.approved_dry_run_job_id,
+            "commercial_usage": commercial_usage_entry.model_dump(mode="json") if commercial_usage_entry is not None else None,
             "production_decision": production_decision,
             "pinned_assets": pinned_refs["pinned_assets"],
             "skipped_pins": pinned_refs["skipped_pins"],
@@ -2648,20 +3381,40 @@ async def autonomous_generate(
             "pipeline_trace": pipeline_trace.model_dump(mode="json"),
             "editor_preview": editor_preview,
             "dry_run_only": request.dry_run_only,
+            "consistency_review": _consistency_review_record_from_request(
+                request=request,
+                action=str(execution_plan.metadata.get("consistency_policy_action") or "allow"),
+                segment_ids=[
+                    segment.segment_id
+                    for segment in (getattr(longform_plan, "segments", None) or [])
+                ],
+            ) if is_longform else None,
         },
         "created_at": datetime.now(timezone.utc).isoformat() + "Z",
     }
 
     async def _run_seedance_execution_plan():
         try:
-            await video_worker.render_seedance_execution_plan(
-                execution_plan=execution_plan,
-                approval_lock=approval_lock,
-                jobs_store=_JOBS_STORE,
-                dry_run_only=request.dry_run_only,
-                cost_gate_mode="draft_first" if not request.dry_run_only else "off",
-                max_total_cost_usd=request.max_total_cost_usd,
-            )
+            if is_longform:
+                await video_worker.render_longform_execution_plan(
+                    longform_plan=longform_plan,
+                    approval_lock=approval_lock,
+                    idea=request.user_idea,
+                    editor_preview=editor_preview,
+                    jobs_store=_JOBS_STORE,
+                    trace=pipeline_trace,
+                    dry_run_only=request.dry_run_only,
+                    dry_run_approved=bool(request.approved_dry_run_job_id),
+                )
+            else:
+                await video_worker.render_seedance_execution_plan(
+                    execution_plan=execution_plan,
+                    approval_lock=approval_lock,
+                    jobs_store=_JOBS_STORE,
+                    dry_run_only=request.dry_run_only,
+                    cost_gate_mode="draft_first" if not request.dry_run_only else "off",
+                    max_total_cost_usd=request.max_total_cost_usd,
+                )
         except video_worker.JobCancelledError:
             logger.info(f"[/director/autonomous] job {job_id} cancelled gracefully")
             await asyncio.to_thread(video_worker.cleanup_failed_job, job_id)
@@ -2670,14 +3423,15 @@ async def autonomous_generate(
             _JOBS_STORE[job_id].update(status="failed", error_message=_redact_error(e))
             await asyncio.to_thread(video_worker.cleanup_failed_job, job_id)
 
-    _spawn(_run_seedance_execution_plan())
+    if not (is_longform and request.dry_run_only):
+        _spawn(_run_seedance_execution_plan())
 
     response = {
         "job_id": job_id,
         "polling_url": f"/api/v1/director/jobs/{job_id}",
         "plan_id": plan_id,
         "mode": "autonomous",
-        "execution_mode": "seedance_execution_plan",
+        "execution_mode": "long_form_segmented" if is_longform else "seedance_execution_plan",
         "legacy_render_plan_used": False,
         "approval_lock_id": approval_lock.lock_id,
         "approval_verification": approval_verification.model_dump(mode="json"),
@@ -2692,6 +3446,17 @@ async def autonomous_generate(
             "knowledge_rule_ids": execution_plan.rules_applied,
             "curated_example_ids": execution_plan.examples_used,
         },
+        "longform_plan": _longform_response_summary(longform_plan) if longform_plan is not None else None,
+        "render_dry_run_report": render_dry_run_report.model_dump(mode="json"),
+        "requires_consistency_review": execution_plan.metadata.get("consistency_policy_action") == "requires_review",
+        "consistency_policy": {
+            "action": execution_plan.metadata.get("consistency_policy_action") or "allow",
+            "reasons": execution_plan.metadata.get("consistency_policy_reasons") or [],
+            "review_approved": bool(request.consistency_review_approved),
+            "review_decision": request.consistency_review_decision or ("approved" if request.consistency_review_approved else ""),
+            "review_reason": request.consistency_review_reason,
+            "reviewed_segment_ids": request.consistency_reviewed_segment_ids or request.approved_segment_ids,
+        },
         "resolved_model": execution_plan.model,
         "target_market": (production_decision.get("decision") or {}).get("target_market") or request.target_market,
         "requested_target_market": request.target_market,
@@ -2702,13 +3467,14 @@ async def autonomous_generate(
             or 0.0
         ),
         "n_shots": len(execution_plan.shots),
-        "render_strategy": "seedance_execution_plan",
+        "render_strategy": "long_form_segmented" if is_longform else "seedance_execution_plan",
         "n_chunks": len(execution_plan.shots),
         "production_decision": production_decision,
         "pinned_assets": pinned_refs["pinned_assets"],
         "skipped_pins": pinned_refs["skipped_pins"],
         "auto_pin_selection": auto_pin_selection,
         "approved_plan": approved_plan_meta,
+        "commercial_usage": commercial_usage_entry.model_dump(mode="json") if commercial_usage_entry is not None else None,
         "chain_elapsed_s": 0.0,
         "editor_preview": editor_preview,
         "hook_preview": {
@@ -3706,6 +4472,120 @@ async def get_job(job_id: str):
         **_JOBS_STORE[job_id],
         "feedback_summary": render_feedback_store.summarize_job_feedback(job_id),
     }
+
+
+@router.get("/jobs/{job_id}/final-video")
+async def get_job_final_video(job_id: str, refresh: bool = False):
+    """Return object-storage metadata for the assembled long-form MP4.
+
+    Public/CDN-backed objects return a stable URL. Private objects return a
+    presigned URL and can refresh it from the persisted object key.
+    """
+    if job_id not in _JOBS_STORE:
+        raise HTTPException(404, "job not found")
+    assembly = _JOBS_STORE[job_id].get("assembly_result") or {}
+    if not isinstance(assembly, dict):
+        raise HTTPException(404, "final video metadata is not available for this job")
+    storage_key = str(assembly.get("storage_key") or "").strip()
+    is_public = bool(assembly.get("storage_is_public") or assembly.get("is_public"))
+    refresh_supported = bool(assembly.get("storage_refresh_supported") or assembly.get("refresh_supported"))
+    was_refreshed = False
+    if storage_key and not is_public and (refresh or _private_url_refresh_needed(assembly)):
+        if not refresh_supported:
+            raise HTTPException(409, "final video URL refresh is not enabled for this object")
+        try:
+            refreshed = r2_storage.refresh_presigned_url_sync(storage_key)
+        except Exception as exc:
+            logger.exception("final_video_presigned_refresh_failed", extra={"job_id": job_id, "storage_key": storage_key})
+            raise HTTPException(502, f"failed to refresh final video URL: {str(exc)[:200]}") from exc
+        assembly.update(refreshed)
+        assembly["storage_delivery_url"] = refreshed["storage_presigned_url"]
+        assembly["final_video_url"] = refreshed["storage_presigned_url"]
+        assembly["storage_access_strategy"] = assembly.get("storage_access_strategy") or "private_presigned"
+        assembly["storage_refresh_supported"] = bool(refreshed.get("refresh_supported", True))
+        _JOBS_STORE[job_id]["assembly_result"] = assembly
+        _JOBS_STORE[job_id]["output_url"] = refreshed["storage_presigned_url"]
+        _JOBS_STORE[job_id]["output_path"] = refreshed["storage_presigned_url"]
+        refresh_supported = bool(assembly.get("storage_refresh_supported") or assembly.get("refresh_supported"))
+        was_refreshed = True
+        _append_final_video_refresh_trace(job_id=job_id, assembly=assembly, refreshed=refreshed)
+        logger.info("final_video_presigned_refreshed", extra={"job_id": job_id, "storage_key": storage_key})
+    final_url = str(
+        assembly.get("storage_delivery_url")
+        or (assembly.get("storage_public_url") if is_public else None)
+        or assembly.get("storage_presigned_url")
+        or assembly.get("final_video_url")
+        or _JOBS_STORE[job_id].get("output_url")
+        or ""
+    ).strip()
+    if not final_url:
+        raise HTTPException(404, "final video URL is not available for this job")
+    return {
+        "job_id": job_id,
+        "final_video_url": final_url,
+        "delivery_url": assembly.get("storage_delivery_url") or final_url,
+        "storage_bucket": assembly.get("storage_bucket"),
+        "storage_key": assembly.get("storage_key"),
+        "storage_type": assembly.get("storage_type") or ("public" if is_public else "private"),
+        "access_strategy": assembly.get("storage_access_strategy"),
+        "storage_access_strategy": assembly.get("storage_access_strategy"),
+        "cdn_url": assembly.get("storage_cdn_url") or assembly.get("storage_public_url"),
+        "storage_delivery_url": assembly.get("storage_delivery_url") or final_url,
+        "storage_cdn_url": assembly.get("storage_cdn_url") or assembly.get("storage_public_url"),
+        "is_public": is_public,
+        "storage_is_public": is_public,
+        "storage_public_url": assembly.get("storage_public_url"),
+        "storage_presigned_expires_s": assembly.get("storage_presigned_expires_s"),
+        "presigned_expires_at": assembly.get("storage_presigned_expires_at"),
+        "storage_presigned_expires_at": assembly.get("storage_presigned_expires_at"),
+        "refresh_supported": refresh_supported,
+        "storage_refresh_supported": refresh_supported,
+        "refreshed": was_refreshed,
+    }
+
+
+def _append_final_video_refresh_trace(*, job_id: str, assembly: dict[str, Any], refreshed: dict[str, Any]) -> None:
+    """Append an auditable trace entry when a private final-video URL is refreshed."""
+    raw_trace = _JOBS_STORE.get(job_id, {}).get("pipeline_trace")
+    if not isinstance(raw_trace, dict):
+        return
+    try:
+        from pipeline.trace import PipelineTrace
+
+        trace = PipelineTrace.model_validate(raw_trace)
+        trace.append_stage(
+            stage="final_video_url_refresh",
+            stage_input={"job_id": job_id, "storage_key": assembly.get("storage_key")},
+            stage_output={
+                "storage_access_strategy": assembly.get("storage_access_strategy") or "private_presigned",
+                "storage_presigned_expires_at": refreshed.get("storage_presigned_expires_at"),
+                "refresh_supported": refreshed.get("refresh_supported"),
+            },
+            decision="refreshed private final-video delivery URL",
+            reasoning_summary="A new presigned URL was generated from the persisted R2/S3 object key without exposing local files.",
+            rules_applied=["phase10.final_video.private_url_refresh"],
+        )
+        _JOBS_STORE[job_id]["pipeline_trace"] = trace.model_dump(mode="json")
+    except Exception:
+        logger.warning("final_video_refresh_trace_append_failed", extra={"job_id": job_id}, exc_info=True)
+
+
+def _private_url_refresh_needed(assembly: dict[str, Any]) -> bool:
+    """Return true when a private presigned URL is absent or close to expiry."""
+    if assembly.get("storage_is_public") or assembly.get("is_public"):
+        return False
+    if not assembly.get("storage_presigned_url"):
+        return True
+    expires_at = str(assembly.get("storage_presigned_expires_at") or "").strip()
+    if not expires_at:
+        return False
+    try:
+        parsed = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed <= datetime.now(timezone.utc)
 
 
 @router.post("/jobs/{job_id}/cancel")

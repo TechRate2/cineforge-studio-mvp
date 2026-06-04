@@ -30,6 +30,7 @@ interface Props {
 const STAGE_LABELS: Record<string, string> = {
   pending: 'Queued',
   planning: 'Planning the render',
+  dry_run: 'Dry-run ready',
   rendering: 'Rendering scenes',
   graph_executing: 'Rendering scenes',
   graph_idle: 'Preparing final video',
@@ -57,7 +58,16 @@ export function JobResultModal({
   const isDone = status === 'done';
   const isFailed = status === 'failed' || status === 'cancelled';
   const isWorking = !isDone && !isFailed && !timedOut;
-  const videoUrl = (job?.output_url || job?.output_path || '') as string;
+  const videoUrl = (
+    job?.assembly_result?.storage_delivery_url
+    || job?.assembly_result?.storage_public_url
+    || job?.assembly_result?.storage_cdn_url
+    || job?.assembly_result?.storage_presigned_url
+    || job?.assembly_result?.final_video_url
+    || job?.output_url
+    || job?.output_path
+    || ''
+  ) as string;
 
   const totalExpectedS = (estimatedDurationS ?? 15) * 5 + 60;
   const anchorTime = jobStartedAt ?? Date.now();
@@ -107,15 +117,18 @@ export function JobResultModal({
     >
       <div className="space-y-6 p-6 md:p-8">
         {isWorking && (
-          <RenderProgress
-            status={status}
-            progress={progress}
-            showEta={showEta}
-            secondsLeft={secondsLeft}
-            onCancel={handleCancel}
-            cancelConfirm={cancelConfirm}
-            isCancelling={isCancelling}
-          />
+          <>
+            <RenderProgress
+              status={status}
+              progress={progress}
+              showEta={showEta}
+              secondsLeft={secondsLeft}
+              onCancel={handleCancel}
+              cancelConfirm={cancelConfirm}
+              isCancelling={isCancelling}
+            />
+            <LongformProgress job={job} />
+          </>
         )}
 
         {timedOut && !isFailed && !isDone && (
@@ -167,6 +180,7 @@ export function JobResultModal({
         <PlanSummary job={job} />
         <DistributionPackage job={job} />
         <AgentChecks job={job} />
+        <PostRenderConsistencyPanel job={job} />
         <MemoryUsed job={job} />
       </div>
     </Modal>
@@ -265,6 +279,52 @@ function VideoResult({
         </div>
       </div>
     </>
+  );
+}
+
+function LongformProgress({ job }: { job?: DirectorJobStatus | null }) {
+  const progress = job?.longform_progress;
+  const segmentCount = progress?.segment_count ?? 0;
+  if (!segmentCount) return null;
+  const completed = progress?.completed_segments ?? 0;
+  const current = progress?.current_segment_id ? String(progress.current_segment_id) : 'waiting';
+  const events = progress?.events ?? [];
+  return (
+    <div className="surface-2 rounded-card p-5">
+      <SectionHeader
+        title="Long-form segment progress"
+        subtitle={`${completed}/${segmentCount} segments completed. Current: ${current}`}
+        badge={job?.status?.replace(/_/g, ' ')}
+      />
+      <div className="grid gap-2 md:grid-cols-5">
+        {Array.from({ length: segmentCount }).map((_, index) => {
+          const segmentId = `segment_${String(index + 1).padStart(2, '0')}`;
+          const done = events.some((event) => event.event === 'segment_completed' && event.segment_id === segmentId);
+          const active = progress?.current_segment_id === segmentId;
+          return (
+            <div
+              key={segmentId}
+              className={`rounded-md border px-3 py-2 text-xs ${
+                done
+                  ? 'border-accent-cyan/30 bg-accent-cyan/10 text-accent-cyan'
+                  : active
+                    ? 'border-accent-magenta/30 bg-accent-magenta/10 text-accent-magenta'
+                    : 'border-hairline bg-surface-3/60 text-text-muted'
+              }`}
+            >
+              <div className="font-semibold">Segment {index + 1}</div>
+              <div className="mt-1 text-[10px] uppercase">{done ? 'done' : active ? 'rendering' : 'queued'}</div>
+            </div>
+          );
+        })}
+      </div>
+      {job?.assembly_result?.status && (
+        <div className="mt-3 rounded-md border border-hairline bg-surface-3/60 px-3 py-2 text-xs text-text-muted">
+          Assembly: {job.assembly_result.status}
+          {job.assembly_result.error ? ` - ${job.assembly_result.error}` : ''}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -501,6 +561,79 @@ function AgentChecks({ job }: { job?: DirectorJobStatus | null }) {
           No blocking issues were found before render.
         </div>
       )}
+    </div>
+  );
+}
+
+function PostRenderConsistencyPanel({ job }: { job?: DirectorJobStatus | null }) {
+  const reports = job?.longform_render_execution?.qa_reports ?? [];
+  const visualReports = reports
+    .map((report) => ({
+      shotId: report.shot_id || 'segment',
+      status: report.status || 'unknown',
+      consistencyScore: report.consistency_score,
+      policyAction: report.consistency_policy_action,
+      visual: report.visual_consistency,
+      warnings: [...(report.warnings ?? []), ...(report.consistency_warnings ?? [])],
+      errors: report.errors ?? [],
+    }))
+    .filter((report) => report.visual || report.warnings.length > 0 || report.errors.length > 0);
+  if (visualReports.length === 0) return null;
+  const highestAction = visualReports.find((report) => report.visual?.action === 'block')
+    ?? visualReports.find((report) => report.visual?.action === 'requires_review')
+    ?? visualReports.find((report) => report.visual?.action === 'warn')
+    ?? visualReports[0];
+  const badge = highestAction?.visual?.action || highestAction?.policyAction || 'checked';
+  const tone = badge === 'allow' || badge === 'checked' ? 'cyan' : 'orange';
+
+  return (
+    <div className="surface-2 rounded-card p-5">
+      <SectionHeader
+        title="Post-render consistency QA"
+        subtitle="CV/probe and vendor signals evaluated after each rendered segment."
+        badge={String(badge).replace(/_/g, ' ')}
+        tone={tone}
+      />
+      <div className="grid gap-2">
+        {visualReports.map((report) => {
+          const visual = report.visual;
+          const score = visual?.overall_score ?? report.consistencyScore;
+          const action = visual?.action || report.policyAction || report.status;
+          const issues = [...(visual?.errors ?? []), ...report.errors, ...(visual?.warnings ?? []), ...report.warnings]
+            .filter(Boolean)
+            .slice(0, 4);
+          return (
+            <div key={report.shotId} className="rounded-md border border-hairline bg-surface-3/60 px-3 py-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-xs font-semibold text-text">{report.shotId}</div>
+                <div className="flex flex-wrap gap-1.5 text-[10px] uppercase">
+                  <span className="chip px-2 py-0.5">{String(action).replace(/_/g, ' ')}</span>
+                  {typeof score === 'number' && <span className="chip px-2 py-0.5">{Math.round(score)} score</span>}
+                  {visual?.signal_source && <span className="chip px-2 py-0.5">{visual.signal_source}</span>}
+                </div>
+              </div>
+              {visual?.metrics && Object.keys(visual.metrics).length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {Object.entries(visual.metrics).slice(0, 5).map(([key, value]) => (
+                    <span key={key} className="rounded-full border border-hairline bg-surface-2 px-2 py-0.5 text-[10px] text-text-muted">
+                      {key.replace(/_/g, ' ')} {Math.round(value * 100)}%
+                    </span>
+                  ))}
+                </div>
+              )}
+              {issues.length > 0 && (
+                <div className="mt-2 grid gap-1">
+                  {issues.map((issue) => (
+                    <div key={String(issue)} className="text-[11px] leading-relaxed text-text-muted">
+                      {String(issue).replace(/_/g, ' ')}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

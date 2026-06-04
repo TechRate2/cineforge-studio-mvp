@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import sys
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -66,11 +67,15 @@ def test_autonomous_endpoint_queues_seedance_execution_plan_not_legacy_render(mo
     asyncio.run(run_case())
 
 
-def test_autonomous_endpoint_blocks_long_form_on_new_paid_path() -> None:
-    """Long-form must not fall back to legacy DirectorPlan on the production route."""
+def test_autonomous_endpoint_enables_long_form_dry_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Long-form dry-run should use the segmented production path, not legacy DirectorPlan."""
     from api.routes import director
 
+    spawned: list[Any] = []
+    monkeypatch.setattr(director, "_spawn", lambda coro: spawned.append(coro))
+
     async def run_case() -> None:
+        director._JOBS_STORE.clear()
         request = director.AutonomousGenerateRequest(
             user_idea="Create a 30s premium beauty serum story with three proof beats and a final offer.",
             target_market="vn",
@@ -80,14 +85,339 @@ def test_autonomous_endpoint_blocks_long_form_on_new_paid_path() -> None:
             resolution="720p",
             dry_run_only=True,
         )
+        response = await director.autonomous_generate(request, idempotency_key=None)
+
+        assert response["execution_mode"] == "long_form_segmented"
+        assert response["legacy_render_plan_used"] is False
+        assert response["longform_plan"]["total_duration_s"] == 30
+        assert len(response["longform_plan"]["segments"]) == 3
+        assert response["render_dry_run_report"]["approval_valid"] is True
+        assert response["seedance_execution_plan"]["duration_s"] == 30
+        assert spawned == [], "long-form dry-run should not spawn a background worker"
+        job = director._JOBS_STORE[response["job_id"]]
+        assert job["status"] == "dry_run"
+        assert job["execution_mode"] == "long_form_segmented"
+        assert job["longform_render_execution"]["status"] == "dry_run"
+
+    asyncio.run(run_case())
+
+
+def test_autonomous_endpoint_paid_long_form_requires_approved_dry_run() -> None:
+    """Paid long-form render should not start without an approved dry-run job id."""
+    from api.routes import director
+
+    async def run_case() -> None:
+        user_idea = "Create a 30s premium beauty serum story with three proof beats and a final offer."
+        request = director.AutonomousGenerateRequest(
+            user_idea=user_idea,
+            target_market="vn",
+            target_platform="tiktok",
+            duration_hint_s=30,
+            user_model="auto",
+            resolution="720p",
+            dry_run_only=False,
+            approved_plan_id="approved_longform_plan",
+            approved_plan_source_hash=hashlib.sha256(user_idea.encode("utf-8")).hexdigest(),
+            approved_plan_source_length=len(user_idea),
+        )
         with pytest.raises(Exception) as exc_info:
             await director.autonomous_generate(request, idempotency_key=None)
         error = exc_info.value
         assert getattr(error, "status_code", None) == 422
-        detail = getattr(error, "detail", {})
-        assert detail.get("code") == "long_form_seedance_pipeline_not_ready"
-        assert detail.get("strategy") == "block_until_segmented_long_form_seedance_pipeline_is_approved"
-        assert detail.get("max_single_execution_duration_s") == 15
+        assert getattr(error, "detail", {}).get("code") == "long_form_dry_run_required"
+
+    asyncio.run(run_case())
+
+
+def test_autonomous_endpoint_rejects_unsupported_duration_gap() -> None:
+    """16-29s is intentionally rejected until a distinct mid-form strategy exists."""
+    from api.routes import director
+
+    async def run_case() -> None:
+        request = director.AutonomousGenerateRequest(
+            user_idea="Create a 20s premium beauty serum story with product proof and a final offer.",
+            target_market="vn",
+            target_platform="tiktok",
+            duration_hint_s=20,
+            user_model="auto",
+            resolution="720p",
+            dry_run_only=True,
+        )
+        with pytest.raises(Exception) as exc_info:
+            await director.autonomous_generate(request, idempotency_key=None)
+        error = exc_info.value
+        assert getattr(error, "status_code", None) == 422
+        assert getattr(error, "detail", {}).get("code") == "autonomous_duration_gap_not_supported"
+
+    asyncio.run(run_case())
+
+
+def test_autonomous_endpoint_rejects_duration_over_60s() -> None:
+    """Phase 10 production endpoint should fail-safe beyond the 30-60s MVP window."""
+    from api.routes import director
+
+    async def run_case() -> None:
+        request = director.AutonomousGenerateRequest(
+            user_idea="Create a 75s premium beauty serum story with multiple proof beats and a final offer.",
+            target_market="vn",
+            target_platform="tiktok",
+            duration_hint_s=75,
+            user_model="auto",
+            resolution="720p",
+            dry_run_only=True,
+        )
+        with pytest.raises(Exception) as exc_info:
+            await director.autonomous_generate(request, idempotency_key=None)
+        error = exc_info.value
+        assert getattr(error, "status_code", None) == 422
+        assert getattr(error, "detail", {}).get("code") == "autonomous_duration_too_long"
+
+    asyncio.run(run_case())
+
+
+def test_autonomous_endpoint_paid_long_form_reuses_approved_dry_run_bundle(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Paid long-form render should reuse the exact dry-run bundle and segment approvals."""
+    from api.routes import director
+
+    spawned: list[Any] = []
+    render_calls: list[dict[str, Any]] = []
+
+    def capture_spawn(coro: Any) -> None:
+        spawned.append(coro)
+
+    async def capture_longform_render(**kwargs: Any) -> dict[str, Any]:
+        render_calls.append(kwargs)
+        return {"status": "captured"}
+
+    monkeypatch.setattr(director, "_spawn", capture_spawn)
+    monkeypatch.setattr(director.video_worker, "render_longform_execution_plan", capture_longform_render)
+
+    async def run_case() -> None:
+        director._JOBS_STORE.clear()
+        user_idea = "Create a 30s premium beauty serum story with three proof beats and a final offer."
+        user_id = f"test_paid_reuse_{uuid.uuid4().hex[:8]}"
+        source_hash = hashlib.sha256(user_idea.encode("utf-8")).hexdigest()
+        dry_run_request = director.AutonomousGenerateRequest(
+            user_idea=user_idea,
+            target_market="vn",
+            target_platform="tiktok",
+            duration_hint_s=30,
+            user_model="auto",
+            resolution="720p",
+            dry_run_only=True,
+            user_id=user_id,
+            approved_plan_id="approved_longform_plan",
+            approved_plan_source_hash=source_hash,
+            approved_plan_source_length=len(user_idea),
+        )
+        dry_run_response = await director.autonomous_generate(dry_run_request, idempotency_key=None)
+        for coro in spawned:
+            coro.close()
+        spawned.clear()
+        segment_ids = [segment["segment_id"] for segment in dry_run_response["longform_plan"]["segments"]]
+
+        paid_request = director.AutonomousGenerateRequest(
+            user_idea=user_idea,
+            target_market="vn",
+            target_platform="tiktok",
+            duration_hint_s=30,
+            user_model="auto",
+            resolution="720p",
+            dry_run_only=False,
+            user_id=user_id,
+            approved_plan_id="approved_longform_plan",
+            approved_plan_source_hash=source_hash,
+            approved_plan_source_length=len(user_idea),
+            approved_dry_run_job_id=dry_run_response["job_id"],
+            approved_segment_ids=segment_ids,
+            consistency_review_approved=True,
+            consistency_review_decision="approved",
+            consistency_review_reason="Reviewed product and style continuity risk; references are acceptable.",
+            consistency_reviewed_segment_ids=segment_ids,
+        )
+        paid_response = await director.autonomous_generate(paid_request, idempotency_key=None)
+        assert paid_response["execution_mode"] == "long_form_segmented"
+        assert paid_response["job_id"] == dry_run_response["job_id"]
+        assert spawned
+        await spawned.pop(0)
+        assert render_calls
+        assert render_calls[0]["dry_run_approved"] is True
+        assert render_calls[0]["longform_plan"].longform_plan_id == dry_run_response["job_id"]
+
+    asyncio.run(run_case())
+
+
+def test_autonomous_endpoint_rejects_incomplete_segment_approval(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Paid long-form render must include every reviewed segment id from the dry-run bundle."""
+    from api.routes import director
+
+    spawned: list[Any] = []
+    monkeypatch.setattr(director, "_spawn", lambda coro: spawned.append(coro))
+
+    async def run_case() -> None:
+        director._JOBS_STORE.clear()
+        user_idea = "Create a 30s premium beauty serum story with three proof beats and a final offer."
+        user_id = f"test_segment_review_{uuid.uuid4().hex[:8]}"
+        source_hash = hashlib.sha256(user_idea.encode("utf-8")).hexdigest()
+        dry_run_request = director.AutonomousGenerateRequest(
+            user_idea=user_idea,
+            target_market="vn",
+            target_platform="tiktok",
+            duration_hint_s=30,
+            user_model="auto",
+            resolution="720p",
+            dry_run_only=True,
+            user_id=user_id,
+            approved_plan_id="approved_longform_plan",
+            approved_plan_source_hash=source_hash,
+            approved_plan_source_length=len(user_idea),
+        )
+        dry_run_response = await director.autonomous_generate(dry_run_request, idempotency_key=None)
+        for coro in spawned:
+            coro.close()
+        spawned.clear()
+        segment_ids = [segment["segment_id"] for segment in dry_run_response["longform_plan"]["segments"]]
+
+        paid_request = director.AutonomousGenerateRequest(
+            user_idea=user_idea,
+            target_market="vn",
+            target_platform="tiktok",
+            duration_hint_s=30,
+            user_model="auto",
+            resolution="720p",
+            dry_run_only=False,
+            user_id=user_id,
+            approved_plan_id="approved_longform_plan",
+            approved_plan_source_hash=source_hash,
+            approved_plan_source_length=len(user_idea),
+            approved_dry_run_job_id=dry_run_response["job_id"],
+            approved_segment_ids=segment_ids[:-1],
+            consistency_review_approved=True,
+            consistency_review_decision="approved",
+            consistency_review_reason="Reviewed consistency risk before checking segment list.",
+            consistency_reviewed_segment_ids=segment_ids[:-1],
+        )
+        with pytest.raises(Exception) as exc_info:
+            await director.autonomous_generate(paid_request, idempotency_key=None)
+        error = exc_info.value
+        assert getattr(error, "status_code", None) == 422
+        assert getattr(error, "detail", {}).get("code") == "long_form_segment_review_incomplete"
+
+    asyncio.run(run_case())
+
+
+def test_autonomous_endpoint_rejects_consistency_review_without_reason(monkeypatch: pytest.MonkeyPatch) -> None:
+    """requires_review consistency approval must include a human reason."""
+    from api.routes import director
+
+    spawned: list[Any] = []
+    monkeypatch.setattr(director, "_spawn", lambda coro: spawned.append(coro))
+
+    async def run_case() -> None:
+        director._JOBS_STORE.clear()
+        user_idea = "Create a 30s premium beauty serum story with three proof beats and a final offer."
+        user_id = f"test_review_reason_{uuid.uuid4().hex[:8]}"
+        source_hash = hashlib.sha256(user_idea.encode("utf-8")).hexdigest()
+        dry_run_request = director.AutonomousGenerateRequest(
+            user_idea=user_idea,
+            target_market="vn",
+            target_platform="tiktok",
+            duration_hint_s=30,
+            user_model="auto",
+            resolution="720p",
+            dry_run_only=True,
+            user_id=user_id,
+            approved_plan_id="approved_longform_plan",
+            approved_plan_source_hash=source_hash,
+            approved_plan_source_length=len(user_idea),
+        )
+        dry_run_response = await director.autonomous_generate(dry_run_request, idempotency_key=None)
+        for coro in spawned:
+            coro.close()
+        spawned.clear()
+        segment_ids = [segment["segment_id"] for segment in dry_run_response["longform_plan"]["segments"]]
+
+        paid_request = director.AutonomousGenerateRequest(
+            user_idea=user_idea,
+            target_market="vn",
+            target_platform="tiktok",
+            duration_hint_s=30,
+            user_model="auto",
+            resolution="720p",
+            dry_run_only=False,
+            user_id=user_id,
+            approved_plan_id="approved_longform_plan",
+            approved_plan_source_hash=source_hash,
+            approved_plan_source_length=len(user_idea),
+            approved_dry_run_job_id=dry_run_response["job_id"],
+            approved_segment_ids=segment_ids,
+            consistency_review_approved=True,
+            consistency_review_decision="approved",
+        )
+        with pytest.raises(Exception) as exc_info:
+            await director.autonomous_generate(paid_request, idempotency_key=None)
+        error = exc_info.value
+        assert getattr(error, "status_code", None) == 422
+        assert getattr(error, "detail", {}).get("code") == "consistency_review_reason_required"
+
+    asyncio.run(run_case())
+
+
+def test_autonomous_endpoint_rejects_consistency_review_rejection(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A rejected consistency review should block paid long-form render."""
+    from api.routes import director
+
+    spawned: list[Any] = []
+    monkeypatch.setattr(director, "_spawn", lambda coro: spawned.append(coro))
+
+    async def run_case() -> None:
+        director._JOBS_STORE.clear()
+        user_idea = "Create a 30s premium beauty serum story with three proof beats and a final offer."
+        user_id = f"test_review_reject_{uuid.uuid4().hex[:8]}"
+        source_hash = hashlib.sha256(user_idea.encode("utf-8")).hexdigest()
+        dry_run_request = director.AutonomousGenerateRequest(
+            user_idea=user_idea,
+            target_market="vn",
+            target_platform="tiktok",
+            duration_hint_s=30,
+            user_model="auto",
+            resolution="720p",
+            dry_run_only=True,
+            user_id=user_id,
+            approved_plan_id="approved_longform_plan",
+            approved_plan_source_hash=source_hash,
+            approved_plan_source_length=len(user_idea),
+        )
+        dry_run_response = await director.autonomous_generate(dry_run_request, idempotency_key=None)
+        for coro in spawned:
+            coro.close()
+        spawned.clear()
+        segment_ids = [segment["segment_id"] for segment in dry_run_response["longform_plan"]["segments"]]
+
+        paid_request = director.AutonomousGenerateRequest(
+            user_idea=user_idea,
+            target_market="vn",
+            target_platform="tiktok",
+            duration_hint_s=30,
+            user_model="auto",
+            resolution="720p",
+            dry_run_only=False,
+            user_id=user_id,
+            approved_plan_id="approved_longform_plan",
+            approved_plan_source_hash=source_hash,
+            approved_plan_source_length=len(user_idea),
+            approved_dry_run_job_id=dry_run_response["job_id"],
+            approved_segment_ids=segment_ids,
+            consistency_review_approved=False,
+            consistency_review_decision="rejected",
+            consistency_review_reason="Product identity risk is too high for paid render.",
+            consistency_reviewed_segment_ids=segment_ids,
+        )
+        with pytest.raises(Exception) as exc_info:
+            await director.autonomous_generate(paid_request, idempotency_key=None)
+        error = exc_info.value
+        assert getattr(error, "status_code", None) == 422
+        assert getattr(error, "detail", {}).get("code") == "consistency_review_rejected"
 
     asyncio.run(run_case())
 

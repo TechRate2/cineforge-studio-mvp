@@ -4,7 +4,7 @@ import { fetchDirectorJob } from './director-job-api';
 
 export interface DirectorJobStatus {
   job_id: string;
-  status: 'pending' | 'planning' | 'rendering' | 'assembling' | 'uploading' | 'graph_executing' | 'graph_idle' | 'done' | 'failed' | 'cancelled';
+  status: 'pending' | 'planning' | 'dry_run' | 'rendering' | 'assembling' | 'uploading' | 'graph_executing' | 'graph_idle' | 'done' | 'failed' | 'cancelled';
   progress: number;
   current_step?: string;
   output_path?: string | null;
@@ -20,6 +20,54 @@ export interface DirectorJobStatus {
     has_negative_feedback?: boolean;
     has_blocking_issue?: boolean;
     recommended_next_action?: string;
+  };
+  longform_progress?: {
+    segment_count?: number;
+    completed_segments?: number;
+    current_segment_id?: string | null;
+    last_event?: Record<string, unknown>;
+    events?: Array<Record<string, unknown>>;
+  };
+  longform_render_execution?: {
+    status?: string;
+    qa_reports?: Array<{
+      shot_id?: string;
+      status?: string;
+      warnings?: string[];
+      errors?: string[];
+      consistency_score?: number | null;
+      consistency_policy_action?: string | null;
+      consistency_warnings?: string[];
+      visual_consistency?: {
+        status?: string;
+        action?: string;
+        risk_level?: string;
+        overall_score?: number | null;
+        signal_source?: string;
+        warnings?: string[];
+        errors?: string[];
+        metrics?: Record<string, number>;
+        missing_signals?: string[];
+      } | null;
+    }>;
+  } | null;
+  assembly_result?: {
+    status?: string;
+    final_video_url?: string | null;
+    final_video_path?: string | null;
+    storage_bucket?: string | null;
+    storage_key?: string | null;
+    storage_type?: string | null;
+    storage_access_strategy?: string | null;
+    storage_delivery_url?: string | null;
+    storage_cdn_url?: string | null;
+    storage_is_public?: boolean | null;
+    storage_public_url?: string | null;
+    storage_presigned_url?: string | null;
+    storage_presigned_expires_s?: number | null;
+    storage_presigned_expires_at?: string | null;
+    storage_refresh_supported?: boolean | null;
+    error?: string | null;
   };
   editor_meta?: {
     caption_vn?: string;

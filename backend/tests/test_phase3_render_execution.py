@@ -259,6 +259,9 @@ def test_phase7a_post_render_visual_consistency_can_fail_segment_qa() -> None:
 
     assert result.status == "qa_failed"
     assert result.qa_reports[0].visual_consistency is not None
+    assert result.qa_reports[0].visual_consistency.action == "block"
+    assert result.qa_reports[0].visual_consistency.risk_level == "critical"
+    assert result.qa_reports[0].consistency_score == result.qa_reports[0].visual_consistency.overall_score
     assert "product_visibility_below_threshold" in result.qa_reports[0].errors
 
 
@@ -274,8 +277,32 @@ def test_phase7a_post_render_visual_consistency_warns_on_missing_required_signal
     assert report.status == "warn"
     assert report.signal_source == "unit_probe"
     assert report.overall_score is not None
+    assert report.overall_score <= 80
     assert "logo_label_similarity" in report.missing_signals
     assert "missing_logo_label_similarity" in report.warnings
+    assert report.action == "requires_review"
+
+
+def test_phase7a_post_render_visual_consistency_reads_nested_probe_signals() -> None:
+    """Future CV probes can provide nested visual consistency metrics."""
+    from identity.post_render_consistency import PostRenderConsistencyEvaluator
+
+    report = PostRenderConsistencyEvaluator().evaluate(
+        shot_metadata=_consistency_metadata("warn"),
+        qa_signals={
+            "signal_source": "cv_probe_v1",
+            "visual_consistency": {
+                "product_visibility": 0.91,
+                "logo_label_similarity": 0.88,
+                "style_similarity": 0.84,
+            },
+        },
+    )
+
+    assert report.status == "pass"
+    assert report.action == "allow"
+    assert report.signal_source == "cv_probe_v1"
+    assert report.overall_score is not None and report.overall_score > 85
 
 
 def test_phase6a_7a_end_to_end_requires_review_blocks_paid_render() -> None:

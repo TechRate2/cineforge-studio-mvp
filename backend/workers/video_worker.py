@@ -56,6 +56,7 @@ from core import director_history, production_graph_store
 if TYPE_CHECKING:
     from pipeline.approval_lock import ApprovalLock
     from pipeline.contracts import SeedanceExecutionPlan
+    from longform.contracts import LongFormExecutionPlan
 
 
 # ============================================================
@@ -201,6 +202,275 @@ async def render_seedance_execution_plan(
         error_message=None if result.status in success_statuses else result.message,
     )
     return result.model_dump(mode="json")
+
+
+async def render_longform_execution_plan(
+    longform_plan: "LongFormExecutionPlan",
+    approval_lock: "ApprovalLock",
+    *,
+    idea: str,
+    editor_preview: dict[str, Any] | None = None,
+    jobs_store: Optional[dict] = None,
+    trace: Any | None = None,
+    dry_run_only: bool = False,
+    dry_run_approved: bool = False,
+) -> dict:
+    """Phase 10 safe render entrypoint for long-form segmented plans.
+
+    The worker reuses the Phase 9A LongFormRenderExecutor, then assembles the
+    completed segment videos into one final MP4. Paid rendering is still gated
+    by the single master ApprovalLock inside LongFormRenderExecutor.
+    """
+    from workers.final_assembly import FinalVideoAssemblyService
+    from workers.longform_render_executor import LongFormRenderExecutor
+    from monitoring import longform_monitor
+
+    job_id = str(getattr(longform_plan, "longform_plan_id", "") or "longform_execution")
+    master_plan = getattr(longform_plan, "master_execution_plan", None)
+    cost_estimate = getattr(master_plan, "cost_estimate", {}) or {}
+    longform_monitor.record_job_started(
+        job_id=job_id,
+        segment_count=len(longform_plan.segments),
+        model=str(getattr(master_plan, "model", "") or "seedance_2_0"),
+        cost_estimate=cost_estimate,
+        metadata={
+            "longform_plan_id": job_id,
+            "continuity_pressure": getattr(getattr(longform_plan, "continuity_bible", None), "continuity_pressure", None),
+        },
+    )
+    _update_job(
+        jobs_store,
+        job_id,
+        status="dry_run" if dry_run_only else "rendering",
+        current_step="longform_approval_lock_verify",
+        progress=5,
+        longform_progress={
+            "segment_count": len(longform_plan.segments),
+            "completed_segments": 0,
+            "current_segment_id": None,
+            "events": [],
+        },
+    )
+
+    def progress_callback(event: dict[str, object]) -> None:
+        try:
+            longform_monitor.record_segment_event(job_id=job_id, event=event)
+        except Exception:
+            logger.warning("[LongFormMonitor] segment event record failed", exc_info=True)
+        current = dict((jobs_store or {}).get(job_id, {}).get("longform_progress") or {})
+        events = list(current.get("events") or [])
+        events.append(event)
+        segment_count = int(event.get("segment_count") or len(longform_plan.segments) or 1)
+        completed = len({
+            str(item.get("segment_id"))
+            for item in events
+            if item.get("event") == "segment_completed" and item.get("segment_id")
+        })
+        base_progress = 10
+        segment_progress = int((completed / max(1, segment_count)) * 75)
+        _update_job(
+            jobs_store,
+            job_id,
+            status="rendering",
+            current_step=str(event.get("current_step") or event.get("event") or "longform_rendering"),
+            progress=min(88, base_progress + segment_progress),
+            longform_progress={
+                "segment_count": segment_count,
+                "completed_segments": completed,
+                "current_segment_id": event.get("segment_id"),
+                "last_event": event,
+                "events": events[-30:],
+            },
+        )
+
+    executor = LongFormRenderExecutor()
+    if dry_run_only:
+        result = await asyncio.to_thread(
+            executor.dry_run,
+            longform_plan=longform_plan,
+            approval_lock=approval_lock,
+            idea=idea,
+            trace=trace,
+        )
+        _update_job(
+            jobs_store,
+            job_id,
+            status="dry_run",
+            current_step="longform_dry_run_ready",
+            progress=100,
+            longform_render_execution=result.model_dump(mode="json"),
+            render_execution=result.model_dump(mode="json"),
+            pipeline_trace=trace.model_dump(mode="json") if hasattr(trace, "model_dump") else None,
+            error_message=None if result.status == "dry_run" else result.message,
+        )
+        return result.model_dump(mode="json")
+
+    result = await asyncio.to_thread(
+        executor.execute,
+        longform_plan=longform_plan,
+        approval_lock=approval_lock,
+        idea=idea,
+        dry_run_approved=dry_run_approved,
+        trace=trace,
+        progress_callback=progress_callback,
+    )
+    if result.status != "completed":
+        _record_longform_monitoring_qa(job_id=job_id, result=result)
+        alerts = longform_monitor.record_job_finished(job_id=job_id, status="failed", error=result.message)
+        if hasattr(trace, "append_stage"):
+            trace.append_stage(
+                stage="longform_monitoring",
+                stage_input={"job_id": job_id, "status": result.status},
+                stage_output={"alerts": [alert.model_dump(mode="json") for alert in alerts]},
+                decision="long-form monitoring recorded failed terminal state",
+                reasoning_summary="Monitoring captured long-form failure metrics and alert state.",
+                rules_applied=["phase13.monitoring.longform_terminal_state"],
+                warnings=[alert.message for alert in alerts],
+                cost_estimate=cost_estimate,
+            )
+        _update_job(
+            jobs_store,
+            job_id,
+            status="failed",
+            current_step=result.status,
+            progress=100,
+            longform_render_execution=result.model_dump(mode="json"),
+            render_execution=result.model_dump(mode="json"),
+            pipeline_trace=trace.model_dump(mode="json") if hasattr(trace, "model_dump") else None,
+            error_message=result.message,
+        )
+        return result.model_dump(mode="json")
+
+    _record_longform_monitoring_qa(job_id=job_id, result=result)
+    _update_job(
+        jobs_store,
+        job_id,
+        status="assembling",
+        current_step="final_video_assembly",
+        progress=92,
+        longform_render_execution=result.model_dump(mode="json"),
+        render_execution=result.model_dump(mode="json"),
+        pipeline_trace=trace.model_dump(mode="json") if hasattr(trace, "model_dump") else None,
+    )
+    assembly = await asyncio.to_thread(
+        FinalVideoAssemblyService().assemble,
+        job_id=job_id,
+        longform_plan_id=longform_plan.longform_plan_id,
+        render_result=result,
+        editor_preview=editor_preview or {},
+    )
+    if hasattr(trace, "append_stage"):
+        trace.append_stage(
+            stage="longform_final_assembly",
+            stage_input=result,
+            stage_output=assembly,
+            decision="final assembly uploaded" if assembly.status == "completed" else "final assembly failed",
+            reasoning_summary=(
+                "Completed long-form segments were concatenated into one MP4 and uploaded to R2/S3."
+                if assembly.status == "completed"
+                else "Final assembly or R2/S3 upload failed before delivery."
+            ),
+            rules_applied=["phase10.final_assembly.concat_segments", "phase10.final_assembly.r2_storage_strategy"],
+            warnings=[assembly.error] if assembly.error else [],
+        )
+    if assembly.status != "completed":
+        upload_alert = longform_monitor.record_upload_result(
+            job_id=job_id,
+            success=False,
+            storage_key=assembly.storage_key,
+            error=assembly.error,
+        )
+        alerts = longform_monitor.record_job_finished(job_id=job_id, status="failed", error=assembly.error)
+        if upload_alert is not None:
+            alerts.insert(0, upload_alert)
+        if hasattr(trace, "append_stage"):
+            trace.append_stage(
+                stage="longform_monitoring",
+                stage_input={"job_id": job_id, "status": "final_video_assembly_failed"},
+                stage_output={"alerts": [alert.model_dump(mode="json") for alert in alerts]},
+                decision="long-form monitoring recorded assembly failure",
+                reasoning_summary="Monitoring captured final assembly/R2 upload failure and terminal job state.",
+                rules_applied=["phase13.monitoring.r2_upload_failure_alert"],
+                warnings=[alert.message for alert in alerts],
+                cost_estimate=cost_estimate,
+            )
+        _update_job(
+            jobs_store,
+            job_id,
+            status="failed",
+            current_step="final_video_assembly_failed",
+            progress=100,
+            assembly_result=assembly.model_dump(mode="json"),
+            pipeline_trace=trace.model_dump(mode="json") if hasattr(trace, "model_dump") else None,
+            error_message=assembly.error or "Final video assembly failed.",
+        )
+        return {
+            **result.model_dump(mode="json"),
+            "assembly_result": assembly.model_dump(mode="json"),
+        }
+
+    longform_monitor.record_upload_result(
+        job_id=job_id,
+        success=True,
+        storage_key=assembly.storage_key,
+    )
+    alerts = longform_monitor.record_job_finished(job_id=job_id, status="completed")
+    if hasattr(trace, "append_stage"):
+        state = longform_monitor.load_job_state(job_id) or {}
+        trace.append_stage(
+            stage="longform_monitoring",
+            stage_input={"job_id": job_id},
+            stage_output={
+                "status": state.get("status"),
+                "duration_ms": state.get("duration_ms"),
+                "completed_segments": state.get("completed_segments"),
+                "alerts": [alert.model_dump(mode="json") for alert in alerts],
+            },
+            decision="long-form monitoring recorded completed terminal state",
+            reasoning_summary="Monitoring captured segment timings, QA scores, upload status, and terminal job duration.",
+            rules_applied=["phase13.monitoring.longform_job_metrics"],
+            warnings=[alert.message for alert in alerts],
+            cost_estimate=cost_estimate,
+        )
+    _update_job(
+        jobs_store,
+        job_id,
+        status="done",
+        current_step="done",
+        progress=100,
+        assembly_result=assembly.model_dump(mode="json"),
+        pipeline_trace=trace.model_dump(mode="json") if hasattr(trace, "model_dump") else None,
+        monitoring_state=longform_monitor.load_job_state(job_id),
+        output_url=assembly.final_video_url,
+        output_path=assembly.final_video_url,
+        editor_meta=editor_preview or {},
+        error_message=None,
+    )
+    return {
+        **result.model_dump(mode="json"),
+        "assembly_result": assembly.model_dump(mode="json"),
+    }
+
+
+def _record_longform_monitoring_qa(*, job_id: str, result: Any) -> None:
+    """Record post-render QA scores for monitoring without failing render flow."""
+    try:
+        from monitoring import longform_monitor
+
+        for report in getattr(result, "qa_reports", []) or []:
+            visual = getattr(report, "visual_consistency", None)
+            score = getattr(visual, "overall_score", None) if visual is not None else getattr(report, "consistency_score", None)
+            action = getattr(visual, "action", None) if visual is not None else getattr(report, "consistency_policy_action", None)
+            warnings = list(getattr(report, "warnings", []) or []) + list(getattr(report, "consistency_warnings", []) or [])
+            longform_monitor.record_consistency_score(
+                job_id=job_id,
+                segment_id=str(getattr(report, "shot_id", "") or "segment"),
+                score=score,
+                action=action,
+                warnings=[str(item) for item in warnings],
+            )
+    except Exception:
+        logger.warning("[LongFormMonitor] QA metric record failed", exc_info=True)
 
 
 def _first_seedance_output_url(result: Any) -> Optional[str]:
