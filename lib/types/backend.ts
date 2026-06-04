@@ -99,7 +99,6 @@ export interface JobCreatedResponse {
   job_id: string;
   status: 'pending';
   estimated_duration_s: number;
-  estimated_cost_usd: number;
   polling_url: string;
 }
 
@@ -112,7 +111,6 @@ export interface JobStatus {
   output_url?: string;
   thumbnail_url?: string;
   duration_s?: number;
-  cost_actual_usd?: number;
   error_message?: string;
   created_at: string;
   updated_at: string;

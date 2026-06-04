@@ -4,7 +4,7 @@ from typing import Optional
 from uuid import uuid4
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 from loguru import logger
 
@@ -17,7 +17,7 @@ from agent.image_specs import (
     MAX_COST_PER_IMAGE_USD,
 )
 from agent.model_guide import get_image_guide, NICHE_TAGS
-from agent.model_demos import get_demos
+from api.routes.paid_guard import require_direct_paid_generation
 
 router = APIRouter()
 IMAGE_JOBS: dict[str, dict] = {}
@@ -48,7 +48,6 @@ async def list_models():
     models = list_image_models_for_ui()
     for m in models:
         m["guide"] = get_image_guide(m["key"])
-        m["demos"] = get_demos(m["key"])
     return {"models": models, "available_niches": sorted(NICHE_TAGS)}
 
 
@@ -81,7 +80,12 @@ async def preview_payload(request: DirectImageRequest):
 
 
 @router.post("/generate")
-async def generate(request: DirectImageRequest):
+async def generate(
+    request: DirectImageRequest,
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
+    require_direct_paid_generation(x_admin_key)
+
     try:
         payload = build_image_payload(**request.model_dump(exclude_none=False))
     except ValueError as e:

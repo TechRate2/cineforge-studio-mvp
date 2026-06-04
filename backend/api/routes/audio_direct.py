@@ -7,7 +7,7 @@ from typing import Optional
 from uuid import uuid4
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 from loguru import logger
 
@@ -15,6 +15,7 @@ from vendors.genmax import (
     genmax_client,
     VIETNAMESE_VOICE_PRESETS,
 )
+from api.routes.paid_guard import require_direct_paid_generation
 
 router = APIRouter()
 AUDIO_JOBS: dict[str, dict] = {}
@@ -83,8 +84,13 @@ async def preview_cost(request: TTSRequest):
 
 
 @router.post("/generate")
-async def generate_tts(request: TTSRequest):
+async def generate_tts(
+    request: TTSRequest,
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
     """Submit TTS job (BILLABLE)."""
+    require_direct_paid_generation(x_admin_key)
+
     if genmax_client is None:
         raise HTTPException(500, detail="GENMAX_API_KEY chưa set")
 

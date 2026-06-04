@@ -49,7 +49,11 @@ async def llm_status():
             "analyzer": settings.llm_model_analyzer,
             "generator": settings.llm_model_generator,
             "vision": settings.llm_model_vision,
-            "premium": settings.claude_model,
+            "premium": settings.llm_model_premium,
+        },
+        "cost_guard": {
+            "allow_pro_for_complex_brief": settings.llm_allow_pro_for_complex_brief,
+            "allow_premium_brain": settings.llm_allow_premium_brain,
         },
         "keys": {
             "atlascloud_pay_as_you_go": bool(settings.atlascloud_api_key),

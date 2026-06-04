@@ -27,6 +27,7 @@ from loguru import logger
 from pydantic import BaseModel, Field, ValidationError
 
 from vendors.llm_router import llm
+from skills.niche_playbooks import list_niche_keys
 
 
 # ============================================================
@@ -44,8 +45,13 @@ class PlannerInput(BaseModel):
         "tiktok",
         description="tiktok | reels | youtube_short | youtube_long | facebook | universal",
     )
+    target_market: str = Field(
+        "auto",
+        description="auto | vn | us | sea | jp | kr | global. Guides localization, culture, dialogue, claims, captions.",
+    )
+    market_playbook: dict = Field(default_factory=dict)
     duration_hint_s: Optional[int] = Field(
-        None, ge=4, le=180,
+        None, ge=4, le=1800,
         description="Optional user hint — None thì planner tự quyết theo niche + platform",
     )
 
@@ -53,7 +59,7 @@ class PlannerInput(BaseModel):
 class PlannerOutput(BaseModel):
     """Niche + viral hook + mood + suggested settings."""
 
-    niche: str = Field(..., description="beauty / food / tech / lifestyle / drama / ugc_review / ...")
+    niche: str = Field(..., description="One supported niche key from niche_playbooks.py")
     primary_emotion: str = Field(..., description="vd: curiosity / desire / surprise / nostalgia")
 
     # Hook 3-second — điểm scroll-stop
@@ -78,7 +84,7 @@ class PlannerOutput(BaseModel):
     )
 
     # Settings hints — Director skill final decide
-    suggested_duration_s: int = Field(..., ge=4, le=180)
+    suggested_duration_s: int = Field(..., ge=4, le=1800)
     suggested_aspect_ratio: str = Field(..., description="9:16 | 16:9 | 1:1")
     suggested_audio_mode: str = Field(
         ..., description="silent_native | dialogue_vo | asmr_macro"
@@ -94,6 +100,9 @@ class PlannerOutput(BaseModel):
 # System prompt
 # ============================================================
 
+_SUPPORTED_NICHES = ", ".join(list_niche_keys())
+
+
 _PLANNER_SYSTEM_PROMPT = """Bạn là Senior Creative Director cho viral short video AI generation.
 
 NHIỆM VỤ: Từ ý tưởng ngắn của user → output 1 JSON object với niche/hook/mood/style.
@@ -102,8 +111,9 @@ QUY TẮC SẮT:
 1. HOOK 3-SECOND: scroll-stop là KEY. Mô tả EXACT visual + action 3 giây đầu, không vague.
    - Bad:  "show character speaking"
    - Good: "extreme close-up of trembling hand opening package, golden light spill, no face yet"
-2. NICHE: pick chính xác 1 trong các category phổ biến VN — beauty / food / tech / lifestyle /
-   drama / ugc_review / fashion / automotive / fitness / education / asmr.
+2. NICHE: pick chính xác 1 supported niche key:
+   {{SUPPORTED_NICHES}}
+   Nếu brief mơ hồ, chọn ugc_review cho product/creator proof hoặc lifestyle cho daily/emotional content.
 3. MOOD: 1 cụm 2-4 từ giàu hình ảnh.
 4. STYLE: cinematography + color_grading + lighting trong 1-2 câu.
 5. DURATION:
@@ -112,6 +122,12 @@ QUY TẮC SẮT:
    - universal → 15s default
    Nếu user có duration_hint_s → tôn trọng, chỉ khuyên khác khi quá lệch niche.
 6. ASPECT: tiktok/reels/short → 9:16. youtube_long/facebook → 16:9.
+7. TARGET MARKET:
+   - auto: infer from user language, product context, references, and platform.
+   - vn: Vietnamese culture, natural Vietnamese dialogue/caption, local social proof, avoid US-only idioms.
+   - us/global: direct English hook, faster claim clarity, broad platform-native phrasing.
+   - jp/kr/sea: localize manners, pacing, beauty/food/lifestyle cues, and safe cultural references.
+   Put market-specific guidance in director_notes. Do not stereotype; make the story feel local and real.
 
 OUTPUT: DUY NHẤT 1 JSON object, không markdown fence, không text trước/sau.
 
@@ -123,12 +139,12 @@ JSON SCHEMA (mọi field BẮT BUỘC):
   "hook_first_3s": "<concrete visual + action description>",
   "mood": "<2-4 word phrase>",
   "style_direction": "<1-2 sentence cinematography + color + lighting>",
-  "suggested_duration_s": <int 4-180>,
+  "suggested_duration_s": <int 4-1800>,
   "suggested_aspect_ratio": "<9:16|16:9|1:1>",
   "suggested_audio_mode": "<silent_native|dialogue_vo|asmr_macro>",
   "director_notes": "<free-form, 0-2 sentences>"
 }
-"""
+""".replace("{{SUPPORTED_NICHES}}", _SUPPORTED_NICHES)
 
 
 # ============================================================
@@ -165,6 +181,8 @@ class AutoPlanner:
         user_msg = json.dumps({
             "user_idea": inp.user_idea,
             "target_platform": inp.target_platform,
+            "target_market": inp.target_market,
+            "market_playbook": inp.market_playbook,
             "duration_hint_s": inp.duration_hint_s,
             "n_reference_images": len(inp.reference_image_urls),
             "n_reference_videos": len(inp.reference_video_urls),

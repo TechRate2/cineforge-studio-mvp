@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     llm_model_generator: str = "deepseek-ai/deepseek-v4-flash"
     llm_model_vision: str = "qwen/qwen3-vl-30b-a3b-instruct"   # vision-capable (product image analysis)
     llm_model_premium: str = "anthropic/claude-sonnet-4.6"     # opt-in premium
+    llm_allow_pro_for_complex_brief: bool = False              # cost guard: Pro only when explicitly enabled
+    llm_allow_premium_brain: bool = False                      # cost guard: Claude brain only when explicitly enabled
 
     # AtlasCloud — 2 wallet riêng, 2 key riêng
     # Pay-as-you-go: image/video/upload via /api/v1/model/*
@@ -65,6 +67,24 @@ class Settings(BaseSettings):
     r2_secret_access_key: str = ""
     r2_bucket_name: str = "ugc-vietnam-output"
     r2_public_url: str = ""
+    r2_endpoint_url: str = ""
+    r2_presigned_url_expires_s: int = 7 * 24 * 60 * 60
+    r2_final_video_access_mode: str = "auto"  # auto | public | private
+    r2_final_video_presigned_expires_s: int = 90 * 24 * 60 * 60
+    r2_presigned_refresh_enabled: bool = True
+    r2_upload_max_attempts: int = 3
+
+    # Post-render visual consistency probe. Uses OpenCV locally to derive
+    # deterministic CV signals from rendered segment videos and reference
+    # images before the policy evaluator scores them.
+    post_render_cv_probe_enabled: bool = True
+    post_render_cv_probe_max_frames: int = 8
+    post_render_cv_probe_download_timeout_s: int = 30
+    post_render_cv_probe_enable_embedding: bool = True
+    post_render_cv_probe_embedding_model_path: str = ""
+    post_render_cv_probe_embedding_input_size: int = 224
+    post_render_cv_probe_max_regions: int = 8
+    post_render_cv_probe_frame_strategy: str = "smart"
 
     # Database & Cache
     database_url: str = "postgresql://postgres:mypass@localhost:5432/ugc_vn"
@@ -79,6 +99,11 @@ class Settings(BaseSettings):
     # Set `ADMIN_API_KEY` env in production. When empty, admin mutations are
     # ONLY allowed when `app_env=='development'` (localhost dev convenience).
     admin_api_key: str = ""
+
+    # Direct image/video/audio generate endpoints bypass the autonomous Agent.
+    # Keep them off by default for SaaS safety; normal users should use the
+    # approved autonomous render flow instead of direct vendor submission.
+    allow_direct_paid_generation: bool = False
 
     # Paths
     base_dir: Path = Path(__file__).parent.parent

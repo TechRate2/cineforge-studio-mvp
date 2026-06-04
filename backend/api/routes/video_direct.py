@@ -8,7 +8,7 @@ from typing import Optional
 from uuid import UUID, uuid4
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 from loguru import logger
 
@@ -19,9 +19,10 @@ from agent.model_specs import (
     estimate_cost,
     list_models_for_ui,
     MAX_COST_PER_VIDEO_USD,
+    resolve_video_model_variant,
 )
 from agent.model_guide import get_video_guide, recommend_for_use_case, NICHE_TAGS
-from agent.model_demos import get_demos
+from api.routes.paid_guard import require_direct_paid_generation
 
 router = APIRouter()
 
@@ -41,6 +42,16 @@ class DirectVideoRequest(BaseModel):
     images: Optional[list[str]] = Field(None, description="Reference images list (Seedance ref)")
     image: Optional[str] = Field(None, description="First-frame URL (Wan / Seedance i2v)")
     last_image: Optional[str] = None
+    reference_videos: Optional[list[str]] = Field(
+        None,
+        max_length=3,
+        description="Seedance 2.0 video refs for motion/camera/pacing",
+    )
+    reference_audios: Optional[list[str]] = Field(
+        None,
+        max_length=3,
+        description="Seedance 2.0 audio refs for beat/voice/SFX guidance",
+    )
 
     # Common
     duration_s: Optional[int] = None
@@ -59,14 +70,31 @@ class DirectVideoRequest(BaseModel):
     camera_fixed: Optional[bool] = Field(None, description="Seedance v1.5 Pro — lock camera position")
 
 
+def _resolve_direct_model_key(request: DirectVideoRequest) -> str:
+    """Resolve UI aliases to concrete AtlasCloud video models."""
+    if request.model_key in VIDEO_MODEL_SPECS:
+        return request.model_key
+
+    has_images = bool(request.images)
+    has_single_image = bool(request.image)
+    has_video_refs = bool(request.reference_videos)
+    has_visual_refs = has_images or has_single_image or has_video_refs
+
+    if has_single_image and not has_images and not has_video_refs:
+        variant = "i2v"
+    elif has_visual_refs:
+        variant = "ref"
+    else:
+        variant = "t2v"
+    return resolve_video_model_variant(request.model_key, variant)
+
+
 @router.get("/models")
 async def list_models():
     """Liệt model + UI metadata + guide curated từ feedback thực tế."""
     models = list_models_for_ui()
-    # Enrich với guide + demo media URLs
     for m in models:
         m["guide"] = get_video_guide(m["key"])
-        m["demos"] = get_demos(m["key"])
     return {"models": models, "available_niches": sorted(NICHE_TAGS)}
 
 
@@ -100,11 +128,14 @@ async def preview_payload(request: DirectVideoRequest):
     Frontend gọi mỗi khi user đổi setting → show cost preview + validate.
     """
     try:
+        model_key = _resolve_direct_model_key(request)
         payload = build_payload(
-            model_key=request.model_key,
+            model_key=model_key,
             prompt=request.prompt,
             images=request.images,
             image=request.image,
+            reference_videos=request.reference_videos,
+            reference_audios=request.reference_audios,
             duration_s=request.duration_s,
             resolution=request.resolution,
             aspect_ratio=request.aspect_ratio,
@@ -119,33 +150,43 @@ async def preview_payload(request: DirectVideoRequest):
             return_last_frame=request.return_last_frame,
             camera_fixed=request.camera_fixed,
         )
-        spec = get_spec(request.model_key)
+        spec = get_spec(model_key)
         duration = request.duration_s or spec["duration"]["default"]
-        cost = estimate_cost(request.model_key, duration)
+        cost = estimate_cost(model_key, duration)
         return {
             "payload": payload,
             "cost_usd": round(cost, 4),
             "cost_vnd": round(cost * 24500),
             "exceeds_budget": cost > MAX_COST_PER_VIDEO_USD,
             "endpoint": spec["endpoint"],
+            "model_key": model_key,
+            "requested_model_key": request.model_key,
         }
     except ValueError as e:
         raise HTTPException(400, detail=str(e))
 
 
 @router.post("/generate")
-async def generate_direct(request: DirectVideoRequest):
+async def generate_direct(
+    request: DirectVideoRequest,
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
     """Submit job AtlasCloud (BILLABLE — gọi thật tốn tiền).
 
     Frontend phải confirm với user trước khi gọi endpoint này.
     """
     # 1. Build payload — validate per-spec
+    require_direct_paid_generation(x_admin_key)
+
     try:
+        model_key = _resolve_direct_model_key(request)
         payload = build_payload(
-            model_key=request.model_key,
+            model_key=model_key,
             prompt=request.prompt,
             images=request.images,
             image=request.image,
+            reference_videos=request.reference_videos,
+            reference_audios=request.reference_audios,
             duration_s=request.duration_s,
             resolution=request.resolution,
             aspect_ratio=request.aspect_ratio,
@@ -164,9 +205,9 @@ async def generate_direct(request: DirectVideoRequest):
         raise HTTPException(400, detail=str(e))
 
     # 2. Cost guard
-    spec = get_spec(request.model_key)
+    spec = get_spec(model_key)
     duration = request.duration_s or spec["duration"]["default"]
-    cost = estimate_cost(request.model_key, duration)
+    cost = estimate_cost(model_key, duration)
     if cost > MAX_COST_PER_VIDEO_USD:
         raise HTTPException(
             400,
@@ -183,12 +224,12 @@ async def generate_direct(request: DirectVideoRequest):
         )
 
     job_id = str(uuid4())
-    spec = get_spec(request.model_key)
+    spec = get_spec(model_key)
     # Per-model endpoint override — Wan 2.7 video dùng /generateImage, Seedance v1.5 poll /result
     submit_path = spec.get("submit_path", "/model/generateVideo")
     poll_path = spec.get("poll_path", "/model/prediction")
     logger.info(
-        f"[Direct] Submit {request.model_key} job {job_id} cost=${cost:.3f} submit={submit_path}"
+        f"[Direct] Submit {model_key} job {job_id} cost=${cost:.3f} submit={submit_path}"
     )
 
     try:
@@ -209,7 +250,8 @@ async def generate_direct(request: DirectVideoRequest):
     DIRECT_JOBS[job_id] = {
         "job_id": job_id,
         "prediction_id": prediction_id,
-        "model_key": request.model_key,
+        "model_key": model_key,
+        "requested_model_key": request.model_key,
         "payload": payload,
         "cost_estimate_usd": cost,
         "poll_path": poll_path,
@@ -221,6 +263,8 @@ async def generate_direct(request: DirectVideoRequest):
         "job_id": job_id,
         "prediction_id": prediction_id,
         "status": "submitted",
+        "model_key": model_key,
+        "requested_model_key": request.model_key,
         "estimated_cost_usd": round(cost, 4),
         "estimated_cost_vnd": round(cost * 24500),
         "polling_url": f"/api/v1/video/direct/{job_id}",
@@ -277,6 +321,14 @@ async def poll_direct_job(job_id: str):
     if status in ("completed", "succeeded"):
         outputs = data.get("outputs", [])
         out["video_url"] = outputs[0] if outputs else data.get("output_url")
+        last_frame = (
+            data.get("last_frame_url")
+            or data.get("lastFrameUrl")
+            or data.get("last_frame")
+            or (data.get("extra") or {}).get("last_frame_url")
+        )
+        if last_frame:
+            out["last_frame_url"] = last_frame
     elif status == "failed":
         out["error"] = data.get("error")
 

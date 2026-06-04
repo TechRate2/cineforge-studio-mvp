@@ -73,7 +73,7 @@ VIDEO_GUIDE: dict[str, dict[str, Any]] = {
 
     "seedance_2_0_ref": {
         "best_for": [
-            "Multi-shot storytelling 60s+ (compared 1.5 Pro chỉ 10s)",
+            "Short cinematic multi-shot storytelling inside 4-15s generations, then chained for longer films",
             "Cinematic match cut + whip pan + advanced camera trajectory",
             "Multi-ref synthesis: 9 images + 3 videos + 3 audio cùng generation",
             "Hyper-realistic physics + fluid dynamics",
@@ -84,7 +84,7 @@ VIDEO_GUIDE: dict[str, dict[str, Any]] = {
             "Physics score +31.7 vs 1.5 (gravity, inertia chuẩn)",
             "Multimodal: 9 img + 3 vid + 3 audio in 1 pass",
             "Audio gen + video sync trong cùng pass (không layer post)",
-            "Real lipsync multi-language",
+            "Native audio generation/sync, but exact driven lip-sync still needs Wan/InfiniteTalk/LipSync benchmark lane",
             "Super-resolution 720p-SR / 1080p-SR / 1440p-SR",
         ],
         "weaknesses": [

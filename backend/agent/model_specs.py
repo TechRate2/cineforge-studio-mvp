@@ -334,11 +334,13 @@ def build_payload(
     negative_prompt: Optional[str] = None,
     seed: Optional[int] = None,
     generate_audio: Optional[bool] = None,
+    movement_amplitude: Optional[str] = None,
     audio_url: Optional[str] = None,                 # Wan 2.7 driven audio (single)
     last_image: Optional[str] = None,
     prompt_extend: Optional[bool] = None,
     watermark: Optional[bool] = None,
     return_last_frame: Optional[bool] = None,
+    camera_fixed: Optional[bool] = None,
 ) -> dict:
     """Build AtlasCloud payload đúng per-model spec.
 
@@ -410,9 +412,11 @@ def build_payload(
         max_n = spec.get("max_references", 9)
         min_n = spec.get("min_references", 0)
         n_images = len(images) if images else 0
-        if min_n > 0 and n_images < min_n:
+        n_video_refs = len(reference_videos) if reference_videos else 0
+        if min_n > 0 and n_images < min_n and n_video_refs == 0:
             raise ValueError(
-                f"{model_key} cần tối thiểu {min_n} reference_images (nhận {n_images})"
+                f"{model_key} needs at least {min_n} visual reference "
+                f"(reference_images or reference_videos; got images={n_images}, videos={n_video_refs})"
             )
         if n_images > max_n:
             raise ValueError(f"{model_key} max {max_n} reference_images, nhận {n_images}")
@@ -444,6 +448,8 @@ def build_payload(
         payload["seed"] = seed
     if generate_audio is not None and "generate_audio" in extras:
         payload["generate_audio"] = generate_audio
+    if movement_amplitude is not None and "movement_amplitude" in extras:
+        payload["movement_amplitude"] = movement_amplitude
     if audio_url is not None and "audio" in extras:
         payload["audio"] = audio_url    # Wan 2.7 driven audio
     if last_image is not None and "last_image" in extras:
@@ -454,6 +460,8 @@ def build_payload(
         payload["watermark"] = watermark
     if return_last_frame is not None and "return_last_frame" in extras:
         payload["return_last_frame"] = return_last_frame
+    if camera_fixed is not None and "camera_fixed" in extras:
+        payload["camera_fixed"] = camera_fixed
 
     # Final validate required
     for req in spec["required"]:
@@ -473,6 +481,68 @@ def estimate_cost(model_key: str, duration_s: int) -> float:
         higher = [d for d in discrete if d >= actual_duration]
         actual_duration = min(higher) if higher else max(discrete)
     return spec["cost_per_second_usd"] * actual_duration
+
+
+USER_MODEL_COST_SPEC_KEYS: dict[str, str] = {
+    "auto": "seedance_2_0_fast_ref",
+    "seedance_2_0": "seedance_2_0_ref",
+    "seedance_2_0_fast": "seedance_2_0_fast_ref",
+    "wan_2_7": "wan_2_7_i2v",
+}
+
+
+VIDEO_MODEL_VARIANTS: dict[str, dict[str, str]] = {
+    "seedance_2_0": {
+        "ref": "seedance_2_0_ref",
+        "i2v": "seedance_2_0_i2v",
+        "t2v": "seedance_2_0_t2v",
+    },
+    "seedance_2_0_fast": {
+        "ref": "seedance_2_0_fast_ref",
+        "i2v": "seedance_2_0_fast_i2v",
+        "t2v": "seedance_2_0_fast_t2v",
+    },
+    "wan_2_7": {
+        "ref": "wan_2_7_i2v",
+        "i2v": "wan_2_7_i2v",
+        "t2v": "wan_2_7_i2v",
+    },
+}
+
+_CONCRETE_TO_FAMILY: dict[str, str] = {
+    concrete: family
+    for family, variants in VIDEO_MODEL_VARIANTS.items()
+    for concrete in variants.values()
+}
+
+
+def get_video_model_family(model_key_or_alias: str) -> str:
+    """Return the user-facing model family for an alias or concrete spec key."""
+    if model_key_or_alias == "auto":
+        return "seedance_2_0_fast"
+    return _CONCRETE_TO_FAMILY.get(model_key_or_alias, model_key_or_alias)
+
+
+def get_user_model_cost_rate(model_key_or_alias: str) -> float:
+    """Return authoritative USD/second for a concrete model key or user alias."""
+    spec_key = USER_MODEL_COST_SPEC_KEYS.get(model_key_or_alias, model_key_or_alias)
+    return float(get_spec(spec_key)["cost_per_second_usd"])
+
+
+def resolve_video_model_variant(model_key_or_alias: str, variant: str) -> str:
+    """Resolve a user alias or concrete model key to ref/i2v/t2v concrete key.
+
+    This keeps Seedance 2.0 routing consistent across direct, director,
+    single-call, per-shot, and refine paths.
+    """
+    if variant not in {"ref", "i2v", "t2v"}:
+        raise ValueError(f"Unknown video model variant '{variant}'")
+    family = get_video_model_family(model_key_or_alias)
+    variants = VIDEO_MODEL_VARIANTS.get(family)
+    if not variants:
+        get_spec(model_key_or_alias)
+        return model_key_or_alias
+    return variants[variant]
 
 
 def list_models_for_ui() -> list[dict]:

@@ -43,7 +43,7 @@ export function Modal({
         {(title || showClose) && (
           <div className="flex items-start justify-between gap-4 px-6 md:px-8 py-5 border-b border-hairline">
             <div className="min-w-0">
-              {title && <h2 className="text-xl md:text-2xl font-bold tracking-tight">{title}</h2>}
+              {title && <h2 className="text-xl md:text-2xl font-bold">{title}</h2>}
               {subtitle && <p className="text-sm text-text-muted mt-1">{subtitle}</p>}
             </div>
             {showClose && (

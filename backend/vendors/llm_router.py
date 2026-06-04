@@ -5,7 +5,7 @@ mà không phải sửa logic agent.
 
 Routing default (override qua env):
     analyzer task (insight extraction, short)  → deepseek-v4-flash   ($0.14/$0.28)
-    generator task (prompt crafting, reasoning) → deepseek-v4-pro     ($1.68/$3.38)
+    generator task (prompt crafting, reasoning) → deepseek-v4-flash   ($0.14/$0.28)
     vision task (analyze ảnh sản phẩm)         → qwen3-vl-30b-instruct ($0.15/$0.60)
     premium opt-in                              → claude-sonnet-4.6   ($3/$15)
 
@@ -21,6 +21,10 @@ from vendors._retry import llm_retry
 
 
 TaskType = Literal["analyzer", "generator", "vision", "premium"]
+_FLASH_GENERATOR_MODEL = "deepseek-ai/deepseek-v4-flash"
+_PRO_GENERATOR_MODELS = {
+    "deepseek-ai/deepseek-v4-pro",
+}
 
 
 class LLMRouter:
@@ -60,12 +64,20 @@ class LLMRouter:
         if task == "analyzer":
             return ("atlascloud", settings.llm_model_analyzer)
         if task == "generator":
-            return ("atlascloud", settings.llm_model_generator)
+            configured = settings.llm_model_generator or _FLASH_GENERATOR_MODEL
+            if configured in _PRO_GENERATOR_MODELS:
+                logger.warning(
+                    "[LLM Router] generator model is configured as Pro but "
+                    "default generator calls are cost-guarded — using Flash. "
+                    "Pass model='deepseek-ai/deepseek-v4-pro' explicitly for an approved Pro call."
+                )
+                configured = _FLASH_GENERATOR_MODEL
+            return ("atlascloud", configured)
         if task == "vision":
             return ("atlascloud", settings.llm_model_vision)
         if task == "premium":
             # Claude Sonnet 4.6 qua AtlasCloud (not Anthropic SDK direct)
-            return ("atlascloud", "anthropic/claude-sonnet-4.6")
+            return ("atlascloud", settings.llm_model_premium)
         raise ValueError(f"Unknown task type: {task}")
 
     def complete(

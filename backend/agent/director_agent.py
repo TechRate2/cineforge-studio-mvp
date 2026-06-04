@@ -89,6 +89,7 @@ class DirectorAgent:
         niche_hint: Optional[str] = None,
         reference_role_hints: Optional[list[Optional[str]]] = None,
         progress_callback: ProgressCallback = None,
+        reference_audios: Optional[list[str]] = None,
     ) -> DirectorPlan:
         """Main entry — return validated DirectorPlan.
 
@@ -144,6 +145,8 @@ class DirectorAgent:
                 logger.warning(f"[DirectorAgent] progress_cb fail: {e}")
 
         t_start = time.time()
+        reference_videos = list((reference_videos or [])[:3])
+        reference_audios = list((reference_audios or [])[:3])
         plan_id = f"dp_{uuid.uuid4().hex[:12]}"
         logger.info(
             f"[DirectorAgent] plan {plan_id} start — duration={tech_config.get('duration_s')}s, "
@@ -259,6 +262,7 @@ class DirectorAgent:
             product_input=product_input,
             reference_images=reference_images,
             reference_videos=reference_videos,
+            reference_audios=reference_audios,
             user_brief=user_brief,
             context_injection=context_injection,
             tech_config=tech_config,
@@ -742,6 +746,7 @@ class DirectorAgent:
         tech_config: dict,
         niche_hint: Optional[str],
         ref_hints: list[dict],
+        reference_audios: Optional[list[str]] = None,
     ) -> dict:
         # V3.1 — inject model capability summary so the Director plans within
         # the chosen model's hard constraints.
@@ -760,6 +765,7 @@ class DirectorAgent:
             "reference_images": reference_images,
             "reference_hints": ref_hints,
             "reference_videos": reference_videos,
+            "reference_audios": list((reference_audios or [])[:3]),
             "user_brief": user_brief,
             "context_injection": context_injection,
             "tech_config": tc,
@@ -782,13 +788,9 @@ class DirectorAgent:
         # Storyboard gen — assume Seedream v4.5 ~$0.04 / image, only if user opts in
         sb_cost = 0.0  # filled when /storyboard endpoint called
 
-        # Render cost — rough per-model $/s (V6: 3 user-facing models)
-        per_s = {
-            "seedance_2_0": 0.096,
-            "seedance_2_0_fast": 0.076,
-            "wan_2_7": 0.10,
-            "auto": 0.076,
-        }.get(tech_config.get("model", "auto"), 0.076)
+        # Render cost comes from model_specs to avoid pricing drift.
+        from agent.model_specs import get_user_model_cost_rate
+        per_s = get_user_model_cost_rate(tech_config.get("model", "auto"))
         render_cost = round(per_s * plan.continuity_bible.duration_s, 3)
 
         # Audio cost

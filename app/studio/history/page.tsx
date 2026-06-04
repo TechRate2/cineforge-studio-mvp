@@ -12,7 +12,7 @@ export default function HistoryPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="h-section flex items-center gap-3"><Clock size={26} /> Project history</h1>
-          <p className="text-sm text-text-muted mt-1">Mọi plan & render bạn đã build — tái sử dụng / fork lại.</p>
+          <p className="text-sm text-text-muted mt-1">Review finished videos and reopen recent autonomous renders.</p>
         </div>
         <button onClick={() => void refresh({ force: true })} className="btn-outline" disabled={loading}>
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
@@ -36,8 +36,8 @@ export default function HistoryPage() {
       {!loading && items.length === 0 && (
         <div className="surface-2 rounded-card p-12 text-center">
           <Clock size={32} className="mx-auto text-text-subtle mb-3" />
-          <h3 className="font-semibold mb-1">Chưa có project nào</h3>
-          <p className="text-sm text-text-muted">Quay lại Studio để tạo plan đầu tiên.</p>
+          <h3 className="font-semibold mb-1">No renders yet</h3>
+          <p className="text-sm text-text-muted">Return to Studio and ask the agent for your first video.</p>
         </div>
       )}
 
@@ -78,7 +78,7 @@ export default function HistoryPage() {
                   }`}>{it.status}</span>
                 </div>
                 <div className="flex items-center justify-between mt-3 text-[11px] text-text-subtle">
-                  <span>{it.duration_s ?? '—'}s · ${(it.cost_estimate_usd ?? 0).toFixed(2)}</span>
+                  <span>{it.duration_s != null ? `${it.duration_s}s` : 'Autonomous render'}</span>
                   <button
                     onClick={() => remove(it.job_id)}
                     className="opacity-0 group-hover:opacity-100 transition text-text-subtle hover:text-accent-orange"

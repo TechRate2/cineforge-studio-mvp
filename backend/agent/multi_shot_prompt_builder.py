@@ -6,24 +6,24 @@ only and renders per-shot.
 
 | Model            | Multi-shot inline | Per-shot chain | Max dur single-call |
 |------------------|-------------------|----------------|---------------------|
-| seedance_2_0     | ✅ NATIVE         | (alt)          | 60s                 |
-| seedance_2_0_fast| ✅ NATIVE         | (alt)          | 60s                 |
+| seedance_2_0     | ✅ NATIVE         | (alt)          | 15s                 |
+| seedance_2_0_fast| ✅ NATIVE         | (alt)          | 15s                 |
 | wan_2_7          | ❌ (i2v only)     | ✅ REQUIRED    | 5/10s               |
 
 Strategy dispatch (V6.1 — updated for long-form):
-    seedance_2_0[_fast] + duration ≤ 60s + 1-6 shots → SINGLE_CALL_MULTI_SHOT
-    > 60s OR > 6 shots                                → PER_SHOT_CHAIN
+    seedance_2_0[_fast] + duration ≤ 15s + 1-6 shots → SINGLE_CALL_MULTI_SHOT
+    > 15s OR > 6 shots                                → PER_SHOT_CHAIN
     Wan 2.7                                            → PER_SHOT_CHAIN
 
 V6.1 — Long-form support:
-    Autonomous Director's AutoDirector skill splits >60s plans into N chunks
-    (each ≤60s) and feeds them via per_shot_chain — last_frame of chunk N
-    becomes first frame of chunk N+1 (existing chain logic handles this).
+    Autonomous Director splits longer plans into 4-15s shots and scene/chunk
+    groups, then feeds them via per_shot_chain — last_frame of shot/chunk N
+    can become first frame of N+1 when continuity matters.
 
 Sources:
   - Byteplus official Dreamina Seedance 2.0 docs (Apr 2026)
   - WaveSpeed Seedance 2.0 template (Feb 2026)
-  - AtlasCloud Seedance 2.0 docs (60s max single-call, 9img+3vid+3aud refs)
+  - AtlasCloud/Seedance 2.0 docs (4-15s generation, 9img+3vid+3aud refs)
 """
 from __future__ import annotations
 
@@ -33,6 +33,9 @@ from loguru import logger
 
 from agent.schemas import ContinuityBible, Shot, ReferenceAsset
 from agent import continuity_manager
+from agent.reference_manifest import build_reference_manifest, format_reference_manifest
+from agent.reference_policy_optimizer import optimize_shot_references
+from agent.model_specs import get_video_model_family
 
 
 RenderStrategy = Literal[
@@ -81,12 +84,13 @@ def pick_strategy(
     if has_cross_location_cut:
         return "per_shot_chain"
 
-    # SEEDANCE 2.0 CORE PATH — single-call multi-shot up to 60s (V6.1)
-    # Note: per-shot duration still ≤15s (Seedance cap), but TOTAL can be 60s.
-    if user_model in ("seedance_2_0", "seedance_2_0_fast") and total_duration_s <= 60 and 1 <= num_shots <= 6:
+    family = get_video_model_family(user_model)
+
+    # SEEDANCE 2.0 CORE PATH — single-call multi-shot up to one generation.
+    if family in ("seedance_2_0", "seedance_2_0_fast") and total_duration_s <= 15 and 1 <= num_shots <= 6:
         return "single_call_multi_shot"
 
-    # FALLBACK PATH — Wan 2.7 + long-form (>60s, auto-chunked by AutoDirector)
+    # FALLBACK PATH — Wan 2.7 + longer Seedance plans, auto-chunked upstream
     return "per_shot_chain"
 
 
@@ -98,6 +102,8 @@ def build_seedance_2_multi_shot(
     shots: list[Shot],
     reference_images: list[str],
     *,
+    reference_videos: Optional[list[str]] = None,
+    reference_audios: Optional[list[str]] = None,
     model_key: str = "seedance_2_0_ref",  # or seedance_2_0_fast_ref
     resolution: str = "720p",
 ) -> SingleCallSpec:
@@ -122,15 +128,41 @@ def build_seedance_2_multi_shot(
     Same character verbatim: <face_signature>. Outfit: <invariant>.
     Location: <single environment>. NO CTA frame, NO sales imperatives.
     """
+    reference_videos = list((reference_videos or [])[:3])
+    reference_audios = list((reference_audios or [])[:3])
+
     # ---- 1. Bound references (union across shots, dedup, preserve order) ----
     seen_indices: set[int] = set()
     ordered_refs: list[ReferenceAsset] = []
     for shot in shots:
-        for r in continuity_manager.references_for_shot(bible, shot):
+        raw_refs = continuity_manager.references_for_shot(bible, shot)
+        ref_policy = optimize_shot_references(
+            bible=bible,
+            shot=shot,
+            image_refs=raw_refs,
+            reference_videos=reference_videos,
+            reference_audios=reference_audios,
+            model_key=model_key,
+            render_mode="ref_to_video",
+            max_image_refs=4,
+        )
+        for r in ref_policy.get("image_refs") or []:
             if r.index not in seen_indices and 0 <= r.index < len(reference_images):
                 ordered_refs.append(r)
                 seen_indices.add(r.index)
+            if len(ordered_refs) >= 9:
+                break
+        if len(ordered_refs) >= 9:
+            break
     ref_urls = [reference_images[r.index] for r in ordered_refs]
+    reference_manifest = build_reference_manifest(
+        image_refs=ordered_refs,
+        video_count=len(reference_videos),
+        audio_count=len(reference_audios),
+        video_roles=_reference_roles_from_bible(bible, "videos"),
+        audio_roles=_reference_roles_from_bible(bible, "audios"),
+    )
+    prompt_formula = _prompt_formula_block(bible)
 
     # ---- 2. Build [STYLE & MOOD] section ----
     vs = bible.visual_style
@@ -192,6 +224,26 @@ def build_seedance_2_multi_shot(
         dynamic_lines.append("")  # blank line between shots
 
     dynamic_block = "\n".join(dynamic_lines).rstrip()
+    if reference_videos:
+        video_tags = ", ".join(
+            f"@video_{i + 1} as {label}"
+            for i, label in enumerate([
+                "camera movement reference",
+                "motion style reference",
+                "shot pacing reference",
+            ][:len(reference_videos)])
+        )
+        dynamic_block = f"{dynamic_block}\n\n[VIDEO REFERENCES]\nUse {video_tags}."
+    if reference_audios:
+        audio_tags = ", ".join(
+            f"@audio_{i + 1} as {label}"
+            for i, label in enumerate([
+                "beat reference",
+                "sound design reference",
+                "dialogue or voice pacing reference",
+            ][:len(reference_audios)])
+        )
+        dynamic_block = f"{dynamic_block}\n\n[AUDIO REFERENCES]\nUse {audio_tags}."
 
     # ---- 4. Build [STATIC DESCRIPTION] — CHARACTER_BLOCK reusable ----
     static_parts: list[str] = []
@@ -231,6 +283,8 @@ def build_seedance_2_multi_shot(
     # so the cut reads as intentional editorial decision, not a model glitch.
     prompt = (
         f"[STYLE & MOOD]\n{style_block}\n\n"
+        f"{format_reference_manifest(reference_manifest)}\n\n"
+        f"{prompt_formula}"
         f"[DYNAMIC DESCRIPTION]\n{dynamic_block}\n\n"
         f"[STATIC DESCRIPTION]\n{static_block}\n\n"
         f"One continuous shot with hard cuts between timeline markers. "
@@ -277,6 +331,8 @@ def build_seedance_2_multi_shot(
         model_key=model_key,
         strategy="single_call_multi_shot",
         shot_timing=shot_timing,
+        reference_video_urls=reference_videos,
+        reference_audio_urls=reference_audios,
     )
 
 
@@ -297,6 +353,35 @@ _ROLE_LABEL = {
 
 def _role_label(role: Optional[str]) -> str:
     return _ROLE_LABEL.get((role or "").lower(), "reference")
+
+
+def _prompt_formula_block(bible: ContinuityBible) -> str:
+    meta = bible.storytelling_meta or {}
+    formula = meta.get("seedance_prompt_formula")
+    if not isinstance(formula, dict):
+        return ""
+    sequence = [
+        str(item).replace("_", " ")
+        for item in (formula.get("formula") or [])
+        if str(item).strip()
+    ][:9]
+    template = formula.get("niche_template") or {}
+    lines: list[str] = []
+    if sequence:
+        lines.append("Order: " + " -> ".join(sequence) + ".")
+    if isinstance(template, dict):
+        story_intent = str(template.get("story_intent") or "").strip()
+        action = str(template.get("action") or "").strip()
+        camera = str(template.get("camera") or "").strip()
+        if story_intent:
+            lines.append("Intent: " + story_intent[:180] + ".")
+        if action:
+            lines.append("Action rule: " + action[:160] + ".")
+        if camera:
+            lines.append("Camera rule: " + camera[:140] + ".")
+    if not lines:
+        return ""
+    return "[PROMPT FORMULA]\n" + "\n".join(lines[:4]) + "\n\n"
 
 
 def _fmt_mmss(seconds: float) -> str:
@@ -329,3 +414,17 @@ def detect_cross_location_cut(shots: list[Shot]) -> bool:
         if i > 0 and s.continuity.previous_shot_id is None:
             return True
     return False
+
+
+def _reference_roles_from_bible(bible: ContinuityBible, modality_key: str) -> list[str]:
+    """Return autonomous video/audio role assignments for prompt manifests."""
+    meta = bible.storytelling_meta or {}
+    role_meta = meta.get("quad_modal_reference_roles") or {}
+    items = role_meta.get(modality_key) or []
+    if not isinstance(items, list):
+        return []
+    sorted_items = sorted(
+        [item for item in items if isinstance(item, dict)],
+        key=lambda item: int(item.get("index") or 0),
+    )
+    return [str(item.get("role") or "unknown") for item in sorted_items]

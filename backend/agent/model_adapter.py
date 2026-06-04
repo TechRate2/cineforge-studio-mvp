@@ -121,8 +121,8 @@ def adapt_for_atlascloud(
 
 def estimate_cost(model_id: str, duration_s: int, num_generations: int = 1) -> float:
     """Estimate USD cho N generations × duration_s."""
-    info = get_model_info(model_id)
-    return info["cost_per_second_usd"] * duration_s * num_generations
+    from agent.model_specs import get_user_model_cost_rate
+    return get_user_model_cost_rate(model_id) * duration_s * num_generations
 
 
 def estimate_total_job_cost(

@@ -15,11 +15,9 @@ DECISION TREE:
   1. Map mỗi panel → 1 shot (1:1) — đơn giản & predictable
   2. Pick render_strategy:
      - Seedance 2.0 + total ≤15s + shots ≤6        → single_call_multi_shot
-     - Seedance 2.0 + total ≤60s + 1 chunk         → single_call_multi_shot (Seedance 60s capable)
-     - >60s OR >6 shots                            → per_shot_chain (last_frame chain)
+     - >15s OR >6 shots                            → per_shot_chain (last_frame chain)
      - Wan 2.7                                     → per_shot_chain (i2v only)
-  3. Long-form: nếu n_chunks > 1, mỗi chunk = 1 single_call render, chain via last_frame
-     giữa các chunk.
+  3. Long-form: render as 4-15s shots/scene chunks and chain via last_frame.
 ═══════════════════════════════════════════════════════════════════════════
 """
 from __future__ import annotations
@@ -95,7 +93,7 @@ _WAN_DISCRETE = [5, 10]
 
 # Seedance 2.0 limits
 _SEEDANCE_MAX_SHOT_S = 15           # per-shot in multi-shot inline
-_SEEDANCE_MAX_TOTAL_SINGLE_CALL = 60  # single-call total (AtlasCloud doc)
+_SEEDANCE_MAX_TOTAL_SINGLE_CALL = 15  # current Seedance/Atlas generation cap
 _SEEDANCE_MAX_SHOTS_SINGLE_CALL = 6   # practical cap for prompt readability
 
 

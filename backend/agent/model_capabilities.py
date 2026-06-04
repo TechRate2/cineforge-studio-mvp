@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal, Optional
 
-from agent.model_specs import VIDEO_MODEL_SPECS
+from agent.model_specs import VIDEO_MODEL_SPECS, get_video_model_family
 
 
 # Map user-facing model alias → atlas spec keys per render mode
@@ -76,7 +76,8 @@ class ModelCapability:
 
 def capabilities_for(user_model: str) -> ModelCapability:
     """Build the capability bundle for a user model. Falls back to seedance_2_0."""
-    if user_model == "auto" or user_model not in USER_MODEL_VARIANTS:
+    user_model = get_video_model_family(user_model)
+    if user_model not in USER_MODEL_VARIANTS:
         user_model = "seedance_2_0"
 
     keys = USER_MODEL_VARIANTS[user_model]

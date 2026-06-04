@@ -9,15 +9,15 @@ Storyboard này là CONTRACT giữa Planner (creative) và Director (technical):
   - Director quyết "render thế nào" (camera move, model, refs)
 
 ═══════════════════════════════════════════════════════════════════════════
-LONG-FORM DESIGN (>30s):
-  Seedance 2.0 supports max 60s single-call. Story longer than 60s phải chia
-  CHUNK — mỗi chunk ≤60s với last_frame chain.
+LONG-FORM DESIGN (>15s):
+  Seedance 2.0 current generation window is 4-15s. Stories longer than one
+  generation must be split into renderable shots and scene/chunk groups.
 
   Panel count guidance:
     ≤15s short → 3-4 panels
-    15-30s    → 4-6 panels
-    30-60s    → 6-9 panels (single Seedance call)
-    >60s      → N chunks × (6-9 panels each), chain via last_frame
+    16-30s    → 4-6 panels, rendered as multiple shots
+    31-60s    → 6-9 panels, rendered as multiple shots
+    >60s      → N scene/chunk groups × (6-9 panels each), chain via last_frame
 
   Storyboard skill chỉ output panels — Director skill quyết chunk split.
 ═══════════════════════════════════════════════════════════════════════════
@@ -64,7 +64,7 @@ class StoryboardPanel(BaseModel):
     )
     # Long-form support
     chunk_id: int = Field(
-        0, ge=0, description="Chunk index for >60s videos (0 = single chunk)",
+        0, ge=0, description="Scene/chunk index for longer videos (0 = first group)",
     )
 
 
@@ -75,6 +75,7 @@ class StoryboardInput(BaseModel):
     user_idea: str  # original idea for context
     target_duration_s: int = Field(..., ge=4, le=180)
     reference_image_urls: list[str] = Field(default_factory=list)
+    niche_playbook: dict = Field(default_factory=dict)
 
 
 class StoryboardOutput(BaseModel):
@@ -82,7 +83,7 @@ class StoryboardOutput(BaseModel):
 
     panels: list[StoryboardPanel]
     total_duration_s: float
-    n_chunks: int = Field(1, ge=1, description="1 for ≤60s, N for long-form")
+    n_chunks: int = Field(1, ge=1, description="1 for a short/sequence group, N for long-form")
     chunk_duration_s: list[float] = Field(default_factory=list)
 
 
@@ -97,8 +98,8 @@ NHIỆM VỤ: Từ planner output → output JSON với list panels, mỗi panel
 QUY TẮC PANEL COUNT theo duration:
   - ≤15s   → 3-4 panels
   - 16-30s → 4-6 panels
-  - 31-60s → 6-9 panels (single Seedance call)
-  - >60s   → output 6-9 panels PER CHUNK (60s mỗi chunk), set chunk_id 0,1,2,...
+  - 31-60s → 6-9 panels, rendered as multiple 4-15s shots
+  - >60s   → output 6-9 panels PER SCENE/CHUNK GROUP, set chunk_id 0,1,2,...
             Tổng panels = N_chunks × (6-9).
 
 QUY TẮC PANEL CONTENT:
@@ -128,7 +129,7 @@ OUTPUT: DUY NHẤT 1 JSON object, schema chính xác:
     ...
   ],
   "total_duration_s": <sum of panels>,
-  "n_chunks": <int 1 for ≤60s>,
+  "n_chunks": <int 1 for short/sequence, N for long-form>,
   "chunk_duration_s": [<duration of each chunk>]
 }
 """
@@ -170,6 +171,7 @@ class AutoStoryboard:
             "target_duration_s": inp.target_duration_s,
             "n_reference_images": len(inp.reference_image_urls),
             "planner": inp.planner.model_dump(),
+            "niche_playbook": inp.niche_playbook,
         }, ensure_ascii=False)
 
         last_err: Optional[Exception] = None
