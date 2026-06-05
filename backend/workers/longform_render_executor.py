@@ -13,6 +13,7 @@ from pipeline.trace import PipelineTrace
 from workers.render_dry_run import RenderDryRunReport
 from workers.render_qa_service import SegmentQAReport
 from workers.segment_renderer import SegmentRenderResult
+from workers.segment_repair_policy import apply_segment_repair, build_segment_repair_plan
 
 logger = logging.getLogger(__name__)
 
@@ -329,25 +330,43 @@ class LongFormRenderExecutor:
         """Render one segment and retry only that segment when repair is allowed."""
         execution_plan = _require_segment_execution_plan(segment)
         shot = execution_plan.shots[0]
+        active_execution_plan = execution_plan
+        active_shot = shot
         results: list[SegmentRenderResult] = []
         qa_reports: list[SegmentQAReport] = []
         repair_count = 0
         max_attempts = self.max_auto_repair_attempts + 1
         for attempt in range(max_attempts):
             result = self.render_executor.segment_renderer.render_segment(
-                execution_plan=execution_plan,
-                shot=shot,
+                execution_plan=active_execution_plan,
+                shot=active_shot,
                 previous_last_frame_url=previous_last_frame_url,
                 override_model="seedance_2_0_fast" if segment.index == 0 and attempt == 0 else None,
             )
-            qa_report = self.render_executor.qa_service.evaluate_segment(shot=shot, result=result)
+            qa_report = self.render_executor.qa_service.evaluate_segment(shot=active_shot, result=result)
             results.append(result)
             qa_reports.append(qa_report)
             if result.status == "completed" and qa_report.status != "fail":
                 return results, qa_reports, repair_count
-            if attempt >= max_attempts - 1:
+
+            repair_plan = build_segment_repair_plan(
+                shot=active_shot,
+                result=result,
+                qa_report=qa_report,
+                attempt_index=attempt,
+                max_attempts=max_attempts,
+                previous_last_frame_url=previous_last_frame_url,
+            )
+            if not repair_plan.should_retry or attempt >= max_attempts - 1:
                 return results, qa_reports, repair_count
+
             repair_count += 1
+            active_execution_plan, active_shot = apply_segment_repair(
+                execution_plan=active_execution_plan,
+                shot=active_shot,
+                repair_plan=repair_plan,
+                repair_attempt=repair_count,
+            )
             _emit_progress(
                 progress_callback,
                 {
@@ -358,6 +377,8 @@ class LongFormRenderExecutor:
                     "render_status": result.status,
                     "qa_status": qa_report.status,
                     "qa_errors": qa_report.errors,
+                    "repair_reason": repair_plan.reason,
+                    "repair_tags": repair_plan.repair_tags,
                 },
             )
             logger.warning(
@@ -369,6 +390,8 @@ class LongFormRenderExecutor:
                     "render_status": result.status,
                     "qa_status": qa_report.status,
                     "qa_errors": qa_report.errors,
+                    "repair_reason": repair_plan.reason,
+                    "repair_tags": repair_plan.repair_tags,
                 },
             )
         return results, qa_reports, repair_count
