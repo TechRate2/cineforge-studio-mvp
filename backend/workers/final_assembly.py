@@ -1,9 +1,10 @@
 """Final video assembly for long-form segmented renders.
 
 The service is intentionally narrow: it concatenates already-rendered segment
-MP4 files into one final MP4, uploads that artifact to object storage, and
-returns only object-storage delivery metadata. Remote segment URLs are
-downloaded to a temporary assembly folder before FFmpeg runs.
+MP4 files into one final MP4, verifies the final file, uploads that artifact to
+object storage, verifies delivery metadata, and returns only object-storage
+delivery metadata. Remote segment URLs are downloaded to a temporary assembly
+folder before FFmpeg runs.
 """
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ from typing import Any, Callable, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from core.config import settings
+from workers.final_delivery_qa import FinalDeliveryQAReport, FinalVideoDeliveryQAService, FinalVideoQAReport
 from workers.longform_render_executor import LongFormRenderResult
 from vendors import r2_storage
 from vendors.r2_storage import R2UploadResult
@@ -67,6 +69,8 @@ class FinalVideoAssemblyResult(BaseModel):
     # on the job record; no local sidecar path is exposed.
     metadata_path: str | None = None
     segments: list[FinalAssemblySegment] = Field(default_factory=list)
+    final_video_qa: FinalVideoQAReport | None = None
+    final_delivery_qa: FinalDeliveryQAReport | None = None
     title: str | None = None
     caption: str | None = None
     hashtags: list[str] = Field(default_factory=list)
@@ -82,11 +86,13 @@ class FinalVideoAssemblyService:
         output_root: str | Path | None = None,
         ffmpeg_bin: str | None = None,
         upload_result_sync: Callable[..., R2UploadResult] | None = None,
+        delivery_qa: FinalVideoDeliveryQAService | None = None,
     ) -> None:
         self.output_root = Path(output_root or Path("backend") / "data" / "final_assembly")
         self.output_root.mkdir(parents=True, exist_ok=True)
         self.ffmpeg_bin = ffmpeg_bin or shutil.which("ffmpeg")
         self.upload_result_sync = upload_result_sync or r2_storage.upload_file_result_sync
+        self.delivery_qa = delivery_qa or FinalVideoDeliveryQAService()
 
     def assemble(
         self,
@@ -96,7 +102,7 @@ class FinalVideoAssemblyService:
         render_result: LongFormRenderResult,
         editor_preview: dict[str, Any] | None = None,
     ) -> FinalVideoAssemblyResult:
-        """Create the final MP4, upload it, and return delivery metadata."""
+        """Create the final MP4, verify it, upload it, and verify delivery metadata."""
         segments = _segments_from_render_result(render_result)
         if not segments:
             return FinalVideoAssemblyResult(
@@ -146,6 +152,31 @@ class FinalVideoAssemblyService:
                 str(final_path),
             ]
             subprocess.run(cmd, check=True, capture_output=True, timeout=600)
+            expected_duration_s = _expected_duration_from_render_result(render_result, segments)
+            final_video_qa = self.delivery_qa.probe_file(
+                video_path=final_path,
+                expected_duration_s=expected_duration_s,
+                require_audio=False,
+            )
+            if final_video_qa.status == "fail":
+                logger.error(
+                    "final_video_qa_failed",
+                    extra={
+                        "job_id": job_id,
+                        "longform_plan_id": longform_plan_id,
+                        "errors": final_video_qa.errors,
+                        "warnings": final_video_qa.warnings,
+                    },
+                )
+                return FinalVideoAssemblyResult(
+                    status="failed",
+                    job_id=job_id,
+                    longform_plan_id=longform_plan_id,
+                    segments=segments,
+                    final_video_qa=final_video_qa,
+                    error="Final video QA failed before upload: " + "; ".join(final_video_qa.errors[:4]),
+                )
+
             storage_key = f"longform/{job_id}/final.mp4"
             upload_result = self.upload_result_sync(
                 final_path,
@@ -156,6 +187,34 @@ class FinalVideoAssemblyService:
                 access_mode=settings.r2_final_video_access_mode,
             )
             final_video_url = upload_result.delivery_url or upload_result.presigned_url or upload_result.public_url
+            final_delivery_qa = self.delivery_qa.verify_delivery(
+                upload_result=upload_result,
+                final_video_url=final_video_url,
+            )
+            if final_delivery_qa.status == "fail":
+                logger.error(
+                    "final_delivery_qa_failed",
+                    extra={
+                        "job_id": job_id,
+                        "longform_plan_id": longform_plan_id,
+                        "errors": final_delivery_qa.errors,
+                        "warnings": final_delivery_qa.warnings,
+                        "storage_key": upload_result.key,
+                    },
+                )
+                return FinalVideoAssemblyResult(
+                    status="failed",
+                    job_id=job_id,
+                    longform_plan_id=longform_plan_id,
+                    segments=segments,
+                    final_video_qa=final_video_qa,
+                    final_delivery_qa=final_delivery_qa,
+                    storage_bucket=upload_result.bucket,
+                    storage_key=upload_result.key,
+                    storage_type=upload_result.storage_type,
+                    storage_access_strategy=upload_result.access_strategy,
+                    error="Final delivery QA failed: " + "; ".join(final_delivery_qa.errors[:4]),
+                )
             if not final_video_url:
                 raise RuntimeError("R2 upload succeeded but did not return a URL.")
             delivered_segments = [
@@ -173,6 +232,8 @@ class FinalVideoAssemblyService:
                     "storage_access_strategy": upload_result.access_strategy,
                     "storage_type": upload_result.storage_type,
                     "is_public": upload_result.is_public,
+                    "final_video_qa_status": final_video_qa.status,
+                    "final_delivery_qa_status": final_delivery_qa.status,
                 },
             )
             try:
@@ -203,6 +264,8 @@ class FinalVideoAssemblyService:
                 storage_refresh_supported=upload_result.refresh_supported,
                 metadata_path=None,
                 segments=delivered_segments,
+                final_video_qa=final_video_qa,
+                final_delivery_qa=final_delivery_qa,
                 title=metadata.get("title"),
                 caption=metadata.get("caption"),
                 hashtags=list(metadata.get("hashtags") or []),
@@ -239,6 +302,17 @@ def _segments_from_render_result(render_result: LongFormRenderResult) -> list[Fi
             source_url=str(segment.video_url),
         ))
     return sorted(out, key=lambda item: item.index)
+
+
+def _expected_duration_from_render_result(render_result: LongFormRenderResult, segments: list[FinalAssemblySegment]) -> float | None:
+    durations_by_shot: dict[str, float] = {}
+    segment_ids = {segment.shot_id for segment in segments}
+    for item in render_result.rendered_segments:
+        if item.shot_id in segment_ids and item.status == "completed" and item.duration_s is not None:
+            durations_by_shot[item.shot_id] = float(item.duration_s)
+    if not durations_by_shot:
+        return None
+    return sum(durations_by_shot.values())
 
 
 def _materialize_source(source_url: str | None, work_dir: Path, index: int) -> Path:
