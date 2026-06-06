@@ -1,6 +1,8 @@
 from identity.post_render_consistency import PostRenderConsistencyEvaluator
 from pipeline.contracts import SeedanceExecutionPlan, SeedanceShotPlan
 from pipeline.render_execution import _seedance_preflight_decision
+from vendors.r2_storage import R2UploadResult
+from workers.final_delivery_qa import FinalVideoDeliveryQAService
 from workers.render_qa_service import SegmentQAReport
 from workers.segment_renderer import SegmentRenderResult
 from workers.segment_repair_policy import apply_segment_repair, build_segment_repair_plan
@@ -190,3 +192,57 @@ def test_segment_repair_policy_builds_product_repair_without_swapping_refs_or_mo
     assert repaired_shot.model == shot.model
     assert repaired_shot.references == shot.references
     assert repaired_plan.shots[0].metadata["auto_repair"]["attempt"] == 1
+
+
+def test_final_video_qa_fails_closed_when_file_is_missing() -> None:
+    service = FinalVideoDeliveryQAService(ffprobe_bin="ffprobe")
+
+    report = service.probe_file(video_path="/tmp/cineforge_missing_final_video.mp4", expected_duration_s=30)
+
+    assert report.status == "fail"
+    assert "final_video_file_missing" in report.errors
+
+
+def test_final_delivery_qa_rejects_private_object_without_delivery_url() -> None:
+    service = FinalVideoDeliveryQAService()
+    upload_result = R2UploadResult(
+        bucket="cineforge-test",
+        key="longform/job/final.mp4",
+        content_type="video/mp4",
+        size_bytes=1024,
+        storage_type="private",
+        access_strategy="private_object",
+        delivery_url=None,
+        public_url=None,
+        presigned_url=None,
+        is_public=False,
+    )
+
+    report = service.verify_delivery(upload_result=upload_result, final_video_url=None)
+
+    assert report.status == "fail"
+    assert "final_delivery_url_missing" in report.errors
+    assert "final_delivery_not_public_and_no_presigned_url" in report.errors
+
+
+def test_final_delivery_qa_accepts_presigned_private_delivery() -> None:
+    service = FinalVideoDeliveryQAService()
+    upload_result = R2UploadResult(
+        bucket="cineforge-test",
+        key="longform/job/final.mp4",
+        content_type="video/mp4",
+        size_bytes=1024,
+        storage_type="private",
+        access_strategy="private_presigned",
+        delivery_url="https://r2.example.com/presigned-final.mp4",
+        presigned_url="https://r2.example.com/presigned-final.mp4",
+        presigned_expires_s=3600,
+        presigned_expires_at="2026-06-06T01:00:00Z",
+        is_public=False,
+    )
+
+    report = service.verify_delivery(upload_result=upload_result, final_video_url=upload_result.delivery_url)
+
+    assert report.status == "pass"
+    assert report.delivery_url == upload_result.delivery_url
+    assert report.storage_key == upload_result.key
