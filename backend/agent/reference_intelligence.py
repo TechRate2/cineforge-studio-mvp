@@ -92,7 +92,14 @@ class ReferenceIntelligenceService:
         insights = [self._asset_insight(asset) for asset in assigned_assets]
         if missing_required_roles:
             warnings.extend(f"missing_required_reference_role:{role}" for role in missing_required_roles)
-        status: ReferenceReadinessStatus = "blocked" if blockers else ("needs_review" if warnings or any(i.readiness != "ready" for i in insights) else "ready")
+        has_blocked_asset = any(insight.readiness == "blocked" for insight in insights)
+        status: ReferenceReadinessStatus = (
+            "blocked"
+            if blockers or has_blocked_asset
+            else "needs_review"
+            if warnings or any(i.readiness != "ready" for i in insights)
+            else "ready"
+        )
         return ReferenceIntelligenceReport(
             status=status,
             asset_count=len(assigned_assets),
