@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 RenderExecutionStatus = Literal[
     "dry_run",
     "rejected",
-    "preflight_rejected",
     "cost_rejected",
     "consistency_rejected",
     "draft_failed",
@@ -142,7 +141,7 @@ class RenderExecutor:
                 },
             )
             return RenderExecutionResult(
-                status="preflight_rejected",
+                status="rejected",
                 execution_plan_id=execution_plan.execution_plan_id,
                 approval_lock_id=approval_lock.lock_id,
                 approval_verification=verification,
@@ -354,12 +353,13 @@ def _seedance_preflight_decision(execution_plan: SeedanceExecutionPlan) -> dict[
     warnings = list(dict.fromkeys(warnings))
     status = "fail" if hard_failures or "fail" in statuses else ("warn" if warnings or "warn" in statuses else "pass")
     if status == "fail":
+        failure_message = "; ".join(hard_failures[:4]) or "unknown_seedance_preflight_failure"
         return {
             "should_render": False,
             "status": status,
-            "hard_failures": hard_failures,
+            "hard_failures": hard_failures or [failure_message],
             "warnings": warnings,
-            "message": "Seedance preflight rejected paid render before vendor call: " + "; ".join(hard_failures[:4]),
+            "message": "Seedance preflight rejected paid render before vendor call: " + failure_message,
         }
     return {
         "should_render": True,
