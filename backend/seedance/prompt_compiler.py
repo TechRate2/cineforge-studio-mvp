@@ -307,7 +307,22 @@ def _plan_preflight_summary(
 
 def _is_error_warning(value: str) -> bool:
     text = value.lower()
-    return any(token in text for token in ("missing subject", "missing action", "missing camera", "duration must", "supports at most", "cannot reliably serve"))
+    return any(token in text for token in (
+        "missing_subject",
+        "missing_action",
+        "missing_camera",
+        "missing a clear subject",
+        "missing a clear action",
+        "missing a clear camera",
+        "duration_out_of_range",
+        "duration must",
+        "cap_image",
+        "cap_video",
+        "cap_audio",
+        "cap_total",
+        "supports at most",
+        "cannot reliably serve",
+    ))
 
 
 def _format_issue(rule_id: str, message: str) -> str:
