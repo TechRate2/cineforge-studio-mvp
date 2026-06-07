@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -46,7 +46,7 @@ class RenderExecutionResult(BaseModel):
 
 
 class RenderExecutor:
-    """Coordinate ApprovalLock enforcement, dry-run, cost gates, render, and QA."""
+    """Coordinate ApprovalLock enforcement, dry-run, preflight, cost gates, render, and QA."""
 
     def __init__(
         self,
@@ -127,6 +127,35 @@ class RenderExecutor:
                 approval_verification=verification,
                 dry_run_report=dry_run_report,
                 message="Dry-run generated; no paid vendor call was made.",
+            )
+
+        preflight_decision = _seedance_preflight_decision(execution_plan)
+        if not preflight_decision["should_render"]:
+            logger.warning(
+                "render_executor_preflight_rejected",
+                extra={
+                    "execution_plan_id": execution_plan.execution_plan_id,
+                    "approval_lock_id": approval_lock.lock_id,
+                    "status": preflight_decision["status"],
+                    "hard_failures": preflight_decision["hard_failures"],
+                },
+            )
+            return RenderExecutionResult(
+                status="rejected",
+                execution_plan_id=execution_plan.execution_plan_id,
+                approval_lock_id=approval_lock.lock_id,
+                approval_verification=verification,
+                dry_run_report=dry_run_report,
+                message=str(preflight_decision["message"]),
+            )
+        if preflight_decision["warnings"]:
+            logger.info(
+                "render_executor_preflight_warnings",
+                extra={
+                    "execution_plan_id": execution_plan.execution_plan_id,
+                    "approval_lock_id": approval_lock.lock_id,
+                    "warnings": preflight_decision["warnings"],
+                },
             )
 
         consistency_decision = _consistency_policy_decision(execution_plan, approval_lock)
@@ -307,6 +336,50 @@ def _single_shot_from_plan(execution_plan: SeedanceExecutionPlan) -> SeedanceSho
         examples_used=execution_plan.examples_used,
         linter_warnings=execution_plan.linter_warnings,
     )
+
+
+def _seedance_preflight_decision(execution_plan: SeedanceExecutionPlan) -> dict[str, Any]:
+    """Fail closed on compiler-recorded Seedance preflight hard failures."""
+    hard_failures: list[str] = []
+    warnings: list[str] = []
+    statuses: list[str] = []
+    for payload in _seedance_preflight_payloads(execution_plan):
+        status = str(payload.get("status") or "").strip().lower()
+        if status:
+            statuses.append(status)
+        hard_failures.extend(str(item) for item in payload.get("hard_failures") or [] if str(item).strip())
+        warnings.extend(str(item) for item in payload.get("warnings") or [] if str(item).strip())
+    hard_failures = list(dict.fromkeys(hard_failures))
+    warnings = list(dict.fromkeys(warnings))
+    status = "fail" if hard_failures or "fail" in statuses else ("warn" if warnings or "warn" in statuses else "pass")
+    if status == "fail":
+        failure_message = "; ".join(hard_failures[:4]) or "unknown_seedance_preflight_failure"
+        return {
+            "should_render": False,
+            "status": status,
+            "hard_failures": hard_failures or [failure_message],
+            "warnings": warnings,
+            "message": "Seedance preflight rejected paid render before vendor call: " + failure_message,
+        }
+    return {
+        "should_render": True,
+        "status": status,
+        "hard_failures": [],
+        "warnings": warnings,
+        "message": "Seedance preflight allows render.",
+    }
+
+
+def _seedance_preflight_payloads(execution_plan: SeedanceExecutionPlan) -> list[dict[str, Any]]:
+    payloads: list[dict[str, Any]] = []
+    plan_preflight = execution_plan.metadata.get("seedance_preflight")
+    if isinstance(plan_preflight, dict):
+        payloads.append(plan_preflight)
+    for shot in execution_plan.shots:
+        shot_preflight = shot.metadata.get("seedance_preflight")
+        if isinstance(shot_preflight, dict):
+            payloads.append(shot_preflight)
+    return payloads
 
 
 def _consistency_policy_decision(
