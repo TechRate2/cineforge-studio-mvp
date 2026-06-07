@@ -1,8 +1,9 @@
 """Dry-run reporting for paid Seedance render execution.
 
 Dry-run is the required preview layer before paid render. It exposes the exact
-payload shape, prompts, references, cost estimate, and knowledge provenance that
-would be used by AtlasCloud/Seedance without submitting a vendor request.
+payload shape, prompts, references, reference intelligence, cost estimate, and
+knowledge provenance that would be used by AtlasCloud/Seedance without
+submitting a vendor request.
 """
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from agent.reference_intelligence import ReferenceIntelligenceService
 from pipeline.approval_lock import ApprovalLock, ApprovalLockVerification
 from pipeline.contracts import AssetRef, SeedanceExecutionPlan, SeedanceShotPlan
 
@@ -48,13 +50,18 @@ class RenderDryRunReport(BaseModel):
     cost_estimate: dict[str, Any] = Field(default_factory=dict)
     shot_payloads: list[ShotDryRunPayload] = Field(default_factory=list)
     references: list[dict[str, Any]] = Field(default_factory=list)
+    reference_intelligence: dict[str, Any] = Field(default_factory=dict)
     knowledge_rule_ids: list[str] = Field(default_factory=list)
     curated_example_ids: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    hard_failures: list[str] = Field(default_factory=list)
 
 
 class RenderDryRunService:
     """Generate deterministic reports for render approval review."""
+
+    def __init__(self, *, reference_intelligence: ReferenceIntelligenceService | None = None) -> None:
+        self.reference_intelligence = reference_intelligence or ReferenceIntelligenceService()
 
     def generate_dry_run_report(
         self,
@@ -65,6 +72,12 @@ class RenderDryRunService:
         """Return a full dry-run report for the supplied execution plan."""
         verification = approval_verification or ApprovalLockVerification(valid=True)
         shots = execution_plan.shots or [_plan_as_single_shot(execution_plan)]
+        references = _all_references(execution_plan)
+        reference_report = self.reference_intelligence.analyze(
+            assets=references,
+            needs_character_lock=_needs_character_lock(execution_plan),
+            needs_product_lock=_needs_product_lock(execution_plan),
+        )
         logger.info(
             "render_dry_run_report_started",
             extra={
@@ -72,6 +85,7 @@ class RenderDryRunService:
                 "approval_lock_id": approval_lock.lock_id,
                 "shot_count": len(shots),
                 "approval_valid": verification.valid,
+                "reference_intelligence_status": reference_report.status,
             },
         )
         shot_payloads = [
@@ -101,11 +115,13 @@ class RenderDryRunService:
             resolution=execution_plan.resolution,
             cost_estimate=dict(execution_plan.cost_estimate),
             shot_payloads=shot_payloads,
-            references=[_asset_payload(asset) for asset in _all_references(execution_plan)],
+            references=[_asset_payload(asset) for asset in references],
+            reference_intelligence=reference_report.model_dump(mode="json"),
             knowledge_rule_ids=_dedupe(
                 execution_plan.rules_applied
                 + [rule for shot in shots for rule in shot.rules_applied]
                 + list(execution_plan.metadata.get("knowledge_rule_ids") or [])
+                + reference_report.rules_applied
             ),
             curated_example_ids=_dedupe(
                 execution_plan.examples_used
@@ -115,7 +131,9 @@ class RenderDryRunService:
             warnings=_dedupe(
                 list(execution_plan.linter_warnings)
                 + _consistency_policy_warnings(execution_plan)
+                + reference_report.warnings
             ),
+            hard_failures=_dedupe(reference_report.blockers),
         )
         logger.info(
             "render_dry_run_report_completed",
@@ -124,6 +142,7 @@ class RenderDryRunService:
                 "approval_lock_id": approval_lock.lock_id,
                 "shot_payload_count": len(report.shot_payloads),
                 "warning_count": len(report.warnings),
+                "hard_failure_count": len(report.hard_failures),
                 "knowledge_rule_count": len(report.knowledge_rule_ids),
                 "curated_example_count": len(report.curated_example_ids),
             },
@@ -169,6 +188,24 @@ def _consistency_policy_warnings(execution_plan: SeedanceExecutionPlan) -> list[
     if action in {"requires_review", "block"}:
         return [f"consistency_policy.{action}: " + ", ".join(_dedupe(reasons))]
     return []
+
+
+def _needs_character_lock(execution_plan: SeedanceExecutionPlan) -> bool:
+    if bool(execution_plan.metadata.get("needs_identity_consistency")):
+        return True
+    consistency_plan = execution_plan.metadata.get("consistency_plan")
+    if isinstance(consistency_plan, dict) and bool(consistency_plan.get("character_lock")):
+        return True
+    return any(bool(shot.metadata.get("needs_identity_consistency")) for shot in execution_plan.shots)
+
+
+def _needs_product_lock(execution_plan: SeedanceExecutionPlan) -> bool:
+    if bool(execution_plan.metadata.get("needs_product_consistency")):
+        return True
+    consistency_plan = execution_plan.metadata.get("consistency_plan")
+    if isinstance(consistency_plan, dict) and bool(consistency_plan.get("product_lock")):
+        return True
+    return any(bool(shot.metadata.get("needs_product_consistency")) for shot in execution_plan.shots)
 
 
 def _plan_as_single_shot(execution_plan: SeedanceExecutionPlan) -> SeedanceShotPlan:
