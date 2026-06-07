@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import {
   AlertTriangle,
   BadgeCheck,
@@ -275,7 +276,7 @@ function StatTile({
   label,
   value,
 }: {
-  icon?: React.ReactNode;
+  icon?: ReactNode;
   label: string;
   value: string;
 }) {
