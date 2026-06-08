@@ -36,7 +36,7 @@ USER_MODEL_VARIANTS: dict[str, dict[str, str]] = {
     "wan_2_7": {
         "ref": "wan_2_7_i2v",
         "i2v": "wan_2_7_i2v",
-        "t2v": "wan_2_7_i2v",  # no native t2v — fall back to i2v with placeholder
+        "t2v": "wan_2_7_i2v",  # no native t2v; backend gates Wan without a real image reference
     },
 }
 

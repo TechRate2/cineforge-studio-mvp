@@ -15,7 +15,8 @@ from vendors.genmax import (
     genmax_client,
     VIETNAMESE_VOICE_PRESETS,
 )
-from api.routes.paid_guard import require_direct_paid_generation
+from api.routes.direct_media_output import deliverable_http_url
+from api.routes.paid_guard import raise_missing_vendor_env, require_direct_paid_generation
 
 router = APIRouter()
 AUDIO_JOBS: dict[str, dict] = {}
@@ -92,7 +93,10 @@ async def generate_tts(
     require_direct_paid_generation(x_admin_key)
 
     if genmax_client is None:
-        raise HTTPException(500, detail="GENMAX_API_KEY chưa set")
+        raise_missing_vendor_env(
+            ["GENMAX_API_KEY"],
+            "Direct audio generation requires GENMAX_API_KEY. No GenMax TTS job was submitted.",
+        )
 
     # Resolve voice_id
     if request.voice_preset:
@@ -135,8 +139,13 @@ async def generate_tts(
         raise HTTPException(502, detail=f"GenMax poll error: {e}")
 
     status = final.get("status", "pending")
-    audio_url = (final.get("result") or {}).get("audio_url") or final.get("audio_url")
+    raw_audio_url = (final.get("result") or {}).get("audio_url") or final.get("audio_url")
+    audio_url = deliverable_http_url(raw_audio_url)
     credits_deducted = final.get("credits_deducted")
+    error = final.get("error") or final.get("detail_error")
+    if status in ("completed", "succeeded", "success") and not audio_url:
+        status = "failed"
+        error = "Completed audio job did not return a deliverable HTTP(S) audio URL."
 
     AUDIO_JOBS[job_id] = {
         "job_id": job_id,
@@ -148,6 +157,7 @@ async def generate_tts(
         "status": status,
         "credits_deducted": credits_deducted,
         "raw_response": final,
+        "error": error,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -160,7 +170,7 @@ async def generate_tts(
             "audio_url": None,
             "voice_id": voice_id,
             "provider": provider,
-            "error": final.get("error") or final.get("detail_error"),
+            "error": error,
         }
 
     return {
@@ -183,17 +193,32 @@ async def get_job(job_id: str):
 
     # Nếu đã có audio_url → trả cache (không gọi GenMax thừa)
     if job.get("audio_url") and job.get("status") in ("completed", "succeeded", "success"):
-        return job
+        safe_audio_url = deliverable_http_url(job.get("audio_url"))
+        if not safe_audio_url:
+            job["audio_url"] = None
+            job["status"] = "failed"
+            job["error"] = "Completed audio job did not return a deliverable HTTP(S) audio URL."
+            return _public_audio_job(job)
+        job["audio_url"] = safe_audio_url
+        return _public_audio_job(job)
 
     # Còn processing → re-fetch live từ GenMax
     if genmax_client and job.get("history_id"):
         try:
             d = genmax_client.get_history_detail(job["history_id"])
             job["status"] = d.get("status", job.get("status", "pending"))
-            job["audio_url"] = (d.get("result") or {}).get("audio_url") or job.get("audio_url")
+            raw_audio_url = (d.get("result") or {}).get("audio_url") or job.get("audio_url")
+            job["audio_url"] = deliverable_http_url(raw_audio_url)
             job["credits_deducted"] = d.get("credits_deducted") or job.get("credits_deducted")
             job["error"] = d.get("error") or d.get("detail_error")
+            if job["status"] in ("completed", "succeeded", "success") and not job.get("audio_url"):
+                job["status"] = "failed"
+                job["error"] = "Completed audio job did not return a deliverable HTTP(S) audio URL."
             job["raw_response"] = d
         except Exception as e:
             logger.warning(f"[Audio] Re-poll {job_id} failed: {e}")
-    return job
+    return _public_audio_job(job)
+
+
+def _public_audio_job(job: dict) -> dict:
+    return {key: value for key, value in job.items() if key != "raw_response"}

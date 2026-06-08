@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useDirectorJobPoll, type DirectorJobStatus } from '@/lib/studio/use-director-job-poll';
 import { useJobCancel } from '@/lib/studio/use-job-cancel';
+import { deliverableUrl } from '@/lib/studio/deliverable-url';
 
 interface Props {
   open: boolean;
@@ -25,6 +26,7 @@ interface Props {
   onRetry?: () => void;
   estimatedDurationS?: number;
   jobStartedAt?: number | null;
+  onJobUpdate?: (job: DirectorJobStatus | null) => void;
 }
 
 const STAGE_LABELS: Record<string, string> = {
@@ -36,7 +38,7 @@ const STAGE_LABELS: Record<string, string> = {
   graph_idle: 'Preparing final video',
   assembling: 'Assembling final video',
   uploading: 'Publishing output',
-  done: 'Video ready',
+  done: 'Render finished',
   failed: 'Render failed',
   cancelled: 'Render cancelled',
 };
@@ -48,6 +50,7 @@ export function JobResultModal({
   onRetry,
   estimatedDurationS,
   jobStartedAt,
+  onJobUpdate,
 }: Props) {
   const { job, error, timedOut } = useDirectorJobPoll(jobId);
   const { cancel, isCancelling } = useJobCancel();
@@ -55,10 +58,7 @@ export function JobResultModal({
 
   const status = job?.status ?? 'pending';
   const progress = job?.progress ?? 0;
-  const isDone = status === 'done';
-  const isFailed = status === 'failed' || status === 'cancelled';
-  const isWorking = !isDone && !isFailed && !timedOut;
-  const videoUrl = (
+  const videoUrl = deliverableUrl(
     job?.assembly_result?.storage_delivery_url
     || job?.assembly_result?.storage_public_url
     || job?.assembly_result?.storage_cdn_url
@@ -67,7 +67,24 @@ export function JobResultModal({
     || job?.output_url
     || job?.output_path
     || ''
-  ) as string;
+  );
+  const deliveryQa = job?.assembly_result?.final_delivery_qa;
+  const deliveryQaStatus = String(deliveryQa?.status || '').toLowerCase();
+  const deliveryQaErrors = Array.isArray(deliveryQa?.errors) ? deliveryQa.errors.filter(Boolean) : [];
+  const deliveryQaWarnings = Array.isArray(deliveryQa?.warnings) ? deliveryQa.warnings.filter(Boolean) : [];
+  const deliveryQaFailed = deliveryQaStatus === 'fail' || deliveryQaErrors.length > 0;
+  const deliveryQaWarning = ['warn', 'warning'].includes(deliveryQaStatus) || deliveryQaWarnings.length > 0;
+  const deliveryQaAccepted = (
+    ['pass', 'success', 'succeeded'].includes(deliveryQaStatus)
+    && !deliveryQaFailed
+    && !deliveryQaWarning
+  );
+  const isDone = status === 'done';
+  const isDelivered = isDone && Boolean(videoUrl);
+  const doneWithoutDelivery = isDone && !videoUrl;
+  const deliveredNeedsReview = isDelivered && !deliveryQaAccepted;
+  const isFailed = status === 'failed' || status === 'cancelled';
+  const isWorking = !isDone && !isFailed && !timedOut;
 
   const totalExpectedS = (estimatedDurationS ?? 15) * 5 + 60;
   const anchorTime = jobStartedAt ?? Date.now();
@@ -80,10 +97,26 @@ export function JobResultModal({
     : 0;
 
   useEffect(() => {
-    if (isDone) {
+    onJobUpdate?.(job ?? null);
+  }, [job, onJobUpdate]);
+
+  useEffect(() => {
+    if (isDelivered && deliveryQaAccepted) {
       toast.success('Video render complete');
     }
-  }, [isDone]);
+  }, [deliveryQaAccepted, isDelivered]);
+
+  useEffect(() => {
+    if (deliveredNeedsReview) {
+      toast.warning(deliveryQaFailed ? 'Delivery QA needs attention' : deliveryQaWarning ? 'Delivery QA returned warnings' : 'Delivery QA pending');
+    }
+  }, [deliveredNeedsReview, deliveryQaFailed, deliveryQaWarning]);
+
+  useEffect(() => {
+    if (doneWithoutDelivery) {
+      toast.warning('Render finished, delivery link pending');
+    }
+  }, [doneWithoutDelivery]);
 
   useEffect(() => {
     if (status === 'failed') toast.error('Render failed', { duration: 8000 });
@@ -111,8 +144,14 @@ export function JobResultModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={isDone ? 'Video ready' : isFailed ? 'Render needs attention' : 'Rendering video'}
-      subtitle={isDone ? 'Review the output and publishing package.' : 'You can close this window; rendering continues in the background.'}
+      title={isDelivered && deliveryQaAccepted ? 'Video ready' : deliveredNeedsReview ? 'Delivery QA pending' : doneWithoutDelivery ? 'Delivery link pending' : isFailed ? 'Render needs attention' : 'Rendering video'}
+      subtitle={isDelivered && deliveryQaAccepted
+        ? 'Review the output and publishing package.'
+        : deliveredNeedsReview
+          ? 'A real preview URL exists, but final delivery QA is not accepted yet.'
+        : doneWithoutDelivery
+          ? 'The render finished, but Studio has not received a valid public delivery link yet.'
+          : 'You can close this window; rendering continues in the background.'}
       maxWidth="max-w-3xl"
     >
       <div className="space-y-6 p-6 md:p-8">
@@ -161,17 +200,38 @@ export function JobResultModal({
           />
         )}
 
-        {isDone && videoUrl && (
+        {doneWithoutDelivery && (
+          <AttentionPanel
+            title="Delivery link is not ready"
+            detail="The backend marked this job done, but Studio did not receive a valid HTTP(S) delivery URL from storage or final delivery QA. Video preview and download stay hidden until a real delivery link is available."
+          />
+        )}
+
+        {deliveredNeedsReview && (
+          <AttentionPanel
+            title={deliveryQaFailed ? 'Final delivery QA failed' : deliveryQaWarning ? 'Final delivery QA needs review' : 'Final delivery QA is pending'}
+            detail={deliveryQaFailed
+              ? (deliveryQaErrors.slice(0, 3).join('; ') || 'Delivery QA returned fail status. Preview is available for inspection, but this output is not marked ready.')
+              : deliveryQaWarning
+                ? (deliveryQaWarnings.slice(0, 3).join('; ') || 'Delivery QA returned warning status. Preview is available for inspection, but this output is not marked ready.')
+                : 'Studio has a real preview URL, but no accepted final delivery QA signal is attached yet.'}
+          />
+        )}
+
+        {isDelivered && videoUrl && (
           <>
             <VideoResult
               videoUrl={videoUrl}
               elapsedS={job?.elapsed_s}
+              deliveryReady={deliveryQaAccepted}
               onClose={onClose}
             />
             <RenderFeedbackPanel
               key={jobId || job?.job_id || videoUrl}
               jobId={jobId || job?.job_id || ''}
               videoUrl={videoUrl}
+              deliveryReady={deliveryQaAccepted}
+              deliveryNeedsReview={deliveredNeedsReview}
               initialSummary={job?.feedback_summary}
             />
           </>
@@ -254,10 +314,12 @@ function RenderProgress({
 function VideoResult({
   videoUrl,
   elapsedS,
+  deliveryReady,
   onClose,
 }: {
   videoUrl: string;
   elapsedS?: number;
+  deliveryReady: boolean;
   onClose: () => void;
 }) {
   return (
@@ -267,12 +329,16 @@ function VideoResult({
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-xs text-text-muted">
-          {elapsedS ? `Render time: ${Math.round(elapsedS)}s` : 'Final MP4 is ready.'}
+          {deliveryReady
+            ? (elapsedS ? `Render time: ${Math.round(elapsedS)}s` : 'Final MP4 is ready.')
+            : 'Preview URL is available; final delivery QA is not accepted yet.'}
         </div>
         <div className="flex gap-2">
-          <a href={videoUrl} download className="btn-outline">
-            <Download size={14} /> Download MP4
-          </a>
+          {deliveryReady && (
+            <a href={videoUrl} download className="btn-outline">
+              <Download size={14} /> Download MP4
+            </a>
+          )}
           <button onClick={onClose} className="btn-cta">
             <Sparkles size={14} /> Create another
           </button>
@@ -346,15 +412,23 @@ type FeedbackRating = 'approved' | 'needs_work' | 'bad';
 function RenderFeedbackPanel({
   jobId,
   videoUrl,
+  deliveryReady,
+  deliveryNeedsReview,
   initialSummary,
 }: {
   jobId: string;
   videoUrl: string;
+  deliveryReady: boolean;
+  deliveryNeedsReview: boolean;
   initialSummary?: DirectorJobStatus['feedback_summary'];
 }) {
   const initialRating = initialSummary?.latest_rating;
   const [rating, setRating] = useState<FeedbackRating>(
-    initialRating === 'bad' || initialRating === 'needs_work' ? initialRating : 'approved',
+    initialRating === 'bad' || initialRating === 'needs_work'
+      ? initialRating
+      : deliveryReady
+        ? 'approved'
+        : 'needs_work',
   );
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
@@ -362,12 +436,21 @@ function RenderFeedbackPanel({
   const [submittedSummary, setSubmittedSummary] = useState(initialSummary);
 
   const toggleTag = (tag: string) => {
+    if (rating === 'approved') {
+      setRating('needs_work');
+    }
     setSelectedTags((current) => (
       current.includes(tag)
         ? current.filter((item) => item !== tag)
         : [...current, tag].slice(0, 12)
     ));
   };
+
+  useEffect(() => {
+    if (!deliveryReady && rating === 'approved') {
+      setRating('needs_work');
+    }
+  }, [deliveryReady, rating]);
 
   const submitFeedback = async () => {
     if (!jobId) {
@@ -376,9 +459,9 @@ function RenderFeedbackPanel({
     }
     setIsSubmitting(true);
     try {
-      const issueTags = rating === 'approved' && selectedTags.length === 0
+      const issueTags = rating === 'approved'
         ? ['good']
-        : selectedTags;
+        : selectedTags.filter((tag) => tag !== 'good');
       const res = await fetch(`/api/v1/director/jobs/${encodeURIComponent(jobId)}/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -409,9 +492,17 @@ function RenderFeedbackPanel({
     <div className="surface-2 rounded-card p-5">
       <SectionHeader
         title="Output feedback"
-        subtitle="Save real render evidence so future routing and benchmark decisions can learn from the result."
+        subtitle={deliveryReady
+          ? 'Save real render evidence so future routing and benchmark decisions can learn from the result.'
+          : 'Delivery QA is not clean yet. Save review feedback for repair, but do not mark this output approved.'}
         badge={submittedSummary?.feedback_count ? `${submittedSummary.feedback_count} saved` : undefined}
+        tone={deliveryReady ? 'cyan' : 'orange'}
       />
+      {deliveryNeedsReview && (
+        <div className="mb-3 rounded-md border border-accent-orange/25 bg-accent-orange/10 px-3 py-2 text-xs leading-relaxed text-accent-orange">
+          Approved feedback is locked until final delivery QA passes without warnings.
+        </div>
+      )}
       <div className="mb-3 grid gap-2 md:grid-cols-3">
         {[
           { id: 'approved', label: 'Approved', tone: 'cyan' },
@@ -419,13 +510,22 @@ function RenderFeedbackPanel({
           { id: 'bad', label: 'Reject', tone: 'orange' },
         ].map((item) => {
           const active = rating === item.id;
+          const disabled = item.id === 'approved' && !deliveryReady;
           return (
             <button
               key={item.id}
               type="button"
-              onClick={() => setRating(item.id as FeedbackRating)}
+              onClick={() => {
+                if (!disabled) {
+                  setRating(item.id as FeedbackRating);
+                  if (item.id === 'approved') setSelectedTags([]);
+                }
+              }}
+              disabled={disabled}
               className={`rounded-md border px-3 py-2 text-left text-xs transition ${
-                active
+                disabled
+                  ? 'cursor-not-allowed border-hairline bg-surface-3/30 text-text-subtle opacity-50'
+                  : active
                   ? item.tone === 'cyan'
                     ? 'border-accent-cyan/50 bg-accent-cyan/15 text-accent-cyan'
                     : 'border-accent-orange/50 bg-accent-orange/15 text-accent-orange'

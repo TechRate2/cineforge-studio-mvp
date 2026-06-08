@@ -27,8 +27,9 @@ def run_autonomous_benchmark_batch(
     """Create benchmark evidence rows for selected cases.
 
     `dry_run` stores planned rows with exact gates and inputs needed.
-    `stub_evidence` stores needs_review rows with synthetic output markers for
-    route/UI smoke tests. Neither mode calls vendors or claims quality.
+    `stub_evidence` stores metadata-only needs_review rows for route/UI smoke
+    tests. Neither mode calls vendors, writes output URLs, writes cost/latency,
+    or claims quality.
     """
     normalized_mode = (mode or "dry_run").strip().lower()
     if normalized_mode not in _ALLOWED_MODES:
@@ -55,9 +56,9 @@ def run_autonomous_benchmark_batch(
             runtime_class=str(case.get("runtime_class")),
             model_key=str(resolved_model),
             status="planned" if normalized_mode == "dry_run" else "needs_review",
-            output_url=(f"stub://benchmark/{case.get('case_id')}" if normalized_mode == "stub_evidence" else None),
-            cost_usd=0.0 if normalized_mode == "stub_evidence" else None,
-            latency_s=0.0 if normalized_mode == "stub_evidence" else None,
+            output_url=None,
+            cost_usd=None,
+            latency_s=None,
             qa_score=None,
             reviewer_decision="unknown",
             evidence=evidence,
@@ -114,6 +115,7 @@ def _evidence_for_case(
         "evidence_schema": "cinejelly.benchmark_evidence.v1",
         "mode": mode,
         "vendor_called": False,
+        "metadata_only": True,
         "case": {
             "case_id": case.get("case_id"),
             "niche": case.get("niche"),

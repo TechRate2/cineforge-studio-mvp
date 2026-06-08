@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from agent.benchmark_evidence_validator import REQUIRED_EVIDENCE_KEYS
+from core.deliverable_url import deliverable_http_url
 
 
 def build_benchmark_evidence_pack_from_artifact(
@@ -20,6 +21,8 @@ def build_benchmark_evidence_pack_from_artifact(
     """Return a non-promotional evidence draft for a completed production job."""
     job = job_record or {}
     evidence: dict[str, Any] = {}
+    output_url = _real_http_url(job.get("output_url"))
+    local_output_path = _local_output_path(job)
 
     per_shot_prompts = _extract_per_shot_prompts(artifact=artifact, job_record=job)
     if per_shot_prompts:
@@ -105,7 +108,8 @@ def build_benchmark_evidence_pack_from_artifact(
         "schema_version": "cinejelly.benchmark_evidence_pack_from_artifact.v1",
         "job_id": artifact.get("job_id") or job.get("job_id"),
         "plan_id": artifact.get("plan_id") or job.get("plan_id"),
-        "output_url": job.get("output_url"),
+        "output_url": output_url,
+        "local_output_path": local_output_path,
         "status": job.get("status"),
         "production_report": production_report,
         "evidence": evidence,
@@ -143,14 +147,15 @@ def build_benchmark_result_draft_from_artifact(
         or runtime.get("runtime_class")
         or "short"
     )
+    output_url = _real_http_url(job.get("output_url"))
     return {
         "case_id": _case_id_for_niche(niche),
         "niche": niche,
         "target_market": target_market,
         "runtime_class": runtime_class,
         "model_key": _primary_model_key(artifact=artifact, job_record=job),
-        "status": "needs_review" if job.get("output_url") else "planned",
-        "output_url": job.get("output_url"),
+        "status": "needs_review" if output_url else "planned",
+        "output_url": output_url,
         "cost_usd": None,
         "latency_s": None,
         "qa_score": None,
@@ -690,6 +695,20 @@ def _present(value: Any) -> bool:
     if isinstance(value, (list, tuple, set, dict)):
         return bool(value)
     return True
+
+
+def _real_http_url(value: Any) -> str | None:
+    return deliverable_http_url(value)
+
+
+def _local_output_path(job_record: dict[str, Any]) -> str:
+    output_path = str(job_record.get("output_path") or "").strip()
+    output_url = str(job_record.get("output_url") or "").strip()
+    if output_path and not _real_http_url(output_path):
+        return output_path
+    if output_url and not _real_http_url(output_url):
+        return output_url
+    return ""
 
 
 __all__ = [

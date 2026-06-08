@@ -8,8 +8,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from longform.contracts import LongFormExecutionPlan, SegmentPlan
 from pipeline.approval_lock import ApprovalLock, ApprovalLockVerification
-from pipeline.render_execution import RenderExecutor
+from pipeline.render_execution import (
+    RenderExecutor,
+    _dry_run_hard_failure_decision,
+    _seedance_preflight_decision,
+    normalize_segment_deliverable,
+)
 from pipeline.trace import PipelineTrace
+from workers.cost_control import CostGateDecision
 from workers.render_dry_run import RenderDryRunReport
 from workers.render_qa_service import SegmentQAReport
 from workers.segment_renderer import SegmentRenderResult
@@ -20,6 +26,7 @@ logger = logging.getLogger(__name__)
 LongFormRenderStatus = Literal[
     "dry_run",
     "rejected",
+    "cost_rejected",
     "draft_failed",
     "render_failed",
     "qa_failed",
@@ -38,6 +45,7 @@ class LongFormRenderResult(BaseModel):
     approval_lock_id: str
     approval_verification: ApprovalLockVerification
     dry_run_report: RenderDryRunReport
+    cost_gate: CostGateDecision | None = None
     rendered_segments: list[SegmentRenderResult] = Field(default_factory=list)
     qa_reports: list[SegmentQAReport] = Field(default_factory=list)
     repair_attempts_by_segment: dict[str, int] = Field(default_factory=dict)
@@ -108,6 +116,8 @@ class LongFormRenderExecutor:
         approval_lock: ApprovalLock,
         idea: str,
         dry_run_approved: bool = False,
+        cost_gate_mode: str = "off",
+        max_total_cost_usd: float | None = None,
         trace: PipelineTrace | None = None,
         progress_callback: Callable[[dict[str, object]], None] | None = None,
     ) -> LongFormRenderResult:
@@ -150,6 +160,54 @@ class LongFormRenderExecutor:
                 dry_run_report=dry_run_report,
                 message="Long-form dry-run approval is required before paid segmented render.",
             )
+        dry_run_hard_failure_decision = _dry_run_hard_failure_decision(dry_run_report)
+        if not dry_run_hard_failure_decision["should_render"]:
+            logger.warning(
+                "longform_render_dry_run_hard_failures_rejected",
+                extra={
+                    "longform_plan_id": longform_plan.longform_plan_id,
+                    "approval_lock_id": approval_lock.lock_id,
+                    "hard_failures": dry_run_hard_failure_decision["hard_failures"],
+                },
+            )
+            return _result(
+                status="rejected",
+                longform_plan=longform_plan,
+                approval_lock=approval_lock,
+                verification=verification,
+                dry_run_report=dry_run_report,
+                message=str(dry_run_hard_failure_decision["message"]),
+            )
+
+        preflight_decision = _seedance_preflight_decision(master_plan)
+        if not preflight_decision["should_render"]:
+            logger.warning(
+                "longform_render_preflight_rejected",
+                extra={
+                    "longform_plan_id": longform_plan.longform_plan_id,
+                    "approval_lock_id": approval_lock.lock_id,
+                    "status": preflight_decision["status"],
+                    "hard_failures": preflight_decision["hard_failures"],
+                },
+            )
+            return _result(
+                status="rejected",
+                longform_plan=longform_plan,
+                approval_lock=approval_lock,
+                verification=verification,
+                dry_run_report=dry_run_report,
+                message=str(preflight_decision["message"]),
+            )
+        if preflight_decision["warnings"]:
+            logger.info(
+                "longform_render_preflight_warnings",
+                extra={
+                    "longform_plan_id": longform_plan.longform_plan_id,
+                    "approval_lock_id": approval_lock.lock_id,
+                    "warnings": preflight_decision["warnings"],
+                },
+            )
+
         consistency_decision = _consistency_policy_decision(master_plan, approval_lock)
         if not consistency_decision["should_render"]:
             logger.warning(
@@ -168,6 +226,31 @@ class LongFormRenderExecutor:
                 verification=verification,
                 dry_run_report=dry_run_report,
                 message=str(consistency_decision["message"]),
+            )
+
+        cost_decision = self.render_executor.cost_control.evaluate_preflight(
+            master_plan,
+            mode=cost_gate_mode,
+            max_total_usd=max_total_cost_usd,
+        )
+        if not cost_decision.should_render:
+            logger.warning(
+                "longform_render_cost_rejected",
+                extra={
+                    "longform_plan_id": longform_plan.longform_plan_id,
+                    "approval_lock_id": approval_lock.lock_id,
+                    "estimated_total_usd": cost_decision.estimated_total_usd,
+                    "max_total_usd": cost_decision.max_total_usd,
+                },
+            )
+            return _result(
+                status="cost_rejected",
+                longform_plan=longform_plan,
+                approval_lock=approval_lock,
+                verification=verification,
+                dry_run_report=dry_run_report,
+                cost_gate=cost_decision,
+                message=cost_decision.reason,
             )
 
         logger.info(
@@ -234,6 +317,7 @@ class LongFormRenderExecutor:
                     approval_lock=approval_lock,
                     verification=verification,
                     dry_run_report=dry_run_report,
+                    cost_gate=cost_decision,
                     rendered_segments=rendered,
                     qa_reports=qa_reports,
                     repair_attempts_by_segment=repair_attempts,
@@ -258,6 +342,7 @@ class LongFormRenderExecutor:
                     approval_lock=approval_lock,
                     verification=verification,
                     dry_run_report=dry_run_report,
+                    cost_gate=cost_decision,
                     rendered_segments=rendered,
                     qa_reports=qa_reports,
                     repair_attempts_by_segment=repair_attempts,
@@ -313,6 +398,7 @@ class LongFormRenderExecutor:
             approval_lock=approval_lock,
             verification=verification,
             dry_run_report=dry_run_report,
+            cost_gate=cost_decision,
             rendered_segments=rendered,
             qa_reports=qa_reports,
             repair_attempts_by_segment=repair_attempts,
@@ -343,6 +429,7 @@ class LongFormRenderExecutor:
                 previous_last_frame_url=previous_last_frame_url,
                 override_model="seedance_2_0_fast" if segment.index == 0 and attempt == 0 else None,
             )
+            result = normalize_segment_deliverable(result)
             qa_report = self.render_executor.qa_service.evaluate_segment(shot=active_shot, result=result)
             results.append(result)
             qa_reports.append(qa_report)
@@ -471,6 +558,7 @@ def _result(
     approval_lock: ApprovalLock,
     verification: ApprovalLockVerification,
     dry_run_report: RenderDryRunReport,
+    cost_gate: CostGateDecision | None = None,
     rendered_segments: list[SegmentRenderResult] | None = None,
     qa_reports: list[SegmentQAReport] | None = None,
     repair_attempts_by_segment: dict[str, int] | None = None,
@@ -482,6 +570,7 @@ def _result(
         approval_lock_id=approval_lock.lock_id,
         approval_verification=verification,
         dry_run_report=dry_run_report,
+        cost_gate=cost_gate,
         rendered_segments=rendered_segments or [],
         qa_reports=qa_reports or [],
         repair_attempts_by_segment=repair_attempts_by_segment or {},

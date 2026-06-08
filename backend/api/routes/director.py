@@ -87,6 +87,7 @@ from agent.director_agent import director
 from agent.schemas import DirectorPlan, ContinuityBible, Shot, StoryboardFrame
 from agent import continuity_manager
 from api.schemas import ProductInput, VideoSettings, AudioPlan
+from api.routes.direct_media_output import deliverable_http_url, deliverable_http_urls
 from workers import video_worker, reassemble_worker
 from core import (
     director_history,
@@ -96,6 +97,7 @@ from core import (
     render_feedback_store,
 )
 from core.config import settings as app_settings
+from core.env_guard import is_configured_secret, missing_secret_names
 
 
 router = APIRouter()
@@ -103,7 +105,7 @@ router = APIRouter()
 
 def _require_mutation_admin(x_admin_key: Optional[str]) -> None:
     """Guard routes that mutate production evidence or graph state."""
-    expected = app_settings.admin_api_key
+    expected = app_settings.admin_api_key if is_configured_secret(app_settings.admin_api_key) else ""
     if not expected:
         raise HTTPException(403, "Mutating endpoint is locked: set ADMIN_API_KEY first")
     if x_admin_key != expected:
@@ -119,11 +121,62 @@ def _require_dev_metadata_stub(x_admin_key: Optional[str]) -> None:
 
 def _require_paid_executor_admin(x_admin_key: Optional[str]) -> None:
     """Paid graph execution must never be enabled by an unauthenticated request."""
-    expected = app_settings.admin_api_key
+    expected = app_settings.admin_api_key if is_configured_secret(app_settings.admin_api_key) else ""
     if not expected:
         raise HTTPException(403, "Set ADMIN_API_KEY before enabling paid graph execution")
     if x_admin_key != expected:
         raise HTTPException(403, "Unauthorized: paid graph execution requires X-Admin-Key")
+
+
+def _require_paid_autonomous_render_env(request: "AutonomousGenerateRequest") -> None:
+    """Reject paid autonomous render before queueing when vendor env is missing."""
+    if request.dry_run_only:
+        return
+    missing = missing_secret_names([
+        ("ATLASCLOUD_API_KEY", app_settings.atlascloud_api_key),
+    ])
+    if not missing:
+        return
+    raise HTTPException(
+        503,
+        {
+            "code": "missing_env",
+            "message": (
+                "Paid autonomous render requires ATLASCLOUD_API_KEY in .env.local. "
+                "No render job was queued and no vendor call was made."
+            ),
+            "missing_env": missing,
+            "vendor_calls_performed": False,
+            "paid_video_vendor_calls_allowed": False,
+        },
+    )
+
+
+def _require_image_reference_for_image_driven_model(
+    *,
+    user_model: str,
+    reference_image_urls: list[str],
+) -> None:
+    """Reject image-driven model choices before any chain or render work."""
+    requested_model = (user_model or "").strip().lower()
+    if requested_model not in {"wan_2_7", "wan_2_7_i2v"}:
+        return
+    if reference_image_urls:
+        return
+    raise HTTPException(
+        422,
+        {
+            "code": "model_requires_image_reference",
+            "message": (
+                "Wan 2.7 is an image-driven lip-sync route. Upload and confirm "
+                "at least one image reference, or switch model back to Auto route."
+            ),
+            "requested_model": requested_model,
+            "required_reference_roles": ["character_primary", "product_hero"],
+            "vendor_calls_performed": False,
+            "paid_video_vendor_calls_allowed": False,
+        },
+    )
 
 
 # ============================================================
@@ -874,10 +927,16 @@ async def gen_master_storyboard(request: MasterBoardRequest) -> MasterBoardRespo
         logger.error(f"[master_board] gen fail: {e}")
         raise HTTPException(502, f"Master board gen failed: {e}") from e
 
-    outputs = result.get("outputs") or []
-    board_url = (outputs[0] if outputs else result.get("output_url") or result.get("url") or "")
+    outputs = deliverable_http_urls(result.get("outputs") or [])
+    board_url = (
+        outputs[0]
+        if outputs
+        else deliverable_http_url(result.get("output_url"))
+        or deliverable_http_url(result.get("url"))
+        or ""
+    )
     if not board_url:
-        raise HTTPException(502, f"Image model returned no URL. result={result}")
+        raise HTTPException(502, "Image model returned no deliverable HTTP(S) board URL.")
 
     cost = estimate_image_cost(model_key, 1)
 
@@ -1098,7 +1157,10 @@ class AutonomousGenerateRequest(BaseModel):
     aspect_ratio: Optional[str] = Field(None, description="auto|9:16|16:9|1:1")
     user_model: str = Field("auto", description="auto|seedance_2_0|seedance_2_0_fast|wan_2_7")
     resolution: str = "720p"
-    use_vision_llm_for_tagging: bool = True
+    use_vision_llm_for_tagging: bool = Field(
+        False,
+        description="Opt-in only. Normal dry-run/render stays metadata-based and skips vision LLM tagging.",
+    )
     approved_plan_id: Optional[str] = Field(None, max_length=80)
     approved_plan_source_hash: Optional[str] = Field(None, max_length=80)
     approved_plan_source_length: Optional[int] = Field(None, ge=0, le=2000)
@@ -1625,6 +1687,34 @@ def _apply_benchmark_review_scores(
     return payload
 
 
+def _assert_benchmark_payload_is_not_fabricated(
+    payload: dict[str, Any],
+    *,
+    existing: Optional[dict[str, Any]] = None,
+) -> None:
+    """Reject fabricated benchmark output and passed status without evidence."""
+    from agent.benchmark_evidence_validator import (
+        has_real_output_url,
+        validate_benchmark_result_evidence,
+    )
+
+    candidate = {**(existing or {}), **payload}
+    existing_evidence = (existing or {}).get("evidence") if isinstance((existing or {}).get("evidence"), dict) else {}
+    patch_evidence = payload.get("evidence") if isinstance(payload.get("evidence"), dict) else {}
+    if existing_evidence or patch_evidence:
+        candidate["evidence"] = {**existing_evidence, **patch_evidence}
+
+    output_url = candidate.get("output_url")
+    if output_url and not has_real_output_url(candidate):
+        raise ValueError("benchmark output_url must be a real HTTP(S) render URL; stub/local URLs are not accepted")
+
+    if str(candidate.get("status") or "").strip().lower() == "passed":
+        validation = validate_benchmark_result_evidence(candidate)
+        if not validation["promotion_ready"]:
+            reasons = ", ".join(validation["missing_reasons"])
+            raise ValueError(f"benchmark status=passed requires promotion-ready evidence: {reasons}")
+
+
 @router.get("/autonomous/capabilities")
 async def autonomous_capabilities():
     """Return current autonomous niche/runtime/model readiness matrix."""
@@ -1722,6 +1812,7 @@ async def create_autonomous_benchmark_result(
     _require_mutation_admin(x_admin_key)
     try:
         payload = _apply_benchmark_review_scores(request.model_dump())
+        _assert_benchmark_payload_is_not_fabricated(payload)
         row = autonomous_benchmark_store.create_result(**payload)
         return {**row, "evidence_validation": validate_benchmark_result_evidence(row)}
     except ValueError as e:
@@ -1757,6 +1848,7 @@ async def update_autonomous_benchmark_result(
             request.model_dump(exclude_unset=True),
             existing=existing,
         )
+        _assert_benchmark_payload_is_not_fabricated(patch, existing=existing)
         result = autonomous_benchmark_store.update_result(
             result_id,
             **patch,
@@ -3207,6 +3299,10 @@ async def autonomous_generate(
         auto_selected_pin_ids=auto_pin_selection.get("auto_selected_pin_ids") or [],
     )
     reference_image_urls = pinned_refs["reference_image_urls"]
+    _require_image_reference_for_image_driven_model(
+        user_model=request.user_model,
+        reference_image_urls=reference_image_urls,
+    )
     reference_counts = {
         "images": len(reference_image_urls),
         "videos": len(request.reference_video_urls),
@@ -3263,6 +3359,8 @@ async def autonomous_generate(
                 "requested_duration_s": paid_duration_s,
             },
         )
+
+    _require_paid_autonomous_render_env(request)
 
     if request.approved_dry_run_job_id and not request.dry_run_only:
         bundle = _load_approved_longform_bundle(
@@ -3948,12 +4046,17 @@ async def get_job_benchmark_evidence_pack(job_id: str):
         raise HTTPException(404, f"artifact for job '{job_id}' not found")
     job_record = _JOBS_STORE.get(job_id, {})
     draft = build_benchmark_result_draft_from_artifact(snapshot, job_record={**job_record, "job_id": job_id})
+    user_feedback = render_feedback_store.build_feedback_evidence(job_id)
+    validation_preview = _merge_feedback_integrity_into_validation(
+        validate_benchmark_result_evidence(draft),
+        user_feedback,
+    )
     return {
         "schema_version": "cinejelly.job_benchmark_evidence_pack.v1",
         "job_id": job_id,
         "benchmark_result_draft": draft,
-        "user_feedback": render_feedback_store.build_feedback_evidence(job_id),
-        "evidence_validation_preview": validate_benchmark_result_evidence(draft),
+        "user_feedback": user_feedback,
+        "evidence_validation_preview": validation_preview,
     }
 
 
@@ -3972,6 +4075,28 @@ def _find_feedback_job_record(job_id: str) -> Optional[dict[str, Any]]:
             "output_url": None,
         }
     return None
+
+
+def _merge_feedback_integrity_into_validation(
+    validation: dict[str, Any],
+    user_feedback: dict[str, Any],
+) -> dict[str, Any]:
+    """Benchmark preview must not ignore unsafe legacy/operator feedback evidence."""
+    merged = dict(validation)
+    integrity = user_feedback.get("integrity") if isinstance(user_feedback.get("integrity"), dict) else {}
+    if integrity.get("promotion_safe", True) is not False:
+        return merged
+    missing = [
+        str(item)
+        for item in (merged.get("missing_reasons") or [])
+        if str(item or "").strip()
+    ]
+    if "feedback_integrity_not_safe" not in missing:
+        missing.append("feedback_integrity_not_safe")
+    merged["missing_reasons"] = missing
+    merged["promotion_ready"] = False
+    merged["feedback_integrity"] = integrity
+    return merged
 
 
 @router.get("/jobs/{job_id}/feedback")
@@ -4520,6 +4645,8 @@ async def get_job_final_video(job_id: str, refresh: bool = False):
     ).strip()
     if not final_url:
         raise HTTPException(404, "final video URL is not available for this job")
+    if not _is_deliverable_http_url(final_url):
+        raise HTTPException(409, "final video URL is not a deliverable HTTP(S) storage URL")
     return {
         "job_id": job_id,
         "final_video_url": final_url,
@@ -4568,6 +4695,12 @@ def _append_final_video_refresh_trace(*, job_id: str, assembly: dict[str, Any], 
         _JOBS_STORE[job_id]["pipeline_trace"] = trace.model_dump(mode="json")
     except Exception:
         logger.warning("final_video_refresh_trace_append_failed", extra={"job_id": job_id}, exc_info=True)
+
+
+def _is_deliverable_http_url(value: Any) -> bool:
+    from core.deliverable_url import deliverable_http_url
+
+    return deliverable_http_url(value) is not None
 
 
 def _private_url_refresh_needed(assembly: dict[str, Any]) -> bool:

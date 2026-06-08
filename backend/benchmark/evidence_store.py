@@ -12,7 +12,9 @@ from pathlib import Path
 from typing import Any, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from core.deliverable_url import deliverable_http_url
 
 BenchmarkVerdict = Literal["usable", "needs_repair", "failed", "unreviewed"]
 
@@ -42,6 +44,16 @@ class BenchmarkEvidenceRecord(BaseModel):
     verdict: BenchmarkVerdict = "unreviewed"
     failure_reason: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("output_url")
+    @classmethod
+    def _output_url_must_be_http(cls, value: str | None) -> str | None:
+        if not str(value or "").strip():
+            return None
+        url = deliverable_http_url(value)
+        if url:
+            return url
+        raise ValueError("benchmark output_url must be a real HTTP(S) render URL")
 
 
 class BenchmarkLaunchGateReport(BaseModel):
@@ -122,16 +134,23 @@ def build_launch_gate_report(
     sample_count = len(records)
     usable_count = sum(1 for record in records if record.verdict == "usable")
     failed_count = sum(1 for record in records if record.verdict == "failed")
+    complete_usable_count = sum(1 for record in records if record.verdict == "usable" and _has_complete_launch_evidence(record))
     usable_rate = usable_count / sample_count if sample_count else 0.0
     hard_fail_rate = failed_count / sample_count if sample_count else 0.0
     warnings: list[str] = []
     blockers: list[str] = []
     if sample_count < min_samples:
         blockers.append("benchmark_insufficient_sample_count")
+    if complete_usable_count < min_samples:
+        blockers.append("benchmark_insufficient_complete_launch_evidence")
     if usable_rate < min_usable_rate:
         blockers.append("benchmark_usable_rate_below_launch_threshold")
     if hard_fail_rate > max_hard_fail_rate:
         blockers.append("benchmark_hard_fail_rate_above_launch_threshold")
+    if any(record.verdict == "usable" and not _has_complete_launch_evidence(record) for record in records):
+        warnings.append("benchmark_usable_records_missing_launch_evidence_fields")
+    if any(record.verdict == "failed" and not str(record.failure_reason or "").strip() for record in records):
+        warnings.append("benchmark_failed_records_missing_failure_reason")
     qa_values = [record.qa_score for record in records if record.qa_score is not None]
     human_values = [record.human_score for record in records if record.human_score is not None]
     if not qa_values:
@@ -155,8 +174,24 @@ def build_launch_gate_report(
             "benchmark.launch_gate.usable_rate",
             "benchmark.launch_gate.hard_fail_rate",
             "benchmark.launch_gate.qa_and_human_review_coverage",
+            "benchmark.launch_gate.complete_launch_evidence",
         ],
     )
+
+
+def _has_complete_launch_evidence(record: BenchmarkEvidenceRecord) -> bool:
+    """Return whether a usable record contains the evidence required for launch claims."""
+    return bool(
+        _has_real_output_url(record.output_url)
+        and record.cost_usd is not None
+        and record.latency_s is not None
+        and record.qa_score is not None
+        and record.human_score is not None
+    )
+
+
+def _has_real_output_url(value: str | None) -> bool:
+    return deliverable_http_url(value) is not None
 
 
 __all__ = [

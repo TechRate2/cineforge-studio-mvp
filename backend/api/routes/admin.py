@@ -3,7 +3,7 @@
 4 buckets (per Blueprint v2.1 §4):
   - presets/*  — Style Preset Library (reusable visual_style + audio + setting)
   - prompts/*  — Read/edit system prompts (director.md / scene.md / evaluation.md / revise.md)
-  - credits    — Wallet balance view (AtlasCloud + GenMax — placeholder until vendor APIs expose balance)
+  - credits    — Vendor/storage readiness; no fabricated wallet balance
   - config     — Read current LLM routing + cost gate defaults from env
 """
 from __future__ import annotations
@@ -17,6 +17,7 @@ from loguru import logger
 
 from core import style_presets
 from core.config import settings
+from core.env_guard import is_configured_secret, missing_secret_names
 from core.sanitize import sanitize_prompt_injection
 
 
@@ -30,11 +31,12 @@ async def require_admin(x_admin_key: Optional[str] = Header(None, alias="X-Admin
     """Guard MUTATING admin endpoints.
 
     Policy:
-      - If `ADMIN_API_KEY` env is set → header `X-Admin-Key` MUST equal it (case-sensitive).
-      - If empty AND `app_env == "development"` → bypass (localhost dev convenience).
+      - If a real `ADMIN_API_KEY` env is set, header `X-Admin-Key` MUST equal it.
+      - Empty or placeholder values count as missing.
+      - If missing AND `app_env == "development"` then bypass for localhost dev convenience.
       - Otherwise reject 403.
     """
-    expected = settings.admin_api_key
+    expected = settings.admin_api_key if is_configured_secret(settings.admin_api_key) else ""
     if expected:
         if not x_admin_key or x_admin_key != expected:
             raise HTTPException(403, "Unauthorized — set X-Admin-Key header with ADMIN_API_KEY value")
@@ -252,48 +254,45 @@ async def update_prompt(
 
 
 # ============================================================
-# CREDIT BALANCE (placeholder — real vendor APIs not yet wired)
+# CREDIT / STORAGE READINESS (no fabricated balances)
 # ============================================================
 @router.get("/credits")
 async def get_credits():
-    """Wallet balance view. Returns mocked balances until vendor APIs expose
-    them (AtlasCloud + GenMax don't currently have public balance endpoints
-    via the same key we use to render)."""
+    """Report vendor/storage readiness without fabricating wallet balances."""
     return {
-        "atlascloud": {
-            "key_set": bool(settings.atlascloud_api_key),
-            "key_masked": _mask(settings.atlascloud_api_key),
-            "base_url": settings.atlascloud_base_url,
-            "balance_usd": None,
-            "balance_source": "vendor API not exposed — track in your AtlasCloud dashboard",
-        },
-        "atlascloud_llm": {
-            "key_set": bool(settings.atlascloud_llm_api_key),
-            "key_masked": _mask(settings.atlascloud_llm_api_key),
-            "base_url": settings.atlascloud_llm_base_url,
-            "balance_usd": None,
-            "balance_source": "Coding Plan separate wallet",
-        },
-        "genmax": {
-            "key_set": bool(settings.genmax_api_key),
-            "key_masked": _mask(settings.genmax_api_key),
-            "base_url": settings.genmax_base_url,
-            "balance_credits": None,
-            "balance_source": "vendor API not exposed",
-        },
-        "anthropic": {
-            "key_set": bool(settings.anthropic_api_key),
-            "key_masked": _mask(settings.anthropic_api_key),
-            "balance_usd": None,
-            "balance_source": "fallback provider — check console.anthropic.com",
-        },
-        "r2": {
-            "configured": bool(
-                settings.r2_account_id and settings.r2_access_key_id
-                and settings.r2_secret_access_key and settings.r2_bucket_name
+        "schema_version": "cineforge.admin_credits.v1",
+        "providers": {
+            "atlascloud": _provider_readiness(
+                key_name="ATLASCLOUD_API_KEY",
+                key_value=settings.atlascloud_api_key,
+                base_url=settings.atlascloud_base_url,
+                balance_unit="usd",
+                balance_source="AtlasCloud balance API is not wired for this render key; check the vendor dashboard.",
             ),
-            "bucket": settings.r2_bucket_name,
-            "public_url": settings.r2_public_url or None,
+            "atlascloud_llm": _provider_readiness(
+                key_name="ATLASCLOUD_LLM_API_KEY",
+                key_value=settings.atlascloud_llm_api_key,
+                base_url=settings.atlascloud_llm_base_url,
+                balance_unit="usd",
+                balance_source="AtlasCloud LLM wallet is separate; check the vendor dashboard.",
+            ),
+            "genmax": _provider_readiness(
+                key_name="GENMAX_API_KEY",
+                key_value=settings.genmax_api_key,
+                base_url=settings.genmax_base_url,
+                balance_unit="credits",
+                balance_source="GenMax balance API is not wired; check the vendor dashboard.",
+            ),
+            "anthropic": _provider_readiness(
+                key_name="ANTHROPIC_API_KEY",
+                key_value=settings.anthropic_api_key,
+                base_url=None,
+                balance_unit="usd",
+                balance_source="Anthropic usage must be checked in the provider console.",
+            ),
+        },
+        "storage": {
+            "r2": _r2_readiness(),
         },
     }
 
@@ -341,6 +340,45 @@ async def get_config():
 # ============================================================
 # Helpers
 # ============================================================
+def _provider_readiness(
+    *,
+    key_name: str,
+    key_value: str,
+    base_url: str | None,
+    balance_unit: str,
+    balance_source: str,
+) -> dict[str, object]:
+    key_configured = is_configured_secret(key_value)
+    return {
+        "status": "configured" if key_configured else "missing_env",
+        "key_set": key_configured,
+        "missing_env": [] if key_configured else [key_name],
+        "key_masked": _mask(key_value) if key_configured else "",
+        "base_url": base_url,
+        "balance": None,
+        "balance_unit": balance_unit,
+        "balance_status": "unavailable",
+        "balance_source": balance_source,
+    }
+
+
+def _r2_readiness() -> dict[str, object]:
+    required = [
+        ("R2_ACCOUNT_ID", settings.r2_account_id),
+        ("R2_ACCESS_KEY_ID", settings.r2_access_key_id),
+        ("R2_SECRET_ACCESS_KEY", settings.r2_secret_access_key),
+        ("R2_BUCKET_NAME", settings.r2_bucket_name),
+    ]
+    missing = missing_secret_names(required)
+    return {
+        "status": "configured" if not missing else "missing_env",
+        "configured": not missing,
+        "missing_env": missing,
+        "bucket": settings.r2_bucket_name if is_configured_secret(settings.r2_bucket_name) else None,
+        "public_url": settings.r2_public_url or None,
+    }
+
+
 def _mask(key: str) -> str:
     if not key:
         return ""

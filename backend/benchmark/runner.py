@@ -12,6 +12,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from benchmark.evidence_store import BenchmarkEvidenceRecord, BenchmarkEvidenceStore
+from core.deliverable_url import deliverable_http_url
 from pipeline.approval_lock import ApprovalLock
 from pipeline.contracts import SeedanceExecutionPlan
 from pipeline.render_execution import RenderExecutionResult, RenderExecutor
@@ -69,7 +70,6 @@ class BenchmarkRenderRunner:
         lock = ApprovalLock.from_execution_plan(
             idea=case.idea,
             execution_plan=case.execution_plan,
-            reference_assets=case.execution_plan.reference_assets,
             cost_estimate=case.execution_plan.cost_estimate,
             approved_by=approved_by,
             approval_source="benchmark_case",
@@ -105,7 +105,20 @@ def _evidence_from_result(
     qa_status = _aggregate_qa_status(result)
     qa_score = _average_visual_score(result)
     cost_usd = result.cost_gate.estimated_total_usd if result.cost_gate is not None else _cost_from_plan(case.execution_plan)
-    verdict = "usable" if result.status == "completed" else "failed" if result.status in {"rejected", "cost_rejected", "consistency_rejected", "render_failed", "qa_failed"} else "unreviewed"
+    verdict = (
+        "usable"
+        if result.status == "completed" and output_url
+        else "failed"
+        if result.status in {"completed", "rejected", "cost_rejected", "consistency_rejected", "render_failed", "qa_failed"}
+        else "unreviewed"
+    )
+    failure_reason = None
+    if verdict == "failed":
+        failure_reason = (
+            "Completed render did not provide a real HTTP(S) output URL."
+            if result.status == "completed" and not output_url
+            else result.message
+        )
     return BenchmarkEvidenceRecord(
         project_id=case.metadata.get("project_id"),
         job_id=case.metadata.get("job_id"),
@@ -122,7 +135,7 @@ def _evidence_from_result(
         qa_score=qa_score,
         repair_count=sum(result.repair_attempts_by_shot.values()) if hasattr(result, "repair_attempts_by_shot") else 0,
         verdict=verdict,
-        failure_reason=None if verdict == "usable" else result.message,
+        failure_reason=failure_reason,
         metadata={
             **case.metadata,
             "case_id": case.case_id,
@@ -135,8 +148,9 @@ def _evidence_from_result(
 
 def _first_output_url(result: RenderExecutionResult) -> str | None:
     for segment in result.rendered_segments:
-        if segment.video_url:
-            return segment.video_url
+        url = deliverable_http_url(segment.video_url)
+        if url:
+            return url
     return None
 
 

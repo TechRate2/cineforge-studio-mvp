@@ -17,6 +17,7 @@ import httpx
 from loguru import logger
 
 from core.config import settings
+from core.env_guard import is_configured_secret
 from vendors._retry import llm_retry
 
 
@@ -35,10 +36,10 @@ class LLMRouter:
         self._atlas = None
         self._claude = None
         # Lazy init — chỉ instantiate khi cần
-        if settings.atlascloud_api_key:
+        if is_configured_secret(settings.atlascloud_llm_api_key) or is_configured_secret(settings.atlascloud_api_key):
             from vendors.atlascloud_llm import atlas_llm
             self._atlas = atlas_llm
-        if settings.anthropic_api_key:
+        if is_configured_secret(settings.anthropic_api_key):
             from vendors.anthropic_client import claude_client
             self._claude = claude_client
 

@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from core.deliverable_url import deliverable_http_url
 from pipeline.approval_lock import ApprovalLock, ApprovalLockVerification
 from pipeline.contracts import SeedanceExecutionPlan, SeedanceShotPlan
 from workers.continuity_chainer import ContinuityChainer, ContinuityChainState
@@ -13,6 +14,7 @@ from workers.cost_control import CostControlService, CostGateDecision
 from workers.render_dry_run import RenderDryRunReport, RenderDryRunService
 from workers.render_qa_service import RenderQAService, SegmentQAReport
 from workers.segment_renderer import SegmentRenderer, SegmentRenderResult
+from workers.segment_repair_policy import apply_segment_repair, build_segment_repair_plan
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +44,7 @@ class RenderExecutionResult(BaseModel):
     cost_gate: CostGateDecision | None = None
     rendered_segments: list[SegmentRenderResult] = Field(default_factory=list)
     qa_reports: list[SegmentQAReport] = Field(default_factory=list)
+    repair_attempts_by_shot: dict[str, int] = Field(default_factory=dict)
     message: str = ""
 
 
@@ -56,12 +59,14 @@ class RenderExecutor:
         continuity_chainer: ContinuityChainer | None = None,
         qa_service: RenderQAService | None = None,
         cost_control: CostControlService | None = None,
+        max_auto_repair_attempts: int = 1,
     ) -> None:
         self.dry_run_service = dry_run_service or RenderDryRunService()
         self.segment_renderer = segment_renderer or SegmentRenderer()
         self.continuity_chainer = continuity_chainer or ContinuityChainer()
         self.qa_service = qa_service or RenderQAService()
         self.cost_control = cost_control or CostControlService()
+        self.max_auto_repair_attempts = max(0, int(max_auto_repair_attempts))
 
     def execute(
         self,
@@ -127,6 +132,25 @@ class RenderExecutor:
                 approval_verification=verification,
                 dry_run_report=dry_run_report,
                 message="Dry-run generated; no paid vendor call was made.",
+            )
+
+        dry_run_hard_failure_decision = _dry_run_hard_failure_decision(dry_run_report)
+        if not dry_run_hard_failure_decision["should_render"]:
+            logger.warning(
+                "render_executor_dry_run_hard_failures_rejected",
+                extra={
+                    "execution_plan_id": execution_plan.execution_plan_id,
+                    "approval_lock_id": approval_lock.lock_id,
+                    "hard_failures": dry_run_hard_failure_decision["hard_failures"],
+                },
+            )
+            return RenderExecutionResult(
+                status="rejected",
+                execution_plan_id=execution_plan.execution_plan_id,
+                approval_lock_id=approval_lock.lock_id,
+                approval_verification=verification,
+                dry_run_report=dry_run_report,
+                message=str(dry_run_hard_failure_decision["message"]),
             )
 
         preflight_decision = _seedance_preflight_decision(execution_plan)
@@ -210,6 +234,7 @@ class RenderExecutor:
                 shot=shots[0],
                 override_model="seedance_2_0_fast",
             )
+            draft_result = normalize_segment_deliverable(draft_result)
             draft_qa = self.qa_service.evaluate_segment(shot=shots[0], result=draft_result)
             if draft_qa.status == "fail":
                 logger.warning(
@@ -236,16 +261,19 @@ class RenderExecutor:
 
         rendered_segments: list[SegmentRenderResult] = []
         qa_reports: list[SegmentQAReport] = []
+        repair_attempts: dict[str, int] = {}
         chain_state = ContinuityChainState()
         for shot in shots:
-            result = self.segment_renderer.render_segment(
+            segment_results, segment_qa_reports, repair_count = self._render_shot_with_repair(
                 execution_plan=execution_plan,
                 shot=shot,
                 previous_last_frame_url=chain_state.previous_last_frame_url,
             )
-            rendered_segments.append(result)
-            qa_report = self.qa_service.evaluate_segment(shot=shot, result=result)
-            qa_reports.append(qa_report)
+            rendered_segments.extend(segment_results)
+            qa_reports.extend(segment_qa_reports)
+            repair_attempts[shot.shot_id] = repair_count
+            result = segment_results[-1]
+            qa_report = segment_qa_reports[-1]
             if result.status != "completed":
                 logger.error(
                     "render_executor_segment_failed",
@@ -266,7 +294,30 @@ class RenderExecutor:
                     cost_gate=cost_decision,
                     rendered_segments=rendered_segments,
                     qa_reports=qa_reports,
+                    repair_attempts_by_shot=repair_attempts,
                     message=f"Render failed for {shot.shot_id}: {result.error_code or result.error or 'vendor error'}",
+                )
+            if qa_report.status == "fail":
+                logger.warning(
+                    "render_executor_qa_failed",
+                    extra={
+                        "execution_plan_id": execution_plan.execution_plan_id,
+                        "approval_lock_id": approval_lock.lock_id,
+                        "failed_shots": [qa_report.shot_id],
+                        "repair_attempts": repair_count,
+                    },
+                )
+                return RenderExecutionResult(
+                    status="qa_failed",
+                    execution_plan_id=execution_plan.execution_plan_id,
+                    approval_lock_id=approval_lock.lock_id,
+                    approval_verification=verification,
+                    dry_run_report=dry_run_report,
+                    cost_gate=cost_decision,
+                    rendered_segments=rendered_segments,
+                    qa_reports=qa_reports,
+                    repair_attempts_by_shot=repair_attempts,
+                    message="Render completed with QA failures.",
                 )
             chain_state = self.continuity_chainer.update_state(
                 shot_id=shot.shot_id,
@@ -275,27 +326,17 @@ class RenderExecutor:
                 previous_state=chain_state,
             )
 
-        failed = [report for report in qa_reports if report.status == "fail"]
-        if failed:
-            logger.warning(
-                "render_executor_qa_failed",
-                extra={
-                    "execution_plan_id": execution_plan.execution_plan_id,
-                    "approval_lock_id": approval_lock.lock_id,
-                    "failed_shots": [report.shot_id for report in failed],
-                },
-            )
-        else:
-            logger.info(
-                "render_executor_completed",
-                extra={
-                    "execution_plan_id": execution_plan.execution_plan_id,
-                    "approval_lock_id": approval_lock.lock_id,
-                    "rendered_segments": len(rendered_segments),
-                },
-            )
+        logger.info(
+            "render_executor_completed",
+            extra={
+                "execution_plan_id": execution_plan.execution_plan_id,
+                "approval_lock_id": approval_lock.lock_id,
+                "rendered_segments": len(rendered_segments),
+                "repair_attempts": repair_attempts,
+            },
+        )
         return RenderExecutionResult(
-            status="qa_failed" if failed else "completed",
+            status="completed",
             execution_plan_id=execution_plan.execution_plan_id,
             approval_lock_id=approval_lock.lock_id,
             approval_verification=verification,
@@ -303,8 +344,66 @@ class RenderExecutor:
             cost_gate=cost_decision,
             rendered_segments=rendered_segments,
             qa_reports=qa_reports,
-            message="Render completed with QA failures." if failed else "Render completed safely.",
+            repair_attempts_by_shot=repair_attempts,
+            message="Render completed safely.",
         )
+
+    def _render_shot_with_repair(
+        self,
+        *,
+        execution_plan: SeedanceExecutionPlan,
+        shot: SeedanceShotPlan,
+        previous_last_frame_url: str | None,
+    ) -> tuple[list[SegmentRenderResult], list[SegmentQAReport], int]:
+        """Render one short-form shot and retry once when completed output fails QA."""
+        active_execution_plan = execution_plan
+        active_shot = shot
+        results: list[SegmentRenderResult] = []
+        qa_reports: list[SegmentQAReport] = []
+        repair_count = 0
+        max_attempts = self.max_auto_repair_attempts + 1
+        for attempt in range(max_attempts):
+            result = self.segment_renderer.render_segment(
+                execution_plan=active_execution_plan,
+                shot=active_shot,
+                previous_last_frame_url=previous_last_frame_url,
+            )
+            result = normalize_segment_deliverable(result)
+            qa_report = self.qa_service.evaluate_segment(shot=active_shot, result=result)
+            results.append(result)
+            qa_reports.append(qa_report)
+            if result.status != "completed" or qa_report.status != "fail":
+                return results, qa_reports, repair_count
+            repair_plan = build_segment_repair_plan(
+                shot=active_shot,
+                result=result,
+                qa_report=qa_report,
+                attempt_index=attempt,
+                max_attempts=max_attempts,
+                previous_last_frame_url=previous_last_frame_url,
+            )
+            if not repair_plan.should_retry or attempt >= max_attempts - 1:
+                return results, qa_reports, repair_count
+            repair_count += 1
+            active_execution_plan, active_shot = apply_segment_repair(
+                execution_plan=active_execution_plan,
+                shot=active_shot,
+                repair_plan=repair_plan,
+                repair_attempt=repair_count,
+            )
+            logger.warning(
+                "render_executor_shortform_auto_repair",
+                extra={
+                    "execution_plan_id": execution_plan.execution_plan_id,
+                    "shot_id": shot.shot_id,
+                    "repair_attempt": repair_count,
+                    "qa_status": qa_report.status,
+                    "qa_errors": qa_report.errors,
+                    "repair_reason": repair_plan.reason,
+                    "repair_tags": repair_plan.repair_tags,
+                },
+            )
+        return results, qa_reports, repair_count
 
 
 def _resolve_approved_idea(
@@ -336,6 +435,45 @@ def _single_shot_from_plan(execution_plan: SeedanceExecutionPlan) -> SeedanceSho
         examples_used=execution_plan.examples_used,
         linter_warnings=execution_plan.linter_warnings,
     )
+
+
+def normalize_segment_deliverable(result: SegmentRenderResult) -> SegmentRenderResult:
+    """Fail closed when a completed segment lacks a deliverable HTTP(S) URL."""
+    if result.status != "completed":
+        last_frame_url = deliverable_http_url(result.last_frame_url)
+        if last_frame_url != result.last_frame_url:
+            return result.model_copy(update={"last_frame_url": last_frame_url})
+        return result
+    video_url = deliverable_http_url(result.video_url)
+    last_frame_url = deliverable_http_url(result.last_frame_url)
+    if video_url:
+        if video_url != result.video_url or last_frame_url != result.last_frame_url:
+            return result.model_copy(update={"video_url": video_url, "last_frame_url": last_frame_url})
+        return result
+    return result.model_copy(update={
+        "status": "failed",
+        "video_url": None,
+        "last_frame_url": last_frame_url,
+        "error": "Completed segment did not return a deliverable HTTP(S) video URL.",
+        "error_code": "missing_deliverable_video_url",
+    })
+
+
+def _dry_run_hard_failure_decision(dry_run_report: RenderDryRunReport) -> dict[str, Any]:
+    """Fail closed on dry-run blockers such as blocked reference assets."""
+    hard_failures = list(dict.fromkeys(str(item) for item in dry_run_report.hard_failures if str(item).strip()))
+    if hard_failures:
+        failure_message = "; ".join(hard_failures[:4])
+        return {
+            "should_render": False,
+            "hard_failures": hard_failures,
+            "message": "Dry-run hard failures rejected paid render before vendor call: " + failure_message,
+        }
+    return {
+        "should_render": True,
+        "hard_failures": [],
+        "message": "Dry-run hard-failure gate allows render.",
+    }
 
 
 def _seedance_preflight_decision(execution_plan: SeedanceExecutionPlan) -> dict[str, Any]:
@@ -467,4 +605,4 @@ def _consistency_policy_reasons(execution_plan: SeedanceExecutionPlan) -> list[s
     return list(dict.fromkeys(reason for reason in reasons if reason.strip()))
 
 
-__all__ = ["RenderExecutionResult", "RenderExecutionStatus", "RenderExecutor"]
+__all__ = ["RenderExecutionResult", "RenderExecutionStatus", "RenderExecutor", "normalize_segment_deliverable"]

@@ -23,6 +23,11 @@ Turn CineForge Studio into a production-grade autonomous AI video production age
 Product goal:
 A user enters a simple idea, optional references, duration, market, and platform. The system should understand the niche, guide missing inputs, assign reference roles, choose a creative treatment, write script/storyboard, compile Seedance prompts, run dry-run, lock approval, render safely, run QA, repair when allowed, assemble, deliver, and record benchmark evidence.
 
+Current UX goal:
+Transform `/studio` into a chat-first autonomous video studio with Vietnamese-first
+copy, smart reference review, agent plan preview, and a truthful render timeline.
+Do not add UI-only fake cards. Backend and frontend contracts must match exactly.
+
 Core requirements:
 - production behavior only;
 - preserve short-form at or below 15 seconds;
@@ -100,6 +105,13 @@ Phase 5: Add documentation.
 Phase 6: Real smoke readiness.
 - Add or update smoke scripts for short-form and long-form.
 - Fail clearly when required environment is missing.
+
+Chat-first continuation:
+- Maintain `docs/UI_BACKEND_CAPABILITY_MATRIX.md`.
+- Maintain `docs/STUDIO_CHAT_FIRST_UX.md`.
+- Keep Reference Intelligence readiness visible in UI.
+- Keep prompt and negative prompt in advanced UI.
+- Keep raw benchmark rows admin/operator-only unless real evidence summary is available.
 
 Required validation:
 python -m pytest backend\tests -q

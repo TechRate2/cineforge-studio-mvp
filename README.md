@@ -55,7 +55,7 @@ cd backend
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
-python -m uvicorn api.main:app --host 127.0.0.1 --port 8002 --reload
+python -m uvicorn api.main:app --host 127.0.0.1 --port 8001 --reload
 ```
 
 Open `http://localhost:3000/studio`.
@@ -79,6 +79,10 @@ DATABASE_URL=
 
 Backend reads `.env.local` from the repo root and can be overridden by
 `backend/.env`.
+
+Paid renders fail closed when required vendor env is absent. `ATLASCLOUD_API_KEY`
+must be a real value, not a placeholder such as `...`; otherwise the autonomous
+render endpoint returns `code: "missing_env"` and queues no render job.
 
 ## Autonomous Inspection Endpoints
 
@@ -139,7 +143,7 @@ node .\scripts\check-autonomous-ui.mjs
 Smoke check:
 
 ```bash
-Invoke-WebRequest http://127.0.0.1:8002/health
+Invoke-WebRequest http://127.0.0.1:8001/health
 Invoke-WebRequest http://localhost:3000/studio
 ```
 

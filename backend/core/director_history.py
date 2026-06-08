@@ -34,6 +34,8 @@ from typing import Any, Optional
 
 from loguru import logger
 
+from core.deliverable_url import deliverable_http_url
+
 
 _DB_PATH = Path(__file__).parent.parent / "data" / "director_history.db"
 _LOCK = threading.Lock()
@@ -93,6 +95,7 @@ def record_job(
     now = datetime.now(timezone.utc).isoformat()
     plan_blob = json.dumps(plan, ensure_ascii=False, default=str) if plan else None
     chain_blob = json.dumps(chain, ensure_ascii=False, default=str) if chain else None
+    deliverable_output_url = deliverable_http_url(output_url)
     with _LOCK:
         with _conn() as c:
             c.execute(
@@ -115,7 +118,7 @@ def record_job(
                     finished_at = excluded.finished_at
                 """,
                 (
-                    job_id, plan_id, mode, status, output_url, title,
+                    job_id, plan_id, mode, status, deliverable_output_url, title,
                     duration_s, cost_estimate_usd, plan_blob, chain_blob,
                     created_at or now, now,
                 ),
@@ -157,12 +160,15 @@ def delete_job(job_id: str) -> bool:
 
 
 def _row_to_dict(row: sqlite3.Row, include_plan: bool) -> dict:
+    raw_output_url = row["output_url"]
+    deliverable_output_url = deliverable_http_url(raw_output_url)
     out = {
         "job_id": row["job_id"],
         "plan_id": row["plan_id"],
         "mode": row["mode"],
         "status": row["status"],
-        "output_url": row["output_url"],
+        "output_url": deliverable_output_url,
+        "local_output_path": "" if deliverable_output_url else (raw_output_url or ""),
         "title": row["title"],
         "duration_s": row["duration_s"],
         "cost_estimate_usd": row["cost_estimate_usd"],

@@ -2,9 +2,9 @@
 FASTAPI MAIN — Entry point của backend.
 
 Run:
-    uvicorn api.main:app --reload --port 8000
+    uvicorn api.main:app --reload --port 8001
 
-Swagger docs: http://localhost:8000/docs
+Swagger docs: http://localhost:8001/docs
 """
 
 import sys

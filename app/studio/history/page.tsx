@@ -43,52 +43,59 @@ export default function HistoryPage() {
 
       {items.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {items.map((it) => (
-            <div key={it.job_id} className="bento group">
-              <div className="aspect-video bg-surface-3 relative">
-                {it.output_url ? (
-                  <button
-                    onClick={() => setPreviewUrl(it.output_url)}
-                    className="absolute inset-0 grid place-items-center bg-black hover:bg-black/70 transition"
-                  >
-                    <Play size={28} className="text-white" />
-                  </button>
-                ) : (
-                  <div className="absolute inset-0 grid place-items-center text-text-subtle text-xs">
-                    {it.status === 'rendering' || it.status === 'pending' ? (
-                      <Loader2 size={20} className="animate-spin" />
-                    ) : (
-                      <span>{it.status}</span>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className="p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <h4 className="text-sm font-semibold truncate">{it.title || 'Untitled'}</h4>
-                    <p className="text-[11px] text-text-subtle mt-0.5">
-                      {new Date(it.created_at).toLocaleString('vi-VN')}
-                    </p>
-                  </div>
-                  <span className={`chip text-[10px] ${
-                    it.status === 'done' ? 'border-accent-green/40 text-accent-green'
-                    : it.status === 'failed' ? 'border-accent-orange/40 text-accent-orange'
-                    : ''
-                  }`}>{it.status}</span>
+          {items.map((it) => {
+            const hasDeliverable = Boolean(it.output_url);
+            const doneWithoutDelivery = it.status === 'done' && !hasDeliverable;
+            return (
+              <div key={it.job_id} className="bento group">
+                <div className="aspect-video bg-surface-3 relative">
+                  {it.output_url ? (
+                    <button
+                      onClick={() => setPreviewUrl(it.output_url)}
+                      className="absolute inset-0 grid place-items-center bg-black hover:bg-black/70 transition"
+                    >
+                      <Play size={28} className="text-white" />
+                    </button>
+                  ) : (
+                    <div className="absolute inset-0 grid place-items-center text-text-subtle text-xs">
+                      {it.status === 'rendering' || it.status === 'pending' ? (
+                        <Loader2 size={20} className="animate-spin" />
+                      ) : doneWithoutDelivery ? (
+                        <span>Delivery URL pending</span>
+                      ) : (
+                        <span>{it.status}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center justify-between mt-3 text-[11px] text-text-subtle">
-                  <span>{it.duration_s != null ? `${it.duration_s}s` : 'Autonomous render'}</span>
-                  <button
-                    onClick={() => remove(it.job_id)}
-                    className="opacity-0 group-hover:opacity-100 transition text-text-subtle hover:text-accent-orange"
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                <div className="p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-sm font-semibold truncate">{it.title || 'Untitled'}</h4>
+                      <p className="text-[11px] text-text-subtle mt-0.5">
+                        {new Date(it.created_at).toLocaleString('vi-VN')}
+                      </p>
+                    </div>
+                    <span className={`chip text-[10px] ${
+                      it.status === 'done' && hasDeliverable ? 'border-accent-green/40 text-accent-green'
+                      : it.status === 'failed' ? 'border-accent-orange/40 text-accent-orange'
+                      : doneWithoutDelivery ? 'border-accent-yellow/40 text-accent-yellow'
+                      : ''
+                    }`}>{doneWithoutDelivery ? 'delivery pending' : it.status}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-3 text-[11px] text-text-subtle">
+                    <span>{it.duration_s != null ? `${it.duration_s}s` : 'Autonomous render'}</span>
+                    <button
+                      onClick={() => remove(it.job_id)}
+                      className="opacity-0 group-hover:opacity-100 transition text-text-subtle hover:text-accent-orange"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

@@ -461,13 +461,14 @@ def _score_treatment(
 def _intent_bonus(*, text: str, treatment_id: str) -> float:
     tokens_by_treatment = {
         "proof_first_ugc": ("proof", "test", "review", "honest", "demo", "tiktok shop", "kiem chung", "danh gia"),
-        "cinematic_premium": ("luxury", "premium", "cinematic", "hero", "fashion film", "high-end"),
+        "cinematic_premium": ("luxury", "premium", "cinematic", "hero", "fashion film", "high-end", "macro", "texture", "lighting"),
         "documentary_testimonial": ("documentary", "true story", "interview", "explains", "case study", "phong su"),
         "fast_social_hook": ("viral", "fast", "trend", "beat", "satisfying", "loop", "retention"),
         "short_drama_arc": ("story", "film", "drama", "twist", "secret", "betrayal", "phim ngan", "bi mat", "cau chuyen"),
     }
     hits = sum(1 for token in tokens_by_treatment.get(treatment_id, ()) if token in text)
-    return min(12.0, float(hits * 4))
+    cap = 18.0 if treatment_id == "cinematic_premium" else 12.0
+    return min(cap, float(hits * 4))
 
 
 def _runtime_fit(
@@ -491,6 +492,7 @@ def _runtime_fit(
 
     if runtime_class in {"short_film", "episode"} and treatment.treatment_id == "short_drama_arc":
         score += 10
+        reasons.append("long_form_structure_fit")
         reasons.append("scene_handoff_fit")
     if runtime_class in {"short", "sequence"} and treatment.treatment_id in {"proof_first_ugc", "fast_social_hook", "cinematic_premium"}:
         score += 8

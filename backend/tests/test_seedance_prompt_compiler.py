@@ -174,7 +174,9 @@ def test_phase1b_compiler_builds_execution_plan_with_rule_metadata() -> None:
     """Compiler should wire Phase 1b modules without taking over their rule logic."""
     from pipeline.contracts import (
         AnalyzedInput,
+        AssetRef,
         CreativePlan,
+        ReferenceRole,
         StoryboardContract,
         StoryboardScene,
         canonical_hash,
@@ -187,6 +189,17 @@ def test_phase1b_compiler_builds_execution_plan_with_rule_metadata() -> None:
         normalized_idea="Create a product video",
         detected_niche="beauty",
         duration_s=12,
+        metadata={
+            "assets": [
+                AssetRef(
+                    kind="image",
+                    url="https://cdn.test/perfume-bottle.png",
+                    tag="@Image1",
+                    role=ReferenceRole.PRODUCT_HERO,
+                    notes="glass perfume bottle with gold cap product hero reference",
+                ).model_dump(mode="json")
+            ]
+        },
     )
     creative = CreativePlan(
         analysis_id=analyzed.analysis_id,

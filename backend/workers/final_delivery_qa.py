@@ -8,13 +8,15 @@ or unreadable final video as success.
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from core.deliverable_url import deliverable_http_url
+from core.config import settings
+from core.media_tools import resolve_media_tool
 from vendors.r2_storage import R2UploadResult
 
 
@@ -67,7 +69,7 @@ class FinalVideoDeliveryQAService:
         min_file_size_bytes: int = 64_000,
         duration_tolerance_s: float = 2.0,
     ) -> None:
-        self.ffprobe_bin = ffprobe_bin or shutil.which("ffprobe")
+        self.ffprobe_bin = resolve_media_tool("ffprobe", override=ffprobe_bin)
         self.min_file_size_bytes = max(1, int(min_file_size_bytes))
         self.duration_tolerance_s = max(0.25, float(duration_tolerance_s))
 
@@ -168,8 +170,17 @@ class FinalVideoDeliveryQAService:
         delivery_url = str(final_video_url or upload_result.delivery_url or upload_result.presigned_url or upload_result.public_url or "").strip()
         if not delivery_url:
             errors.append("final_delivery_url_missing")
-        elif not delivery_url.lower().startswith(("http://", "https://", "file://")):
-            errors.append("final_delivery_url_invalid_scheme")
+        else:
+            lower_url = delivery_url.lower()
+            if lower_url.startswith("file://"):
+                if not _allow_local_delivery_url():
+                    errors.append("final_delivery_local_file_url_not_allowed")
+                else:
+                    warnings.append("final_delivery_uses_dev_local_file_url")
+            elif not lower_url.startswith(("http://", "https://")):
+                errors.append("final_delivery_url_invalid_scheme")
+            elif not deliverable_http_url(delivery_url):
+                errors.append("final_delivery_loopback_url_not_allowed")
         if not str(upload_result.key or "").strip():
             errors.append("final_delivery_storage_key_missing")
         if not str(upload_result.storage_type or "").strip():
@@ -233,6 +244,13 @@ def _safe_error(exc: Exception) -> str:
 
 def _redact_path(path: Path) -> str:
     return path.name
+
+
+def _allow_local_delivery_url() -> bool:
+    return bool(
+        settings.allow_r2_local_fallback
+        and str(settings.app_env or "").strip().lower() == "development"
+    )
 
 
 __all__ = [

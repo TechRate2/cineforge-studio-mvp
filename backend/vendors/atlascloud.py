@@ -17,6 +17,7 @@ from typing import Callable, Optional, Union
 from loguru import logger
 
 from core.config import settings
+from core.env_guard import is_configured_secret
 from vendors._retry import billable_retry
 from agent.model_specs import build_payload as build_video_payload, get_spec
 
@@ -488,4 +489,4 @@ class AtlasCloudClient:
         return {"cancelled": False, "prediction_id": prediction_id}
 
 
-atlas_client = AtlasCloudClient() if settings.atlascloud_api_key else None
+atlas_client = AtlasCloudClient() if is_configured_secret(settings.atlascloud_api_key) else None

@@ -21,15 +21,9 @@ export interface DirectorJobStatus {
     has_blocking_issue?: boolean;
     recommended_next_action?: string;
   };
-  longform_progress?: {
-    segment_count?: number;
-    completed_segments?: number;
-    current_segment_id?: string | null;
-    last_event?: Record<string, unknown>;
-    events?: Array<Record<string, unknown>>;
-  };
-  longform_render_execution?: {
+  render_execution?: {
     status?: string;
+    rendered_segments?: Array<Record<string, unknown>>;
     qa_reports?: Array<{
       shot_id?: string;
       status?: string;
@@ -50,11 +44,50 @@ export interface DirectorJobStatus {
         missing_signals?: string[];
       } | null;
     }>;
+    repair_attempts_by_shot?: Record<string, number>;
+  } | null;
+  longform_progress?: {
+    segment_count?: number;
+    completed_segments?: number;
+    current_segment_id?: string | null;
+    last_event?: Record<string, unknown>;
+    events?: Array<Record<string, unknown>>;
+  };
+  longform_render_execution?: {
+    status?: string;
+    rendered_segments?: Array<Record<string, unknown>>;
+    qa_reports?: Array<{
+      shot_id?: string;
+      status?: string;
+      warnings?: string[];
+      errors?: string[];
+      consistency_score?: number | null;
+      consistency_policy_action?: string | null;
+      consistency_warnings?: string[];
+      visual_consistency?: {
+        status?: string;
+        action?: string;
+        risk_level?: string;
+        overall_score?: number | null;
+        signal_source?: string;
+        warnings?: string[];
+        errors?: string[];
+        metrics?: Record<string, number>;
+        missing_signals?: string[];
+      } | null;
+    }>;
+    repair_attempts_by_segment?: Record<string, number>;
   } | null;
   assembly_result?: {
     status?: string;
     final_video_url?: string | null;
     final_video_path?: string | null;
+    final_delivery_qa?: {
+      status?: string;
+      delivery_url?: string | null;
+      errors?: string[];
+      warnings?: string[];
+    } | null;
     storage_bucket?: string | null;
     storage_key?: string | null;
     storage_type?: string | null;

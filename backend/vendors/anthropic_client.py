@@ -4,6 +4,7 @@ import anthropic
 from typing import Optional
 
 from core.config import settings
+from core.env_guard import is_configured_secret
 
 
 class ClaudeClient:
@@ -83,4 +84,4 @@ class ClaudeClient:
         return response.content[0].text
 
 
-claude_client = ClaudeClient() if settings.anthropic_api_key else None
+claude_client = ClaudeClient() if is_configured_secret(settings.anthropic_api_key) else None

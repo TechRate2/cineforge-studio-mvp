@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 
@@ -558,6 +559,8 @@ def test_director_job_feedback_is_persisted_and_returned_without_paid_render():
         evidence = fetched.json()
         assert evidence["schema_version"] == "cinejelly.render_feedback_evidence.v1"
         assert evidence["entries"][0]["model_key"] == "seedance_2_0_fast_t2v"
+        assert evidence["entries"][0]["output_url"] == "https://cdn.example.com/test-feedback.mp4"
+        assert evidence["entries"][0]["local_output_path"] == ""
 
         job = client.get(f"/api/v1/director/jobs/{job_id}")
         assert job.status_code == 200, job.text
@@ -565,6 +568,103 @@ def test_director_job_feedback_is_persisted_and_returned_without_paid_render():
     finally:
         _JOBS_STORE.pop(job_id, None)
         feedback_path.unlink(missing_ok=True)
+
+
+def test_director_job_feedback_rejects_local_output_url_as_evidence():
+    job_id = "test_feedback_local_output_url_guard"
+    feedback_path = BACKEND_ROOT / "data" / "render_feedback" / f"{job_id}.json"
+    feedback_path.unlink(missing_ok=True)
+    _JOBS_STORE[job_id] = {
+        "status": "done",
+        "progress": 100,
+        "mode": "autonomous",
+        "model_key": "seedance_2_0_fast_t2v",
+        "output_path": "C:/tmp/local-only-final.mp4",
+    }
+
+    try:
+        posted = client.post(
+            f"/api/v1/director/jobs/{job_id}/feedback",
+            json={
+                "rating": "good",
+                "issue_tags": ["good"],
+                "reviewer": "pytest",
+                "output_url": "file:///tmp/local-only-final.mp4",
+            },
+        )
+        assert posted.status_code == 400, posted.text
+        assert "HTTP(S)" in posted.text
+
+        posted_without_url = client.post(
+            f"/api/v1/director/jobs/{job_id}/feedback",
+            json={
+                "rating": "needs_work",
+                "issue_tags": ["prompt_mismatch"],
+                "reviewer": "pytest",
+            },
+        )
+        assert posted_without_url.status_code == 200, posted_without_url.text
+        latest = posted_without_url.json()["latest"]
+        assert latest["output_url"] == ""
+        assert latest["local_output_path"] == "C:/tmp/local-only-final.mp4"
+    finally:
+        _JOBS_STORE.pop(job_id, None)
+        feedback_path.unlink(missing_ok=True)
+
+
+class _FakeAtlasResponse:
+    def __init__(self, payload: dict[str, object]) -> None:
+        self._payload = payload
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self) -> dict[str, object]:
+        return self._payload
+
+
+class _FakeAtlasHttpClient:
+    def post(self, url: str, json: dict[str, object]) -> _FakeAtlasResponse:
+        return _FakeAtlasResponse({"data": {"id": "pred_master_board_local"}})
+
+
+class _FakeMasterBoardAtlasClient:
+    base_url = "https://atlas.test"
+    client = _FakeAtlasHttpClient()
+
+    def _poll_prediction(self, prediction_id: str, interval_s: int, timeout_s: int, poll_path: str) -> dict[str, object]:
+        return {"status": "completed", "outputs": ["file:///tmp/master-board.png"]}
+
+
+def test_master_storyboard_rejects_local_board_output_url(monkeypatch: pytest.MonkeyPatch):
+    import asyncio
+    import vendors.atlascloud as atlascloud
+    from api.routes import director
+
+    monkeypatch.setattr(atlascloud, "atlas_client", _FakeMasterBoardAtlasClient(), raising=False)
+    plan = DirectorPlan(
+        plan_id="plan_master_board_local",
+        created_at="2026-06-01T00:00:00Z",
+        continuity_bible=_minimal_bible(),
+        shot_list=[_minimal_shot()],
+        storyboard_grid=[],
+        evaluation=EvaluationReport(
+            consistency_score=8,
+            viral_potential_score=8,
+            cinematic_score=8,
+            pacing_score=8,
+            brand_safety_score=9,
+            overall_score=8,
+        ),
+        cost_estimate=CostEstimate(),
+    )
+    request = director.MasterBoardRequest(plan=plan)
+
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(director.gen_master_storyboard(request))
+
+    assert exc_info.value.status_code == 502
+    assert "HTTP(S)" in str(exc_info.value.detail)
 
 
 def test_phase4_completion_audit_endpoint_is_non_paid_and_locked():

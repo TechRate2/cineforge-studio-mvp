@@ -14,6 +14,7 @@
     "backend:test": "python backend/scripts/run_backend_tests.py",
     "typecheck": "node ./scripts/typecheck.mjs",
     "check:autonomous-ui": "node ./scripts/check-autonomous-ui.mjs",
+    "check:studio-runtime-css": "node ./scripts/check-studio-runtime-css.mjs",
     "benchmark:runbook": "node ./scripts/paid-benchmark-runbook.mjs",
     "operator:report": "node ./scripts/operator-report.mjs",
     "decision:preview": "node ./scripts/decision-preview.mjs",

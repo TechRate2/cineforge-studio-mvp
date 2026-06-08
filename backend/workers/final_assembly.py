@@ -19,6 +19,7 @@ from typing import Any, Callable, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from core.config import settings
+from core.media_tools import resolve_media_tool
 from workers.final_delivery_qa import FinalDeliveryQAReport, FinalVideoDeliveryQAService, FinalVideoQAReport
 from workers.longform_render_executor import LongFormRenderResult
 from vendors import r2_storage
@@ -90,7 +91,7 @@ class FinalVideoAssemblyService:
     ) -> None:
         self.output_root = Path(output_root or Path("backend") / "data" / "final_assembly")
         self.output_root.mkdir(parents=True, exist_ok=True)
-        self.ffmpeg_bin = ffmpeg_bin or shutil.which("ffmpeg")
+        self.ffmpeg_bin = resolve_media_tool("ffmpeg", override=ffmpeg_bin)
         self.upload_result_sync = upload_result_sync or r2_storage.upload_file_result_sync
         self.delivery_qa = delivery_qa or FinalVideoDeliveryQAService()
 
@@ -321,6 +322,8 @@ def _materialize_source(source_url: str | None, work_dir: Path, index: int) -> P
         raise ValueError("Segment source URL is empty.")
     local = Path(source)
     if local.exists():
+        if not _local_segment_source_allowed():
+            raise ValueError("Local segment sources require explicit development local fallback opt-in.")
         return local.resolve()
     if not source.lower().startswith(("http://", "https://")):
         raise ValueError("Segment source is neither a readable local file nor an HTTP URL.")
@@ -329,6 +332,13 @@ def _materialize_source(source_url: str | None, work_dir: Path, index: int) -> P
         with target.open("wb") as fh:
             shutil.copyfileobj(response, fh)
     return target
+
+
+def _local_segment_source_allowed() -> bool:
+    return bool(
+        settings.allow_r2_local_fallback
+        and str(settings.app_env or "").strip().lower() == "development"
+    )
 
 
 def _delivery_segment_source(source_url: str | None) -> str | None:

@@ -40,7 +40,28 @@ CineForge Studio is an autonomous video production system. It takes a user idea,
 ## Core frontend files
 
 - `app/studio/page.tsx`
-- `components/studio/RenderReviewPanel.tsx`
+- `components/studio/ChatBriefComposer.tsx`
+- `components/studio/SmartReferenceTray.tsx`
+- `components/studio/AgentPlanPreview.tsx`
+- `components/studio/RenderTimeline.tsx`
+
+## Chat-first Studio
+
+The primary Studio UI is organized around a conversational creation flow:
+
+1. `ChatBriefComposer` captures the user idea and conversation context.
+2. `SmartReferenceTray` handles uploads, role confirmation, and Reference
+   Intelligence readiness when dry-run data exists.
+3. `AgentPlanPreview` summarizes the agent's objective, niche, concept, script,
+   storyboard, voice/audio direction, prompt strategy, cost, and warnings.
+4. `RenderTimeline` maps available backend state to dry-run, ApprovalLock,
+   render, QA, repair, final assembly, delivery, and benchmark evidence.
+
+Unavailable backend fields must remain pending or unknown in UI. The UI must not
+invent QA scores, delivery URLs, repair counts, or benchmark results.
+After a render starts, `JobResultModal` polls the job endpoint and reports the
+latest job payload back to `/studio`; `RenderTimeline` consumes that real job
+payload for QA, repair, assembly, output URL, and evidence-pack status.
 
 ## Safety gates
 
@@ -49,18 +70,66 @@ The product should preserve these gates:
 - ApprovalLock before paid work.
 - Seedance preflight before vendor work.
 - Reference Intelligence blockers in dry-run and review.
+- Dry-run hard failures reject paid short-form render before vendor work.
 - Consistency review when required.
 - Cost gate when configured.
 - Post-render QA after rendering.
+- Short-form and long-form repair budget guards.
 - Final file and delivery QA before completion.
+
+## Render and repair policy
+
+Short-form renders run through `RenderExecutor`. A completed render that fails
+QA may be repaired once by default using `SegmentRepairPlan`, then rendered
+again with strengthened prompt/negative prompt metadata. Vendor/render failures
+remain `render_failed` and do not enter prompt repair loops. Repair attempts are
+recorded in `repair_attempts_by_shot`.
+
+Long-form renders run through `LongFormRenderExecutor`, segment by segment, with
+segment-level repair attempts recorded in `repair_attempts_by_segment`.
+
+## Benchmark protocol
+
+Benchmark case definitions live in `backend/benchmark/cases.py`. Batch runs use
+`backend/benchmark/batch_runner.py` and can be launched with:
+
+```bash
+python backend\scripts\run_benchmark_cases.py
+```
+
+The default benchmark mode is dry-run only. Paid benchmark mode requires
+explicit `--paid` and real vendor/storage env. Launch-gate pass requires
+complete evidence fields and must not be inferred from dry-run records.
+
+## Smoke scripts
+
+Safe default smoke scripts:
+
+```bash
+python backend\scripts\smoke_shortform.py
+python backend\scripts\smoke_longform.py --duration-s 30
+```
+
+Paid smoke scripts require explicit `--paid`. Missing env returns
+`status: "missing_env"` and performs no vendor call.
 
 ## Next priorities
 
-1. Run full validation.
-2. Gate paid render on dry-run hard failures.
-3. Add short-form repair loop with budget guard.
-4. Add Reference Intelligence UI panel.
-5. Add benchmark batch runner by niche.
-6. Add multimodal Reference Intelligence V2.
-7. Add Asset Library and Production Bible.
-8. Add commercial readiness tools.
+1. Run full validation and real smoke with production keys.
+2. Add multimodal Reference Intelligence V2.
+3. Add Asset Library and Production Bible.
+4. Add Long-form Graph Executor V2.
+5. Add commercial readiness tools.
+
+## Future design notes
+
+Reference Intelligence V2 should add real image, video, audio, OCR/logo,
+product, face, and style analyzers. Until those analyzers exist, the system must
+continue to describe Reference Intelligence as metadata-based only.
+
+Asset Library / Production Bible should store characters, products, brands,
+locations, voices, style packs, and consent metadata. Long-form Graph Executor
+V2 should add resumable graph execution, segment cache, failed-node retry,
+scene memory, handoff visual QA, and final timeline QA. Commercial readiness
+should add credits, billing, usage ledger, cost caps, admin dashboards, support
+evidence bundles, and privacy/consent logs.

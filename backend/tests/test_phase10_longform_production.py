@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:
@@ -16,14 +18,17 @@ def test_final_video_assembly_writes_metadata_and_final_url(tmp_path, monkeypatc
     from pipeline.approval_lock import ApprovalLockVerification
     from vendors.r2_storage import R2UploadResult
     from workers.final_assembly import FinalVideoAssemblyService
+    from workers.final_delivery_qa import FinalDeliveryQAReport, FinalVideoQAReport
     from workers.longform_render_executor import LongFormRenderResult
     from workers.render_dry_run import RenderDryRunReport
     from workers.segment_renderer import SegmentRenderResult
 
     source_a = tmp_path / "a.mp4"
     source_b = tmp_path / "b.mp4"
+    ffmpeg = tmp_path / "ffmpeg.exe"
     source_a.write_bytes(b"a")
     source_b.write_bytes(b"b")
+    ffmpeg.write_bytes(b"binary")
 
     def fake_run(cmd: list[str], **kwargs: Any) -> None:
         Path(cmd[-1]).write_bytes(b"final")
@@ -50,7 +55,35 @@ def test_final_video_assembly_writes_metadata_and_final_url(tmp_path, monkeypatc
             attempts=2,
         )
 
+    class PassingDeliveryQA:
+        def probe_file(self, *, video_path: str | Path, expected_duration_s: float | None = None, require_audio: bool = False) -> FinalVideoQAReport:
+            return FinalVideoQAReport(
+                status="pass",
+                path="final.mp4",
+                expected_duration_s=expected_duration_s,
+                actual_duration_s=expected_duration_s,
+                width=1080,
+                height=1920,
+                file_size_bytes=Path(video_path).stat().st_size,
+                video_stream_count=1,
+                audio_stream_count=0,
+            )
+
+        def verify_delivery(self, *, upload_result: R2UploadResult, final_video_url: str | None) -> FinalDeliveryQAReport:
+            return FinalDeliveryQAReport(
+                status="pass",
+                delivery_url=final_video_url,
+                storage_key=upload_result.key,
+                storage_bucket=upload_result.bucket,
+                storage_type=upload_result.storage_type,
+                access_strategy=upload_result.access_strategy,
+                is_public=upload_result.is_public,
+                refresh_supported=upload_result.refresh_supported,
+            )
+
     monkeypatch.setattr("workers.final_assembly.subprocess.run", fake_run)
+    monkeypatch.setattr("workers.final_assembly.settings.app_env", "development")
+    monkeypatch.setattr("workers.final_assembly.settings.allow_r2_local_fallback", True)
 
     render_result = LongFormRenderResult(
         status="completed",
@@ -73,8 +106,9 @@ def test_final_video_assembly_writes_metadata_and_final_url(tmp_path, monkeypatc
     )
     result = FinalVideoAssemblyService(
         output_root=tmp_path / "out",
-        ffmpeg_bin="ffmpeg",
+        ffmpeg_bin=str(ffmpeg),
         upload_result_sync=fake_upload,
+        delivery_qa=PassingDeliveryQA(),
     ).assemble(
         job_id="longform_test",
         longform_plan_id="longform_test",
@@ -105,6 +139,54 @@ def test_final_video_assembly_writes_metadata_and_final_url(tmp_path, monkeypatc
     assert result.metadata_path is None
     assert result.title == "Launch film"
     assert result.caption == "A polished launch story."
+
+
+def test_final_video_assembly_rejects_local_segment_source_without_dev_opt_in(tmp_path, monkeypatch) -> None:
+    """Production final assembly should not consume local segment paths as delivery evidence."""
+    from pipeline.approval_lock import ApprovalLockVerification
+    from workers.final_assembly import FinalVideoAssemblyService
+    from workers.longform_render_executor import LongFormRenderResult
+    from workers.render_dry_run import RenderDryRunReport
+    from workers.segment_renderer import SegmentRenderResult
+
+    source = tmp_path / "segment.mp4"
+    ffmpeg = tmp_path / "ffmpeg.exe"
+    source.write_bytes(b"segment")
+    ffmpeg.write_bytes(b"binary")
+    monkeypatch.setattr("workers.final_assembly.settings.app_env", "production")
+    monkeypatch.setattr("workers.final_assembly.settings.allow_r2_local_fallback", False)
+
+    render_result = LongFormRenderResult(
+        status="completed",
+        longform_plan_id="longform_local_guard",
+        approval_lock_id="approval_test",
+        approval_verification=ApprovalLockVerification(valid=True),
+        dry_run_report=RenderDryRunReport(
+            execution_plan_id="plan_test",
+            approval_lock_id="approval_test",
+            approval_valid=True,
+            model="seedance_2_0",
+            duration_s=30,
+            aspect_ratio="9:16",
+            resolution="720p",
+        ),
+        rendered_segments=[
+            SegmentRenderResult(shot_id="segment_01_shot_0", index=0, video_url=str(source)),
+        ],
+    )
+
+    result = FinalVideoAssemblyService(
+        output_root=tmp_path / "out",
+        ffmpeg_bin=str(ffmpeg),
+    ).assemble(
+        job_id="longform_local_guard",
+        longform_plan_id="longform_local_guard",
+        render_result=render_result,
+    )
+
+    assert result.status == "failed"
+    assert "Local segment sources require explicit development local fallback opt-in" in (result.error or "")
+    assert result.final_video_url is None
 
 
 def test_final_video_endpoint_returns_r2_url() -> None:
@@ -142,6 +224,54 @@ def test_final_video_endpoint_returns_r2_url() -> None:
         assert response["presigned_expires_at"] == "2099-01-01T00:00:00+00:00"
         assert response["refresh_supported"] is True
         assert response["storage_refresh_supported"] is True
+
+    asyncio.run(run_case())
+
+
+def test_final_video_endpoint_rejects_local_file_url() -> None:
+    """The final-video API must not expose file:// or local paths as delivery metadata."""
+    import asyncio
+
+    from api.routes import director
+
+    async def run_case() -> None:
+        director._JOBS_STORE.clear()
+        director._JOBS_STORE["local_final_job"] = {
+            "status": "done",
+            "assembly_result": {
+                "final_video_url": "file:///tmp/local-final.mp4",
+                "storage_delivery_url": "file:///tmp/local-final.mp4",
+                "storage_type": "local_dev",
+            },
+        }
+        with pytest.raises(director.HTTPException) as exc_info:
+            await director.get_job_final_video("local_final_job")
+        assert exc_info.value.status_code == 409
+        assert "HTTP(S)" in str(exc_info.value.detail)
+
+    asyncio.run(run_case())
+
+
+def test_final_video_endpoint_rejects_loopback_http_url() -> None:
+    """The final-video API must not expose loopback URLs as delivery metadata."""
+    import asyncio
+
+    from api.routes import director
+
+    async def run_case() -> None:
+        director._JOBS_STORE.clear()
+        director._JOBS_STORE["loopback_final_job"] = {
+            "status": "done",
+            "assembly_result": {
+                "final_video_url": "http://127.0.0.1:8000/local-final.mp4",
+                "storage_delivery_url": "http://127.0.0.1:8000/local-final.mp4",
+                "storage_type": "private",
+            },
+        }
+        with pytest.raises(director.HTTPException) as exc_info:
+            await director.get_job_final_video("loopback_final_job")
+        assert exc_info.value.status_code == 409
+        assert "HTTP(S)" in str(exc_info.value.detail)
 
     asyncio.run(run_case())
 

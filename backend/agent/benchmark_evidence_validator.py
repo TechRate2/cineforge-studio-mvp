@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from core.deliverable_url import deliverable_http_url
+
 
 REQUIRED_EVIDENCE_KEYS = [
     "per_shot_prompts",
@@ -93,8 +95,7 @@ def has_required_evidence_pack(item: dict[str, Any]) -> bool:
 
 
 def has_real_output_url(item: dict[str, Any]) -> bool:
-    url = str(item.get("output_url") or "")
-    return bool(url and not url.startswith("stub://"))
+    return deliverable_http_url(item.get("output_url")) is not None
 
 
 def _evidence_value_present(value: Any) -> bool:

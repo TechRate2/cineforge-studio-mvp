@@ -323,8 +323,8 @@ def _overall_score(
         value = metrics[name]
         confidence = signal_confidence.get(name)
         if confidence is not None:
-            # Keep the metric meaningful while penalizing weak probe confidence.
-            value *= 0.72 + (0.28 * confidence)
+            # Keep the metric meaningful while mildly penalizing weak probe confidence.
+            value *= 0.85 + (0.15 * confidence)
         present.append(value)
 
     if not present:
@@ -426,6 +426,7 @@ def _diagnose_signal_quality(
         diagnostics.flags.append("cv_probe_insufficient_render_frames")
         diagnostics.warnings.append("cv_probe_insufficient_render_frames")
         diagnostics.retry_recommendations.append("rerender_segment_with_clearer_subject_and_more_stable_camera")
+        diagnostics.retry_recommendations.append("rerender_or_route_to_manual_review_due_to_unreliable_probe_signal")
         diagnostics.score_penalty += 14.0
         diagnostics.requires_review = True
     elif frame_count is not None and frame_count < 4 and required_checks:
@@ -446,12 +447,14 @@ def _diagnose_signal_quality(
             diagnostics.flags.append("character_reference_face_not_detected")
             diagnostics.warnings.append("character_reference_face_not_detected")
             diagnostics.retry_recommendations.append("use_front_facing_character_reference_with_visible_face")
+            diagnostics.retry_recommendations.append("rerender_or_route_to_manual_review_due_to_unreliable_probe_signal")
             diagnostics.score_penalty += 12.0
             diagnostics.requires_review = True
         if _coerce_int(face_quality.get("frame_faces")) == 0:
             diagnostics.flags.append("rendered_character_face_not_detected")
             diagnostics.warnings.append("rendered_character_face_not_detected")
             diagnostics.retry_recommendations.append("repair_prompt_with_visible_face_closeup_and_identity_anchor")
+            diagnostics.retry_recommendations.append("rerender_or_route_to_manual_review_due_to_unreliable_probe_signal")
             diagnostics.score_penalty += 12.0
             diagnostics.requires_review = True
 

@@ -23,6 +23,7 @@ from vendors import r2_storage
 from workers.assemble_worker import AssembleWorker
 from workers.video_worker import _apply_color_consistency
 from core import director_history
+from core.config import settings
 
 
 async def reassemble(
@@ -162,6 +163,8 @@ def _update(store: Optional[dict], job_id: str, **fields: Any) -> None:
 async def _download_clip(url: str, dest: Path) -> None:
     # Handle file:// URLs (dev mode fallback)
     if url.startswith("file://"):
+        if not _local_file_clip_download_allowed():
+            raise RuntimeError("file:// clip URLs require explicit development local fallback opt-in")
         local = url.removeprefix("file://").lstrip("/")
         if ":" in local:  # Windows C:/path
             local = local.replace("/", "\\")
@@ -176,6 +179,13 @@ async def _download_clip(url: str, dest: Path) -> None:
             with open(dest, "wb") as f:
                 async for chunk in r.aiter_bytes(64 * 1024):
                     f.write(chunk)
+
+
+def _local_file_clip_download_allowed() -> bool:
+    return bool(
+        settings.allow_r2_local_fallback
+        and str(settings.app_env or "").strip().lower() == "development"
+    )
 
 
 def _resolution_for_aspect(aspect: str, resolution: str) -> tuple[int, int]:

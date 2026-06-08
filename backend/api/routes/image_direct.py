@@ -17,7 +17,8 @@ from agent.image_specs import (
     MAX_COST_PER_IMAGE_USD,
 )
 from agent.model_guide import get_image_guide, NICHE_TAGS
-from api.routes.paid_guard import require_direct_paid_generation
+from api.routes.direct_media_output import deliverable_http_url, deliverable_http_urls
+from api.routes.paid_guard import raise_missing_vendor_env, require_direct_paid_generation
 
 router = APIRouter()
 IMAGE_JOBS: dict[str, dict] = {}
@@ -97,7 +98,10 @@ async def generate(
 
     from vendors.atlascloud import atlas_client
     if atlas_client is None:
-        raise HTTPException(500, detail="ATLASCLOUD_API_KEY chưa set")
+        raise_missing_vendor_env(
+            ["ATLASCLOUD_API_KEY"],
+            "Direct image generation requires ATLASCLOUD_API_KEY. No AtlasCloud job was submitted.",
+        )
 
     job_id = str(uuid4())
     spec = get_image_spec(request.model_key)
@@ -155,7 +159,10 @@ async def cancel_image_job(job_id: str):
 
     from vendors.atlascloud import atlas_client
     if atlas_client is None:
-        raise HTTPException(500, "AtlasCloud key chưa set")
+        raise_missing_vendor_env(
+            ["ATLASCLOUD_API_KEY"],
+            "Direct image cancellation requires ATLASCLOUD_API_KEY. No AtlasCloud cancellation call was made.",
+        )
 
     result = atlas_client.cancel_prediction(job["prediction_id"])
     job["status"] = "cancelled"
@@ -170,7 +177,10 @@ async def poll(job_id: str):
 
     from vendors.atlascloud import atlas_client, _unwrap
     if atlas_client is None:
-        raise HTTPException(500, "AtlasCloud key chưa set")
+        raise_missing_vendor_env(
+            ["ATLASCLOUD_API_KEY"],
+            "Direct image polling requires ATLASCLOUD_API_KEY. No AtlasCloud poll call was made.",
+        )
 
     poll_path = job.get("poll_path", "/model/prediction")
     try:
@@ -190,9 +200,15 @@ async def poll(job_id: str):
         "model_key": job["model_key"],
     }
     if status in ("completed", "succeeded"):
-        outputs = data.get("outputs", [])
-        out["image_urls"] = outputs
-        out["image_url"] = outputs[0] if outputs else data.get("output_url")
+        outputs = deliverable_http_urls(data.get("outputs", []))
+        image_url = outputs[0] if outputs else deliverable_http_url(data.get("output_url"))
+        if not image_url:
+            status = "failed"
+            out["status"] = "failed"
+            out["error"] = "Completed image job did not return a deliverable HTTP(S) image URL."
+        else:
+            out["image_urls"] = outputs or [image_url]
+            out["image_url"] = image_url
     elif status == "failed":
         out["error"] = data.get("error")
     job["status"] = status

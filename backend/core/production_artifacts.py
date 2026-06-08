@@ -15,6 +15,8 @@ from typing import Any, Optional
 
 from loguru import logger
 
+from core.deliverable_url import deliverable_http_url
+
 
 _ROOT = Path(__file__).parent.parent / "data" / "production_artifacts"
 
@@ -217,7 +219,8 @@ def _agent_readable_report(
             "render_quality_count": len(job.get("render_quality") or []),
             "retry_count": _retry_count(job),
             "final_status": job.get("status"),
-            "output_url": job.get("output_url"),
+            "output_url": _real_http_url(job.get("output_url")),
+            "local_output_path": _local_output_path(job),
         },
         "benchmark_report": {
             "top_tier_claim_allowed": False,
@@ -278,6 +281,20 @@ def _retry_count(job_record: dict[str, Any]) -> int:
     retry_execution = job_record.get("retry_execution") if isinstance(job_record.get("retry_execution"), dict) else {}
     results = retry_execution.get("results") if isinstance(retry_execution.get("results"), list) else []
     return len(results)
+
+
+def _real_http_url(value: Any) -> str | None:
+    return deliverable_http_url(value)
+
+
+def _local_output_path(job_record: dict[str, Any]) -> str:
+    output_path = str(job_record.get("output_path") or "").strip()
+    output_url = str(job_record.get("output_url") or "").strip()
+    if output_path and not _real_http_url(output_path):
+        return output_path
+    if output_url and not _real_http_url(output_url):
+        return output_url
+    return ""
 
 
 __all__ = ["save_autonomous_snapshot", "load_snapshot", "load_report"]

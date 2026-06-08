@@ -1052,6 +1052,27 @@ def test_conversational_preflight_drafts_plan_before_render() -> None:
     _assert(approved["render_ready"] is True, "approved clear preflight should be render-ready")
 
 
+def test_conversational_preflight_infers_vietnamese_market_and_duration_from_chat_brief() -> None:
+    data = build_conversational_preflight(
+        user_idea=(
+            "T\u1ea1o video TikTok 12s cho serum l\u00e0m \u0111\u1eb9p t\u1ea1i Vi\u1ec7t Nam, "
+            "m\u1edf \u0111\u1ea7u b\u1eb1ng b\u1eb1ng ch\u1ee9ng hi\u1ec7u qu\u1ea3, phong c\u00e1ch creator "
+            "cao c\u1ea5p, c\u00f3 c\u1ea3nh c\u1eadn s\u1ea3n ph\u1ea9m v\u00e0 k\u1ebft th\u00fac b\u1eb1ng CTA nh\u1eb9."
+        ),
+        target_market="auto",
+        target_platform="tiktok",
+        duration_hint_s=None,
+        reference_counts={"images": 0, "videos": 0, "audios": 0},
+    )
+    decision = data["production_decision"]["decision"]
+    _assert(data["summary"]["market"] == "vn", f"chat preflight should infer VN, got {data['summary']['market']}")
+    _assert(data["summary"]["target_duration_s"] == 12, "chat preflight should parse the 12s runtime from the idea")
+    _assert(decision["target_market"] == "vn", "production decision should carry inferred VN market")
+    _assert(decision["target_duration_s"] == 12, "production decision should carry parsed 12s runtime")
+    _assert(data["production_decision"]["market_playbook"]["primary_language"] == "Vietnamese", "VN plan should use Vietnamese market playbook")
+    _assert(data["planning_trace"]["vendor_calls_performed"] is False, "chat preflight must remain vendor-free")
+
+
 def test_conversational_preflight_asks_when_brief_is_too_thin() -> None:
     data = build_conversational_preflight(
         user_idea="make video viral",
@@ -3383,7 +3404,27 @@ def test_agent_readable_production_report_summarizes_artifact_for_resume() -> No
     _assert(report["design_report"]["segment_preview"]["estimated_total_units"] == 25, "report should expose Seedance unit count")
     _assert(report["graph_report"]["node_count"] == 42, "report should expose graph node count")
     _assert(report["qa_report"]["retry_count"] == 1, "report should expose retry count")
+    _assert(report["qa_report"]["output_url"] == "https://cdn.example.com/final.mp4", "report should preserve real HTTP output URL")
+    _assert(report["qa_report"]["local_output_path"] == "", "report should not mark HTTP output as local path")
     _assert(report["benchmark_report"]["top_tier_claim_allowed"] is False, "report should keep benchmark claim gated")
+
+    try:
+        production_artifacts.load_snapshot = lambda job_id: artifact if job_id == "job_report_smoke" else None  # type: ignore[assignment]
+        local_report = production_artifacts.load_report(
+            "job_report_smoke",
+            job_record={
+                "job_id": "job_report_smoke",
+                "status": "done",
+                "output_url": "file:///tmp/local-final.mp4",
+                "output_path": "C:/tmp/local-final.mp4",
+            },
+        )
+    finally:
+        production_artifacts.load_snapshot = original_loader  # type: ignore[assignment]
+
+    _assert(local_report is not None, "local report should still be buildable")
+    _assert(local_report["qa_report"]["output_url"] is None, "local file URL must not be reported as real output_url")
+    _assert(local_report["qa_report"]["local_output_path"] == "C:/tmp/local-final.mp4", "local path should remain operator-only metadata")
 
 
 def test_autonomous_capability_matrix_explains_niche_runtime_fit() -> None:
@@ -3948,6 +3989,7 @@ def main() -> None:
         test_production_decision_exposes_autonomous_input_upgrade_plan,
         test_production_decision_exposes_asset_bible_completion_policy,
         test_conversational_preflight_drafts_plan_before_render,
+        test_conversational_preflight_infers_vietnamese_market_and_duration_from_chat_brief,
         test_conversational_preflight_asks_when_brief_is_too_thin,
         test_conversational_preflight_keeps_revision_notes_in_approved_brief,
         test_conversational_preflight_uses_structured_chat_history,

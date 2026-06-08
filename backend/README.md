@@ -163,8 +163,8 @@ LLM_MODEL_VISION=qwen3-vl-30b-instruct
 Run:
 
 ```bash
-uvicorn api.main:app --reload --port 8000
-# Swagger: http://localhost:8000/docs
+uvicorn api.main:app --reload --port 8001
+# Swagger: http://localhost:8001/docs
 ```
 
 ---
@@ -312,7 +312,9 @@ regenerate just that clip instead of the whole video.
 ```
 
 Cost: 1 shot × per-second model price (vs. full plan re-render). The refined
-clip is uploaded to R2 (or `file://` fallback) at `refine/{job_id}/{shot_id}.mp4`.
+clip is uploaded to R2 at `refine/{job_id}/{shot_id}.mp4`; local `file://`
+fallback is explicit development-only and must not be used for production or
+paid smoke.
 
 ### `GET /api/v1/director/jobs/{job_id}` · `POST .../cancel`
 
@@ -486,14 +488,18 @@ R2_FINAL_VIDEO_ACCESS_MODE=auto            # auto | public | private
 R2_FINAL_VIDEO_PRESIGNED_EXPIRES_S=7776000 # default: 90 days
 R2_PRESIGNED_REFRESH_ENABLED=true
 R2_UPLOAD_MAX_ATTEMPTS=3
+ALLOW_R2_LOCAL_FALLBACK=false
 ```
 
-**Compatibility fallback for short/refine helpers**: if any required var is missing, the worker returns a
-`file://` URL pointing at the local clip — local dev works without Cloudflare.
-Upload errors are caught and also fall back to `file://` (so a flaky R2 won't
-kill the whole render). Long-form final assembly is stricter: a missing or
-failed R2/S3 upload fails the assembly step so production never returns a local
-server file as the final video artifact.
+**Storage fallback policy**: missing or placeholder R2 credentials fail closed
+by default. Legacy short/refine helpers no longer fabricate a local storage URL.
+`file://` fallback is allowed only when `APP_ENV=development` and
+`ALLOW_R2_LOCAL_FALLBACK=true`; keep it off for production and paid smoke.
+Timeline reassemble also refuses `file://` input clip URLs unless the same
+development fallback opt-in is enabled. Long-form final assembly likewise
+refuses readable local segment paths unless that development opt-in is enabled.
+Long-form final assembly also fails closed when R2/S3 upload or delivery QA
+cannot produce a real HTTP(S) delivery URL.
 
 The R2 object key is `video/{job_id}/final.mp4` for full renders and
 `refine/{job_id}/{shot_id}.mp4` for single-shot refines. Long-form assembly uses

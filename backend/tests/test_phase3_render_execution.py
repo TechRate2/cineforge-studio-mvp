@@ -14,17 +14,25 @@ if str(BACKEND_ROOT) not in sys.path:
 class RecordingRenderClient:
     """Deterministic no-network vendor client used only by render safety tests."""
 
-    def __init__(self, *, fail_video_url: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        fail_video_url: bool = False,
+        video_url: str | None = None,
+        last_frame_url: str | None = None,
+    ) -> None:
         self.calls: list[dict[str, Any]] = []
         self.fail_video_url = fail_video_url
+        self.video_url = video_url
+        self.last_frame_url = last_frame_url
 
     def generate_video(self, **kwargs: Any) -> dict[str, Any]:
         self.calls.append(dict(kwargs))
         index = len(self.calls)
         return {
             "prediction_id": f"pred_{index}",
-            "video_url": None if self.fail_video_url else f"https://cdn.test/video_{index}.mp4",
-            "last_frame_url": f"https://cdn.test/last_{index}.jpg",
+            "video_url": None if self.fail_video_url else (self.video_url or f"https://cdn.test/video_{index}.mp4"),
+            "last_frame_url": self.last_frame_url or f"https://cdn.test/last_{index}.jpg",
             "duration_s": kwargs.get("duration_s"),
             "model": kwargs.get("model_key"),
         }
@@ -53,6 +61,56 @@ class RaisingRenderClient:
     def generate_video(self, **kwargs: Any) -> dict[str, Any]:
         self.calls.append(dict(kwargs))
         raise RuntimeError(self.message)
+
+
+class CompletedLocalOutputRenderer:
+    """Renderer test double that tries to mark a local path as completed output."""
+
+    def __init__(self) -> None:
+        self.calls: list[dict[str, Any]] = []
+
+    def render_segment(self, **kwargs: Any):
+        from workers.segment_renderer import SegmentRenderResult
+
+        self.calls.append(dict(kwargs))
+        shot = kwargs["shot"]
+        return SegmentRenderResult(
+            shot_id=shot.shot_id,
+            index=shot.index,
+            status="completed",
+            video_url="file:///tmp/local-output.mp4",
+            last_frame_url="stub://local-frame.jpg",
+            duration_s=shot.duration_s,
+            model=shot.model,
+            payload={"resolution": shot.resolution},
+        )
+
+
+class SequenceQAService:
+    """Deterministic QA service for short-form repair orchestration tests."""
+
+    def __init__(self, statuses: list[str]) -> None:
+        self.statuses = statuses
+        self.calls: list[dict[str, Any]] = []
+
+    def evaluate_segment(self, *, shot: Any, result: Any):
+        from workers.render_qa_service import SegmentQAReport
+
+        index = len(self.calls)
+        status = self.statuses[min(index, len(self.statuses) - 1)]
+        self.calls.append({"shot": shot, "result": result, "status": status})
+        errors = ["product_visibility_below_threshold"] if status == "fail" else []
+        warnings = ["product_visibility_repaired"] if status == "warn" else []
+        return SegmentQAReport(
+            shot_id=shot.shot_id,
+            status=status,
+            warnings=warnings,
+            errors=errors,
+            expected_duration_s=shot.duration_s,
+            actual_duration_s=result.duration_s,
+            expected_resolution=shot.resolution,
+            actual_resolution=str(result.payload.get("resolution") or "") or None,
+        )
 
 
 def test_phase3_dry_run_report_contains_payloads_and_provenance() -> None:
@@ -164,6 +222,53 @@ def test_phase3_vendor_errors_return_render_failed_after_retry() -> None:
     assert result.qa_reports[0].status == "fail"
 
 
+def test_segment_renderer_rejects_completed_vendor_result_without_http_output() -> None:
+    """A vendor success payload is not a completed segment unless it has HTTP(S) video."""
+    from workers.segment_renderer import SegmentRenderer
+
+    _, plan, _ = _single_shot_plan_and_lock()
+    render_client = RecordingRenderClient(
+        video_url="file:///tmp/local-output.mp4",
+        last_frame_url="stub://local-frame.jpg",
+    )
+
+    result = SegmentRenderer(render_client, max_attempts=1, backoff_initial_s=0.0).render_segment(
+        execution_plan=plan,
+        shot=plan.shots[0],
+    )
+
+    assert result.status == "failed"
+    assert result.video_url is None
+    assert result.last_frame_url is None
+    assert result.error_code == "missing_deliverable_video_url"
+    assert len(render_client.calls) == 1
+
+
+def test_render_executor_normalizes_completed_local_segment_output_to_render_failed() -> None:
+    """Executor must fail closed even when an injected renderer reports local output as completed."""
+    from pipeline.render_execution import RenderExecutor
+
+    idea, plan, lock = _single_shot_plan_and_lock()
+    renderer = CompletedLocalOutputRenderer()
+
+    result = RenderExecutor(
+        segment_renderer=renderer,  # type: ignore[arg-type]
+        max_auto_repair_attempts=1,
+    ).execute(
+        execution_plan=plan,
+        approval_lock=lock,
+        idea=idea,
+    )
+
+    assert result.status == "render_failed"
+    assert result.rendered_segments[0].status == "failed"
+    assert result.rendered_segments[0].video_url is None
+    assert result.rendered_segments[0].last_frame_url is None
+    assert result.rendered_segments[0].error_code == "missing_deliverable_video_url"
+    assert result.repair_attempts_by_shot == {"shot_repair": 0}
+    assert len(renderer.calls) == 1
+
+
 def test_phase7a_consistency_policy_requires_review_before_paid_render() -> None:
     """requires_review consistency policy should block paid render unless explicitly acknowledged."""
     from pipeline.render_execution import RenderExecutor
@@ -263,6 +368,103 @@ def test_phase7a_post_render_visual_consistency_can_fail_segment_qa() -> None:
     assert result.qa_reports[0].visual_consistency.risk_level == "critical"
     assert result.qa_reports[0].consistency_score == result.qa_reports[0].visual_consistency.overall_score
     assert "product_visibility_below_threshold" in result.qa_reports[0].errors
+
+
+def test_shortform_auto_repair_retries_failed_qa_once_and_completes() -> None:
+    """A completed render that fails QA can be repaired once without ref/model drift."""
+    from pipeline.render_execution import RenderExecutor
+    from workers.segment_renderer import SegmentRenderer
+
+    idea, plan, lock = _single_shot_plan_and_lock()
+    render_client = RecordingRenderClient()
+    qa_service = SequenceQAService(["fail", "pass"])
+
+    result = RenderExecutor(
+        segment_renderer=SegmentRenderer(render_client),
+        qa_service=qa_service,  # type: ignore[arg-type]
+        max_auto_repair_attempts=1,
+    ).execute(
+        execution_plan=plan,
+        approval_lock=lock,
+        idea=idea,
+    )
+
+    assert result.status == "completed"
+    assert result.repair_attempts_by_shot == {"shot_repair": 1}
+    assert len(render_client.calls) == 2
+    assert render_client.calls[0]["model_key"] == render_client.calls[1]["model_key"] == "seedance_2_0"
+    assert render_client.calls[0]["duration_s"] == render_client.calls[1]["duration_s"] == 8
+    assert render_client.calls[0]["images"] == render_client.calls[1]["images"] == ["https://cdn.test/product.png"]
+    assert "AUTO-REPAIR INSTRUCTIONS" in render_client.calls[1]["prompt"]
+
+
+def test_shortform_auto_repair_returns_qa_failed_when_repair_still_fails() -> None:
+    """Repair should stop at the configured budget and return qa_failed."""
+    from pipeline.render_execution import RenderExecutor
+    from workers.segment_renderer import SegmentRenderer
+
+    idea, plan, lock = _single_shot_plan_and_lock()
+    render_client = RecordingRenderClient()
+
+    result = RenderExecutor(
+        segment_renderer=SegmentRenderer(render_client),
+        qa_service=SequenceQAService(["fail", "fail"]),  # type: ignore[arg-type]
+        max_auto_repair_attempts=1,
+    ).execute(
+        execution_plan=plan,
+        approval_lock=lock,
+        idea=idea,
+    )
+
+    assert result.status == "qa_failed"
+    assert result.repair_attempts_by_shot == {"shot_repair": 1}
+    assert len(render_client.calls) == 2
+
+
+def test_shortform_auto_repair_budget_zero_does_not_retry() -> None:
+    """A zero repair budget should preserve the old single-attempt QA failure path."""
+    from pipeline.render_execution import RenderExecutor
+    from workers.segment_renderer import SegmentRenderer
+
+    idea, plan, lock = _single_shot_plan_and_lock()
+    render_client = RecordingRenderClient()
+
+    result = RenderExecutor(
+        segment_renderer=SegmentRenderer(render_client),
+        qa_service=SequenceQAService(["fail"]),  # type: ignore[arg-type]
+        max_auto_repair_attempts=0,
+    ).execute(
+        execution_plan=plan,
+        approval_lock=lock,
+        idea=idea,
+    )
+
+    assert result.status == "qa_failed"
+    assert result.repair_attempts_by_shot == {"shot_repair": 0}
+    assert len(render_client.calls) == 1
+
+
+def test_shortform_render_failure_does_not_enter_repair_loop() -> None:
+    """Transport/vendor failures are normalized by SegmentRenderer and are not auto-prompt repaired."""
+    from pipeline.render_execution import RenderExecutor
+    from workers.segment_renderer import SegmentRenderer
+
+    idea, plan, lock = _single_shot_plan_and_lock()
+    render_client = RaisingRenderClient("vendor down")
+
+    result = RenderExecutor(
+        segment_renderer=SegmentRenderer(render_client, max_attempts=1, backoff_initial_s=0.0),
+        qa_service=SequenceQAService(["fail"]),  # type: ignore[arg-type]
+        max_auto_repair_attempts=1,
+    ).execute(
+        execution_plan=plan,
+        approval_lock=lock,
+        idea=idea,
+    )
+
+    assert result.status == "render_failed"
+    assert result.repair_attempts_by_shot == {"shot_repair": 0}
+    assert len(render_client.calls) == 1
 
 
 def test_phase7a_post_render_visual_consistency_warns_on_missing_required_signals() -> None:
@@ -396,6 +598,52 @@ def _execution_plan_and_lock(*, consistency_policy_action: str | None = None):
             "approved_idea": idea,
             **_consistency_metadata(consistency_policy_action),
         },
+    )
+    lock = ApprovalLock.from_execution_plan(
+        idea=idea,
+        execution_plan=plan,
+        approved_by="tester",
+        approval_source="dry_run_preview",
+        metadata={"approved_idea": idea},
+    )
+    return idea, plan, lock
+
+
+def _single_shot_plan_and_lock():
+    from pipeline.approval_lock import ApprovalLock
+    from pipeline.contracts import AssetRef, ReferenceRole, SeedanceExecutionPlan, SeedanceShotPlan
+
+    idea = "Create an 8s product launch clip"
+    product_ref = AssetRef(
+        asset_id="asset_repair_product",
+        kind="image",
+        url="https://cdn.test/product.png",
+        tag="@Image1",
+        role=ReferenceRole.PRODUCT_HERO,
+        role_locked=True,
+        name="Product hero",
+    )
+    shot = SeedanceShotPlan(
+        shot_id="shot_repair",
+        index=0,
+        duration_s=8,
+        compiled_prompt="Subject: product bottle\nAction: clean hero reveal\nCamera: slow push-in\nTiming: 8s",
+        negative_prompt="no watermark",
+        model="seedance_2_0",
+        resolution="1080p",
+        references=[product_ref],
+    )
+    plan = SeedanceExecutionPlan(
+        execution_plan_id="exec_shortform_repair",
+        model="seedance_2_0",
+        duration_s=8,
+        aspect_ratio="9:16",
+        resolution="1080p",
+        compiled_prompt=shot.compiled_prompt,
+        shots=[shot],
+        reference_assets=[product_ref],
+        cost_estimate={"total_cost_usd": 0.24},
+        metadata={"approved_idea": idea},
     )
     lock = ApprovalLock.from_execution_plan(
         idea=idea,

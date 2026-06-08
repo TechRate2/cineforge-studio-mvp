@@ -9,6 +9,7 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from core.deliverable_url import first_deliverable_http_url
 from pipeline.contracts import SeedanceExecutionPlan, SeedanceShotPlan
 from workers.render_dry_run import build_seedance_payload
 
@@ -153,10 +154,48 @@ class SegmentRenderer:
                 status="failed",
                 duration_s=shot.duration_s,
                 model=str(payload.get("model_key") or shot.model),
-            payload=payload,
-            qa_signals={},
-            error=_safe_error(last_error) if last_error else "vendor render failed",
+                payload=payload,
+                qa_signals={},
+                error=_safe_error(last_error) if last_error else "vendor render failed",
                 error_code=error_code,
+                attempts=attempts_used,
+            )
+
+        video_url = first_deliverable_http_url(
+            result.get("outputs"),
+            result.get("video_url"),
+            result.get("output_url"),
+            result.get("url"),
+        )
+        last_frame_url = first_deliverable_http_url(
+            result.get("last_frame_url"),
+            result.get("lastFrameUrl"),
+            result.get("last_frame"),
+            (result.get("extra") or {}).get("last_frame_url") if isinstance(result.get("extra"), dict) else None,
+        )
+        if not video_url:
+            logger.error(
+                "seedance_segment_render_missing_deliverable_url",
+                extra={
+                    "execution_plan_id": execution_plan.execution_plan_id,
+                    "shot_id": shot.shot_id,
+                    "attempts": attempts_used,
+                    "prediction_id": result.get("prediction_id"),
+                },
+            )
+            return SegmentRenderResult(
+                shot_id=shot.shot_id,
+                index=shot.index,
+                status="failed",
+                video_url=None,
+                last_frame_url=last_frame_url,
+                prediction_id=result.get("prediction_id"),
+                duration_s=int(result.get("duration_s") or shot.duration_s),
+                model=str(result.get("model") or payload.get("model_key") or shot.model),
+                payload=payload,
+                qa_signals=_qa_signals_from_result(result),
+                error="Vendor completed without a deliverable HTTP(S) video URL.",
+                error_code="missing_deliverable_video_url",
                 attempts=attempts_used,
             )
 
@@ -164,8 +203,8 @@ class SegmentRenderer:
             shot_id=shot.shot_id,
             index=shot.index,
             status="completed",
-            video_url=result.get("video_url") or result.get("url"),
-            last_frame_url=result.get("last_frame_url"),
+            video_url=video_url,
+            last_frame_url=last_frame_url,
             prediction_id=result.get("prediction_id"),
             duration_s=int(result.get("duration_s") or shot.duration_s),
             model=str(result.get("model") or payload.get("model_key") or shot.model),

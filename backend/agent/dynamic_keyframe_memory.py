@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from core.deliverable_url import deliverable_http_url
+
 
 def build_dynamic_keyframe_memory_contract(
     *,
@@ -24,7 +26,11 @@ def build_dynamic_keyframe_memory_contract(
     scene_memory = [item for item in (memory.get("scene_memory") or []) if isinstance(item, dict)]
     shot_scene_map = [item for item in (memory.get("shot_scene_map") or []) if isinstance(item, dict)]
     bridge_policy = memory.get("bridge_policy") if isinstance(memory.get("bridge_policy"), dict) else {}
-    rendered_anchors = [_rendered_anchor(item, shot_scene_map=shot_scene_map) for item in outputs]
+    rendered_anchors = [
+        anchor
+        for anchor in (_rendered_anchor(item, shot_scene_map=shot_scene_map) for item in outputs)
+        if anchor["video_url"]
+    ]
     planned_anchors = _planned_anchors(scene_memory=scene_memory, shot_scene_map=shot_scene_map)
     bridge_anchors = _bridge_anchors(bridge_policy)
     graph_summary = graph.get("summary") if isinstance(graph.get("summary"), dict) else {}
@@ -114,13 +120,16 @@ def _planned_anchors(*, scene_memory: list[dict[str, Any]], shot_scene_map: list
 def _rendered_anchor(output: dict[str, Any], *, shot_scene_map: list[dict[str, Any]]) -> dict[str, Any]:
     shot_id = str(output.get("shot_id") or output.get("id") or "")
     shot = next((item for item in shot_scene_map if str(item.get("shot_id") or "") == shot_id), {})
+    video_url = deliverable_http_url(output.get("video_url")) or deliverable_http_url(output.get("output_url"))
+    first_frame_url = deliverable_http_url(output.get("first_frame_url"))
+    last_frame_url = deliverable_http_url(output.get("last_frame_url")) or deliverable_http_url(output.get("keyframe_url"))
     return {
         "shot_id": shot_id or None,
         "scene_id": output.get("scene_id") or shot.get("scene_id"),
-        "video_url": output.get("video_url") or output.get("output_url"),
-        "first_frame_url": output.get("first_frame_url"),
-        "last_frame_url": output.get("last_frame_url") or output.get("keyframe_url"),
-        "keyframe_url": output.get("keyframe_url") or output.get("last_frame_url"),
+        "video_url": video_url,
+        "first_frame_url": first_frame_url,
+        "last_frame_url": last_frame_url,
+        "keyframe_url": deliverable_http_url(output.get("keyframe_url")) or last_frame_url,
         "qa_score": output.get("qa_score"),
         "accepted": bool(output.get("accepted", True)),
         "drift_notes": output.get("drift_notes") or [],

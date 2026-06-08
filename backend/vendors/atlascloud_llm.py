@@ -21,6 +21,7 @@ import httpx
 from loguru import logger
 
 from core.config import settings
+from core.env_guard import is_configured_secret
 from vendors._retry import llm_retry
 
 
@@ -179,10 +180,20 @@ class AtlasCloudLLMClient:
     def __init__(self):
         self.base_url = settings.atlascloud_llm_base_url.rstrip("/")
         # 2 key — Coding Plan ưu tiên (subscription rate rẻ hơn token), Pay-as-you-go fallback
-        self.coding_plan_key = settings.atlascloud_llm_api_key
-        self.pay_as_you_go_key = settings.atlascloud_api_key
+        self.coding_plan_key = (
+            settings.atlascloud_llm_api_key
+            if is_configured_secret(settings.atlascloud_llm_api_key)
+            else ""
+        )
+        self.pay_as_you_go_key = (
+            settings.atlascloud_api_key
+            if is_configured_secret(settings.atlascloud_api_key)
+            else ""
+        )
         # Default header dùng Coding Plan (rẻ hơn nếu có sub), fallback Pay-as-you-go
         self.api_key = self.coding_plan_key or self.pay_as_you_go_key
+        if not self.api_key:
+            raise RuntimeError("AtlasCloud LLM requires ATLASCLOUD_LLM_API_KEY or ATLASCLOUD_API_KEY.")
         # Cache: Coding Plan đã hết balance → all subsequent calls dùng Pay-as-you-go trực tiếp
         self._coding_plan_exhausted = False
         self.client = httpx.Client(
@@ -417,5 +428,5 @@ def estimate_cost_usd(model: str, prompt_tokens: int, completion_tokens: int) ->
 
 # Lazy singleton — chỉ init nếu có ít nhất 1 key
 atlas_llm: Optional[AtlasCloudLLMClient] = None
-if settings.atlascloud_llm_api_key or settings.atlascloud_api_key:
+if is_configured_secret(settings.atlascloud_llm_api_key) or is_configured_secret(settings.atlascloud_api_key):
     atlas_llm = AtlasCloudLLMClient()

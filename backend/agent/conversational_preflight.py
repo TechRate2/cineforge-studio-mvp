@@ -92,6 +92,7 @@ def build_conversational_preflight(
         questions=blockers,
         creative_plan=creative_plan,
         decision=decision,
+        market_playbook=decision_wrap.get("market_playbook") or {},
         revision_notes=revisions,
     )
     approved_brief = _build_approved_brief(
@@ -912,22 +913,44 @@ def _assistant_message(
     questions: list[dict[str, Any]],
     creative_plan: dict[str, Any],
     decision: dict[str, Any],
+    market_playbook: dict[str, Any] | None = None,
     revision_notes: str = "",
 ) -> str:
+    vietnamese = _prefers_vietnamese(decision=decision, market_playbook=market_playbook or {})
     if status == "needs_user_input":
+        if vietnamese and not questions:
+            return "Tôi cần thêm một chi tiết trước khi dựng kế hoạch render."
         return questions[0]["question"] if questions else "I need one detail before building the render plan."
     if status == "approved_for_render":
+        if vietnamese:
+            return "Đã phê duyệt. Tôi có thể render kế hoạch này ngay."
         return "Approved. I can render this plan now."
     runtime = str(decision.get("runtime_class") or creative_plan.get("runtime") or "video").replace("_", " ")
     if revision_notes:
+        if vietnamese:
+            return (
+                f"Tôi đã chỉnh kế hoạch {runtime} theo ghi chú của bạn. "
+                "Hãy xem lại kịch bản và storyboard, rồi phê duyệt để render."
+            )
         return (
             f"I revised the {runtime} plan around your notes. "
             "Review the updated script and storyboard, then approve to render."
+        )
+    if vietnamese:
+        return (
+            f"Tôi đã dựng kế hoạch {runtime}: {creative_plan.get('creative_angle')}. "
+            "Hãy xem kịch bản và storyboard, chỉnh brief nếu cần, rồi phê duyệt để render."
         )
     return (
         f"I drafted a {runtime} plan: {creative_plan.get('creative_angle')}. "
         "Review the script and storyboard, edit the brief if needed, then approve to render."
     )
+
+
+def _prefers_vietnamese(*, decision: dict[str, Any], market_playbook: dict[str, Any]) -> bool:
+    language = str(market_playbook.get("primary_language") or market_playbook.get("caption_language") or "").strip().lower()
+    market = str(decision.get("target_market") or "").strip().lower()
+    return language == "vietnamese" or market in {"vn", "vi", "vietnam", "viet_nam"}
 
 
 __all__ = ["build_conversational_preflight"]

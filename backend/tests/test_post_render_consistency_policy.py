@@ -1,3 +1,5 @@
+import pytest
+
 from identity.post_render_consistency import PostRenderConsistencyEvaluator
 from pipeline.contracts import SeedanceExecutionPlan, SeedanceShotPlan
 from pipeline.render_execution import _seedance_preflight_decision
@@ -246,3 +248,67 @@ def test_final_delivery_qa_accepts_presigned_private_delivery() -> None:
     assert report.status == "pass"
     assert report.delivery_url == upload_result.delivery_url
     assert report.storage_key == upload_result.key
+
+
+def test_final_delivery_qa_rejects_loopback_http_url() -> None:
+    service = FinalVideoDeliveryQAService()
+    upload_result = R2UploadResult(
+        bucket="cineforge-test",
+        key="longform/job/final.mp4",
+        content_type="video/mp4",
+        size_bytes=1024,
+        storage_type="private",
+        access_strategy="private_presigned",
+        delivery_url="http://localhost:3000/final.mp4",
+        presigned_url="http://localhost:3000/final.mp4",
+        presigned_expires_s=3600,
+        presigned_expires_at="2026-06-06T01:00:00Z",
+        is_public=False,
+    )
+
+    report = service.verify_delivery(upload_result=upload_result, final_video_url=upload_result.delivery_url)
+
+    assert report.status == "fail"
+    assert "final_delivery_loopback_url_not_allowed" in report.errors
+
+
+def test_final_delivery_qa_rejects_local_file_url_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("workers.final_delivery_qa.settings.app_env", "development")
+    monkeypatch.setattr("workers.final_delivery_qa.settings.allow_r2_local_fallback", False)
+    service = FinalVideoDeliveryQAService()
+    upload_result = R2UploadResult(
+        bucket="local-dev",
+        key="video/job/final.mp4",
+        content_type="video/mp4",
+        size_bytes=1024,
+        storage_type="local",
+        access_strategy="local_file",
+        delivery_url="file:///tmp/final.mp4",
+        is_public=False,
+    )
+
+    report = service.verify_delivery(upload_result=upload_result, final_video_url=upload_result.delivery_url)
+
+    assert report.status == "fail"
+    assert "final_delivery_local_file_url_not_allowed" in report.errors
+
+
+def test_final_delivery_qa_allows_local_file_url_only_with_dev_opt_in(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("workers.final_delivery_qa.settings.app_env", "development")
+    monkeypatch.setattr("workers.final_delivery_qa.settings.allow_r2_local_fallback", True)
+    service = FinalVideoDeliveryQAService()
+    upload_result = R2UploadResult(
+        bucket="local-dev",
+        key="video/job/final.mp4",
+        content_type="video/mp4",
+        size_bytes=1024,
+        storage_type="local",
+        access_strategy="local_file",
+        delivery_url="file:///tmp/final.mp4",
+        is_public=False,
+    )
+
+    report = service.verify_delivery(upload_result=upload_result, final_video_url=upload_result.delivery_url)
+
+    assert report.status == "warn"
+    assert "final_delivery_uses_dev_local_file_url" in report.warnings

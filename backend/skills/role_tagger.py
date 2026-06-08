@@ -28,7 +28,8 @@ ROLE TAXONOMY (sync với agent/schemas.py:ReferenceAsset.role enum):
 
 ═══════════════════════════════════════════════════════════════════════════
 STRATEGY:
-  - Vision LLM (Qwen3-VL via llm_router) classify mỗi image ref → role
+  - Default path is deterministic metadata/position fallback; no vision call.
+  - Opt-in Vision LLM (Qwen3-VL via llm_router) can suggest image roles.
   - Video/audio refs: position-based default + LLM context (e.g., user mention
     "this is the camera motion" → camera_motion role)
   - Deterministic fallback: image[0]=character_anchor, image[1]=product_hero,
@@ -82,7 +83,8 @@ class RoleTaggerInput(BaseModel):
     niche: str = ""
     user_idea: str = ""
     use_vision_llm: bool = Field(
-        True, description="False = skip vision call, dùng deterministic fallback (rẻ hơn)",
+        False,
+        description="Opt-in only. False skips vision calls and uses deterministic metadata/position fallback.",
     )
 
 
@@ -174,7 +176,7 @@ class RoleTagger:
     description = "@image_N / @video_N / @audio_N role binding for Seedance 2.0"
 
     async def run(self, inp: RoleTaggerInput) -> RoleTaggerOutput:
-        """Tag all refs. Image roles via vision LLM if enabled, else deterministic."""
+        """Tag all refs. Image roles are deterministic unless vision is explicitly enabled."""
 
         # ---- Image roles via vision LLM ----
         image_roles: list[str] = []

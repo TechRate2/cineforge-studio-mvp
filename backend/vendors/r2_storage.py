@@ -17,6 +17,7 @@ from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field
 
 from core.config import settings
+from core.env_guard import missing_secret_names
 
 R2AccessMode = Literal["auto", "public", "private"]
 
@@ -45,12 +46,7 @@ class R2UploadResult(BaseModel):
 
 def is_configured() -> bool:
     """Return true when all required R2/S3 credentials are available."""
-    return bool(
-        settings.r2_account_id
-        and settings.r2_access_key_id
-        and settings.r2_secret_access_key
-        and settings.r2_bucket_name
-    )
+    return not missing_secret_names(_required_r2_settings())
 
 
 def endpoint_url() -> str:
@@ -299,22 +295,33 @@ async def upload_with_fallback(
     key: str,
     content_type: str = "video/mp4",
 ) -> str:
-    """Upload to R2 if configured; otherwise return a local file URL in dev.
+    """Upload to R2, with local file fallback only when explicitly enabled.
 
-    This compatibility helper is intentionally lenient for existing non-final
-    render paths. Final long-form assembly uses `upload_file_result_sync` and
-    can fail hard in production if R2 is missing.
+    Older render paths call this legacy helper, but it must not fabricate a
+    storage URL. Missing or failed R2 now raises by default. Local `file://`
+    fallback is available only for explicit development smoke work through
+    `ALLOW_R2_LOCAL_FALLBACK=true` and `APP_ENV=development`.
     """
     if not is_configured():
+        missing = missing_secret_names(_required_r2_settings())
+        if _allow_local_fallback():
+            local = Path(local_path).resolve()
+            logger.warning("[R2] not configured; explicit dev fallback returning local file URL")
+            return f"file://{local.as_posix()}"
         local = Path(local_path).resolve()
-        logger.warning("[R2] not configured; returning local file URL")
-        return f"file://{local.as_posix()}"
+        raise RuntimeError(
+            "R2 not configured; missing "
+            + ", ".join(missing)
+            + f". Refusing local storage fallback for {local.name}."
+        )
     try:
         return await upload_file(local_path, key, content_type)
     except Exception as exc:
-        logger.exception(f"[R2] upload failed; returning local file URL: {exc}")
-        local = Path(local_path).resolve()
-        return f"file://{local.as_posix()}"
+        if _allow_local_fallback():
+            logger.exception(f"[R2] upload failed; explicit dev fallback returning local file URL: {exc}")
+            local = Path(local_path).resolve()
+            return f"file://{local.as_posix()}"
+        raise
 
 
 __all__ = [
@@ -336,3 +343,19 @@ __all__ = [
 def _expires_at(ttl_s: int) -> str:
     """Return an ISO timestamp for a presigned URL expiry."""
     return (datetime.now(timezone.utc) + timedelta(seconds=max(0, int(ttl_s)))).isoformat()
+
+
+def _required_r2_settings() -> list[tuple[str, str]]:
+    return [
+        ("R2_ACCOUNT_ID", settings.r2_account_id),
+        ("R2_ACCESS_KEY_ID", settings.r2_access_key_id),
+        ("R2_SECRET_ACCESS_KEY", settings.r2_secret_access_key),
+        ("R2_BUCKET_NAME", settings.r2_bucket_name),
+    ]
+
+
+def _allow_local_fallback() -> bool:
+    return bool(
+        settings.allow_r2_local_fallback
+        and str(settings.app_env or "").strip().lower() == "development"
+    )

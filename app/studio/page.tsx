@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { RotateCcw, Sparkles } from 'lucide-react';
-import { CommandComposer } from '@/components/studio/CommandComposer';
+import { AgentPlanPreview } from '@/components/studio/AgentPlanPreview';
+import { ChatBriefComposer } from '@/components/studio/ChatBriefComposer';
 import {
   CommercialControls,
   type BrandKitOption,
@@ -12,13 +13,13 @@ import {
   type CommercialUsageSummary,
 } from '@/components/studio/CommercialControls';
 import { JobResultModal } from '@/components/studio/JobResultModal';
-import { PipelinePreview } from '@/components/studio/PipelinePreview';
-import { PipelineTraceView } from '@/components/studio/PipelineTraceView';
 import { RecentGenerations } from '@/components/studio/RecentGenerations';
-import { ReferenceTray } from '@/components/studio/ReferenceTray';
-import { RenderReviewPanel } from '@/components/studio/RenderReviewPanel';
+import { RenderTimeline } from '@/components/studio/RenderTimeline';
 import { SettingsBar } from '@/components/studio/SettingsBar';
-import { StoryboardTimeline } from '@/components/studio/StoryboardTimeline';
+import { SmartReferenceTray } from '@/components/studio/SmartReferenceTray';
+import { StudioLanguageToggle } from '@/components/studio/StudioLanguageToggle';
+import type { StudioLanguage } from '@/components/studio/studio-i18n';
+import type { DirectorJobStatus } from '@/lib/studio/use-director-job-poll';
 import { usePersistedJob } from '@/lib/studio/use-persisted-job';
 import { uploadMediaToR2 } from '@/lib/studio/upload-media';
 
@@ -79,10 +80,10 @@ const TARGET_MARKET_OPTIONS = [
 ] as const;
 
 const STARTER_PROMPTS = [
-  'TikTok VN beauty serum launch with proof-first hook and soft creator voice',
-  '15s founder story for a Vietnamese cafe, emotional but premium',
-  'Short drama episode about betrayal, one twist, cinematic vertical style',
-  'Product demo for a SaaS tool, global market, fast social ad pacing',
+  'Video TikTok VN ra mắt serum làm đẹp, mở đầu bằng bằng chứng hiệu quả, giọng creator mềm mại',
+  'Câu chuyện founder 15s cho quán cafe Việt Nam, cảm xúc nhưng cao cấp',
+  'Tập short drama về phản bội, một cú twist, phong cách dọc điện ảnh',
+  'Demo sản phẩm SaaS cho thị trường global, nhịp social ad nhanh',
 ] as const;
 
 interface ResponsibleContentGate {
@@ -518,7 +519,7 @@ const INITIAL_CHAT_MESSAGES: ChatMessage[] = [
   {
     id: 'assistant_welcome',
     role: 'assistant',
-    text: 'Tell me the video idea, audience, product or story. I will turn it into a script and storyboard before render.',
+    text: 'Hãy kể cho tôi ý tưởng video, khách hàng, sản phẩm hoặc câu chuyện. Tôi sẽ biến nó thành kịch bản và storyboard trước khi render.',
   },
 ];
 
@@ -549,24 +550,24 @@ type ReferenceRole =
   | 'unknown';
 
 const IMAGE_REFERENCE_ROLE_OPTIONS = [
-  { role: 'product_hero', label: 'Product', hint: 'main product / packaging' },
-  { role: 'character_anchor', label: 'Character', hint: 'face / outfit identity' },
-  { role: 'style_reference', label: 'Style', hint: 'mood / lighting' },
-  { role: 'environment', label: 'Location', hint: 'place / setting' },
-  { role: 'brand_asset', label: 'Brand', hint: 'logo / typography' },
-  { role: 'product_detail', label: 'Detail', hint: 'macro / texture' },
+  { role: 'product_hero', label: 'Sản phẩm chính / Product', hint: 'main product / packaging' },
+  { role: 'character_anchor', label: 'Nhân vật chính / Character', hint: 'face / outfit identity' },
+  { role: 'style_reference', label: 'Phong cách tham khảo / Style', hint: 'mood / lighting' },
+  { role: 'environment', label: 'Bối cảnh / Location', hint: 'place / setting' },
+  { role: 'brand_asset', label: 'Logo/Thương hiệu / Brand', hint: 'logo / typography' },
+  { role: 'product_detail', label: 'Chi tiết sản phẩm / Detail', hint: 'macro / texture' },
 ] as const;
 
 const VIDEO_REFERENCE_ROLE_OPTIONS = [
-  { role: 'camera_motion', label: 'Camera', hint: 'movement path' },
-  { role: 'motion_style', label: 'Motion', hint: 'body/action rhythm' },
-  { role: 'shot_pacing', label: 'Pacing', hint: 'edit/reveal timing' },
+  { role: 'camera_motion', label: 'Chuyển động camera / Camera', hint: 'movement path' },
+  { role: 'motion_style', label: 'Phong cách chuyển động / Motion', hint: 'body/action rhythm' },
+  { role: 'shot_pacing', label: 'Nhịp dựng / Pacing', hint: 'edit/reveal timing' },
 ] as const;
 
 const AUDIO_REFERENCE_ROLE_OPTIONS = [
-  { role: 'beat_reference', label: 'Beat', hint: 'music rhythm' },
+  { role: 'beat_reference', label: 'Nhạc nền / Beat', hint: 'music rhythm' },
   { role: 'sfx_layer', label: 'SFX', hint: 'foley / ambience' },
-  { role: 'lip_sync_source', label: 'Voice', hint: 'dialogue timing' },
+  { role: 'lip_sync_source', label: 'Giọng đọc / Voice', hint: 'dialogue timing' },
 ] as const;
 
 interface ReferenceAsset {
@@ -595,13 +596,14 @@ interface StudioPreviewScene {
   renderMode: string;
   refs: string[];
   status: 'draft' | 'locked' | 'needs-review';
-  spendUsd: number;
 }
 
 interface SpendPreview {
   totalSeconds: number;
-  lowUsd: number;
-  highUsd: number;
+  lowUsd?: number;
+  highUsd?: number;
+  totalUsd?: number;
+  source: 'backend_dry_run' | 'pending';
 }
 
 interface RenderBlocker {
@@ -641,6 +643,7 @@ export default function StudioPage() {
   const [brandDraftStyleGuide, setBrandDraftStyleGuide] = useState('');
   const [brandDraftColors, setBrandDraftColors] = useState('');
   const [commercialLoading, setCommercialLoading] = useState(false);
+  const [studioLanguage, setStudioLanguage] = useState<StudioLanguage>('vi');
   const [chatInput, setChatInput] = useState('');
   const [revisionInput, setRevisionInput] = useState('');
   const [revisionNotes, setRevisionNotes] = useState('');
@@ -668,6 +671,8 @@ export default function StudioPage() {
   const [deepPreflight, setDeepPreflight] = useState<DeepPreflightBrain | null>(null);
   const [deepPreflightLoading, setDeepPreflightLoading] = useState(false);
   const [showJobModal, setShowJobModal] = useState(false);
+  const [latestDirectorJob, setLatestDirectorJob] = useState<DirectorJobStatus | null>(null);
+  const [benchmarkEvidencePack, setBenchmarkEvidencePack] = useState<Record<string, unknown> | null>(null);
   const [activePreviewSceneId, setActivePreviewSceneId] = useState<string | null>(null);
   const chatInputRef = useRef<HTMLTextAreaElement | null>(null);
   const hydratedRef = useRef(false);
@@ -683,6 +688,38 @@ export default function StudioPage() {
       refsCleanupRef.current.forEach(revokeReferencePreview);
     };
   }, []);
+
+  useEffect(() => {
+    const currentJobId = latestDirectorJob?.job_id || jobId || '';
+    if (!currentJobId || latestDirectorJob?.status !== 'done') {
+      setBenchmarkEvidencePack(null);
+      return;
+    }
+    let cancelled = false;
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/v1/director/jobs/${encodeURIComponent(currentJobId)}/benchmark-evidence-pack`,
+          { signal: controller.signal },
+        );
+        if (!response.ok) {
+          if (!cancelled) setBenchmarkEvidencePack(null);
+          return;
+        }
+        const payload = await response.json();
+        if (!cancelled) setBenchmarkEvidencePack(payload);
+      } catch (error) {
+        if (!cancelled && !(error instanceof DOMException && error.name === 'AbortError')) {
+          setBenchmarkEvidencePack(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [jobId, latestDirectorJob?.job_id, latestDirectorJob?.status]);
 
   useEffect(() => {
     if (hydratedRef.current || typeof window === 'undefined') return;
@@ -890,8 +927,8 @@ export default function StudioPage() {
     [dryRunPreview, previewScenes],
   );
   const spendPreview = useMemo(
-    () => summarizePreviewSpend(reviewScenes),
-    [reviewScenes],
+    () => buildSpendPreview(reviewScenes, dryRunPreview?.render_dry_run_report),
+    [dryRunPreview?.render_dry_run_report, reviewScenes],
   );
   const isLongformReview = Boolean(dryRunPreview?.longform_plan);
   const requiresConsistencyReview = Boolean(
@@ -1196,7 +1233,7 @@ export default function StudioPage() {
         role: suggestion.role,
         roleSource: 'auto',
         roleConfidence: typeof suggestion.confidence === 'number' ? suggestion.confidence : 0.65,
-        roleReason: suggestion.reason || 'Vision model role suggestion.',
+        roleReason: suggestion.reason || 'Opt-in vision model role suggestion.',
       };
     }));
   }, []);
@@ -1404,7 +1441,7 @@ export default function StudioPage() {
           user_model: videoModelChoice,
           resolution: selectedResolution,
           aspect_ratio: renderAspectRatio,
-          use_vision_llm_for_tagging: referenceImageUrls.length > 0,
+          use_vision_llm_for_tagging: false,
           reference_manifest: referenceManifest,
           approved_plan_id: conversationalPreflight?.approved_plan?.id,
           approved_plan_source_hash: conversationalPreflight?.approved_plan?.source_hash,
@@ -1548,6 +1585,8 @@ export default function StudioPage() {
     setProductIntelligenceLoading(false);
     setDeepPreflight(null);
     setDeepPreflightLoading(false);
+    setLatestDirectorJob(null);
+    setBenchmarkEvidencePack(null);
     setActivePreviewSceneId(null);
     lastAssistantPreflightRef.current = '';
     if (typeof window !== 'undefined') {
@@ -1566,6 +1605,8 @@ export default function StudioPage() {
     setConsistencyReviewDecision('pending');
     setConsistencyReviewReason('');
     setConsistencyReviewHistory([]);
+    setLatestDirectorJob(null);
+    setBenchmarkEvidencePack(null);
     setApprovalLockRevision((revision) => revision + 1);
     if (message) toast.info(message, { duration: 4200 });
   }, []);
@@ -1793,6 +1834,8 @@ export default function StudioPage() {
 
     setIsGenerating(true);
     setAutonomousPreview(null);
+    setLatestDirectorJob(null);
+    setBenchmarkEvidencePack(null);
     try {
       const res = await fetch('/api/v1/director/autonomous', {
         method: 'POST',
@@ -1814,7 +1857,7 @@ export default function StudioPage() {
           user_model: videoModelChoice,
           resolution: selectedResolution,
           aspect_ratio: renderAspectRatio,
-          use_vision_llm_for_tagging: referenceImageUrls.length > 0,
+          use_vision_llm_for_tagging: false,
           reference_manifest: referenceManifest,
           approved_plan_id: conversationalPreflight?.approved_plan?.id,
           approved_plan_source_hash: conversationalPreflight?.approved_plan?.source_hash,
@@ -1938,13 +1981,17 @@ export default function StudioPage() {
             <div className="min-w-0">
               <div className="mb-2 hidden items-center gap-2 rounded-full border border-accent-cyan/25 bg-accent-cyan/10 px-3 py-1 text-[10px] font-bold uppercase text-accent-cyan sm:inline-flex">
                 <Sparkles size={12} />
-                CineJelly Agent Studio
+                CineForge Agent Studio
               </div>
               <h1 className="text-xl font-extrabold text-text sm:text-2xl md:text-3xl">
-                Tell the Agent once. Review the film plan. Then render.
+                {studioLanguage === 'vi'
+                  ? 'Trò chuyện với Agent. Duyệt kế hoạch phim. Rồi render.'
+                  : 'Chat with the Agent. Review the film plan. Then render.'}
               </h1>
               <p className="mt-1 max-w-3xl text-xs leading-relaxed text-text-muted sm:text-sm">
-                No prompt skill required. Add a product URL, images, motion or voice if you have them; CineJelly turns the request into script, shots, reference roles and a locked render plan.
+                {studioLanguage === 'vi'
+                  ? 'Không cần biết prompt. Nhập ý tưởng, thêm ảnh/video/audio nếu có, Agent sẽ tạo kịch bản, storyboard, vai trò tham chiếu và kế hoạch render đã khóa.'
+                  : 'No prompt skill required. Add a product URL, images, motion or voice if you have them; CineForge turns the request into script, shots, reference roles and a locked render plan.'}
               </p>
               <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
                 <span className="rounded-full border border-hairline bg-surface-2 px-3 py-1 text-xs font-semibold text-text-muted">
@@ -1974,12 +2021,13 @@ export default function StudioPage() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <StudioLanguageToggle value={studioLanguage} onChange={setStudioLanguage} />
               <button
                 type="button"
                 onClick={handleNewProject}
                 className="btn-outline px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm"
               >
-                <RotateCcw size={15} /> New project
+                <RotateCcw size={15} /> {studioLanguage === 'vi' ? 'Dự án mới' : 'New project'}
               </button>
             </div>
           </div>
@@ -1998,13 +2046,15 @@ export default function StudioPage() {
           qualityLabel={`${selectedQuality.label} ${selectedResolution}`}
           durationLabel={durationHintS ? `${durationHintS}s` : 'Auto'}
           marketLabel={targetMarket === 'auto' ? 'Auto market' : `${targetMarket.toUpperCase()} market`}
+          language={studioLanguage}
         />
 
         <div className="mb-5 grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
           <div className="space-y-5">
-            <CommandComposer
+            <ChatBriefComposer
               value={brief}
               chatValue={chatInput}
+              messages={chatMessages}
               revisionMode={chatRevisionMode}
               loading={conversationalPreflightLoading || productionDecisionLoading}
               deepAnalyzeLoading={deepPreflightLoading}
@@ -2013,6 +2063,13 @@ export default function StudioPage() {
               starterPrompts={STARTER_PROMPTS}
               showStarterPrompts={showStarterPrompts}
               inputRef={chatInputRef}
+              language={studioLanguage}
+              statusChips={[
+                targetPlatformLabel,
+                targetMarket === 'auto' ? (studioLanguage === 'vi' ? 'Tự nhận diện thị trường' : 'Market auto-detect') : `${targetMarket.toUpperCase()} market`,
+                durationHintS ? `${durationHintS}s` : (studioLanguage === 'vi' ? 'Tự chọn thời lượng' : 'Runtime auto'),
+                `${selectedQuality.label} ${selectedResolution}`,
+              ]}
               onChange={setBrief}
               onChatChange={setChatInput}
               onSubmit={handleChatSubmit}
@@ -2021,72 +2078,81 @@ export default function StudioPage() {
               onDeepAnalyze={handleDeepAnalyze}
             />
 
-            <SettingsBar
-              modelValue={videoModelChoice}
-              durationValue={durationHintS}
-              aspectRatioValue={aspectRatioChoice}
-              qualityValue={qualityPreset}
-              targetMarketValue={targetMarket}
-              selectedResolution={selectedResolution}
-              modelOptions={VIDEO_MODEL_OPTIONS}
-              durationOptions={DURATION_OPTIONS}
-              aspectRatioOptions={ASPECT_OPTIONS}
-              qualityOptions={QUALITY_OPTIONS}
-              targetMarketOptions={TARGET_MARKET_OPTIONS}
-              onModelChange={(value) => {
-                setVideoModelChoice(value as VideoModelChoice);
-                invalidateApprovalLock();
-              }}
-              onDurationChange={(value) => {
-                setDurationHintS(value);
-                invalidateApprovalLock();
-              }}
-              onAspectRatioChange={(value) => {
-                setAspectRatioChoice(value as AspectRatioChoice);
-                invalidateApprovalLock();
-              }}
-              onQualityChange={(value) => {
-                setQualityPreset(value as QualityPreset);
-                invalidateApprovalLock();
-              }}
-              onTargetMarketChange={(value) => {
-                setTargetMarket(value);
-                invalidateApprovalLock();
-              }}
-            />
+            <details className="rounded-sheet border border-hairline bg-surface-1 p-4 shadow-card-soft">
+              <summary className="cursor-pointer text-sm font-extrabold text-text">
+                {studioLanguage === 'vi' ? 'Tuỳ chọn render nâng cao' : 'Advanced render options'}
+              </summary>
+              <div className="mt-4 grid gap-4">
+                <SettingsBar
+                  modelValue={videoModelChoice}
+                  durationValue={durationHintS}
+                  aspectRatioValue={aspectRatioChoice}
+                  qualityValue={qualityPreset}
+                  targetMarketValue={targetMarket}
+                  selectedResolution={selectedResolution}
+                  modelOptions={VIDEO_MODEL_OPTIONS}
+                  durationOptions={DURATION_OPTIONS}
+                  aspectRatioOptions={ASPECT_OPTIONS}
+                  qualityOptions={QUALITY_OPTIONS}
+                  targetMarketOptions={TARGET_MARKET_OPTIONS}
+                  onModelChange={(value) => {
+                    setVideoModelChoice(value as VideoModelChoice);
+                    invalidateApprovalLock();
+                  }}
+                  onDurationChange={(value) => {
+                    setDurationHintS(value);
+                    invalidateApprovalLock();
+                  }}
+                  onAspectRatioChange={(value) => {
+                    setAspectRatioChoice(value as AspectRatioChoice);
+                    invalidateApprovalLock();
+                  }}
+                  onQualityChange={(value) => {
+                    setQualityPreset(value as QualityPreset);
+                    invalidateApprovalLock();
+                  }}
+                  onTargetMarketChange={(value) => {
+                    setTargetMarket(value);
+                    invalidateApprovalLock();
+                  }}
+                />
 
-            <CommercialControls
-              brandKits={brandKits}
-              templates={commercialTemplates}
-              selectedBrandKitId={selectedBrandKitId}
-              selectedTemplateId={selectedTemplateId}
-              usage={commercialUsage}
-              analytics={commercialAnalytics}
-              loading={commercialLoading}
-              brandDraftName={brandDraftName}
-              brandDraftVoice={brandDraftVoice}
-              brandDraftStyleGuide={brandDraftStyleGuide}
-              brandDraftColors={brandDraftColors}
-              onBrandKitChange={(brandId) => {
-                setSelectedBrandKitId(brandId);
-                invalidateApprovalLock('Brand kit changed. Review the pipeline again before paid render.');
-              }}
-              onTemplateChange={(templateId) => {
-                setSelectedTemplateId(templateId);
-                invalidateApprovalLock('Template changed. Review the pipeline again before paid render.');
-              }}
-              onBrandDraftNameChange={setBrandDraftName}
-              onBrandDraftVoiceChange={setBrandDraftVoice}
-              onBrandDraftStyleGuideChange={setBrandDraftStyleGuide}
-              onBrandDraftColorsChange={setBrandDraftColors}
-              onSaveBrandKit={handleSaveBrandKit}
-            />
+                <CommercialControls
+                  brandKits={brandKits}
+                  templates={commercialTemplates}
+                  selectedBrandKitId={selectedBrandKitId}
+                  selectedTemplateId={selectedTemplateId}
+                  usage={commercialUsage}
+                  analytics={commercialAnalytics}
+                  loading={commercialLoading}
+                  brandDraftName={brandDraftName}
+                  brandDraftVoice={brandDraftVoice}
+                  brandDraftStyleGuide={brandDraftStyleGuide}
+                  brandDraftColors={brandDraftColors}
+                  onBrandKitChange={(brandId) => {
+                    setSelectedBrandKitId(brandId);
+                    invalidateApprovalLock('Brand kit changed. Review the pipeline again before paid render.');
+                  }}
+                  onTemplateChange={(templateId) => {
+                    setSelectedTemplateId(templateId);
+                    invalidateApprovalLock('Template changed. Review the pipeline again before paid render.');
+                  }}
+                  onBrandDraftNameChange={setBrandDraftName}
+                  onBrandDraftVoiceChange={setBrandDraftVoice}
+                  onBrandDraftStyleGuideChange={setBrandDraftStyleGuide}
+                  onBrandDraftColorsChange={setBrandDraftColors}
+                  onSaveBrandKit={handleSaveBrandKit}
+                />
+              </div>
+            </details>
 
-            <ReferenceTray
+            <SmartReferenceTray
               refs={refs}
               readyRefs={readyRefs}
               rolesConfirmed={referenceRolesConfirmed}
               approvalLockRevision={approvalLockRevision}
+              dryRunReport={dryRunPreview?.render_dry_run_report ?? null}
+              language={studioLanguage}
               roleOptionsForKind={roleOptionsForKind}
               getReferenceTag={(ref) => getReferenceTag(ref, readyRefs)}
               getPreviewUrl={(ref) => getReferencePreviewUrl(ref as ReferenceAsset)}
@@ -2098,36 +2164,43 @@ export default function StudioPage() {
           </div>
 
           <div className="space-y-5">
-            <PipelinePreview
+            <AgentPlanPreview
               loading={conversationalPreflightLoading || productionDecisionLoading}
               approved={preflightApproved}
               renderSourceReady={renderSourceReady}
               referencesConfirmed={referenceRolesConfirmed}
               preflight={conversationalPreflight}
               productionDecision={productionDecision}
+              dryRunReport={dryRunPreview?.render_dry_run_report ?? null}
               scenes={reviewScenes}
               spendPreview={spendPreview}
+              activeSceneId={activePreviewSceneId}
+              language={studioLanguage}
+              onSelectScene={setActivePreviewSceneId}
+              onCopyPrompt={handleCopyPreviewPrompt}
             />
 
-            <RenderReviewPanel
+            <RenderTimeline
               approved={preflightApproved}
               renderSourceReady={renderSourceReady}
               loading={isGenerating}
               planning={conversationalPreflightLoading || productionDecisionLoading || dryRunLoading}
               renderDisabled={generateDisabled}
               referencesConfirmed={referenceRolesConfirmed}
-              approvalLockRevision={approvalLockRevision}
-              spendPreview={spendPreview}
-              scenes={reviewScenes}
+              hasBrief={Boolean(brief.trim())}
+              hasPlan={Boolean(conversationalPreflight?.creative_plan)}
+              hasStoryboard={reviewScenes.length > 0}
               blockers={renderBlockers}
               dryRunReport={dryRunPreview?.render_dry_run_report ?? null}
               longformPlan={dryRunPreview?.longform_plan ?? null}
               consistencyPolicy={dryRunPreview?.consistency_policy ?? null}
+              jobStatus={latestDirectorJob}
+              benchmarkEvidence={benchmarkEvidencePack}
               consistencyReviewApproved={consistencyReviewApproved}
               consistencyReviewDecision={consistencyReviewDecision}
               consistencyReviewReason={consistencyReviewReason}
-              consistencyReviewHistory={consistencyReviewHistory}
               approvedSegmentIds={approvedSegmentIds}
+              language={studioLanguage}
               onToggleSegmentApproval={(segmentId) => {
                 setApprovedSegmentIds((current) => (
                   current.includes(segmentId)
@@ -2164,21 +2237,6 @@ export default function StudioPage() {
           </div>
         </div>
 
-        <div className="mb-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <StoryboardTimeline
-            scenes={reviewScenes}
-            activeSceneId={activePreviewSceneId}
-            onSelectScene={setActivePreviewSceneId}
-            onCopyPrompt={handleCopyPreviewPrompt}
-          />
-          <PipelineTraceView
-            preflight={conversationalPreflight}
-            productionDecision={productionDecision}
-            referenceManifest={referenceManifest}
-            approvalLockRevision={approvalLockRevision}
-          />
-        </div>
-
       </section>
 
       <section className="mx-auto max-w-7xl px-5 pb-12 md:px-8">
@@ -2191,6 +2249,7 @@ export default function StudioPage() {
         onClose={() => setShowJobModal(false)}
         estimatedDurationS={durationHintS || 15}
         jobStartedAt={jobStartedAt}
+        onJobUpdate={setLatestDirectorJob}
       />
     </div>
   );
@@ -2210,6 +2269,7 @@ function CreatorJourneyBar({
   qualityLabel,
   durationLabel,
   marketLabel,
+  language,
 }: {
   hasBrief: boolean;
   refCount: number;
@@ -2223,53 +2283,54 @@ function CreatorJourneyBar({
   qualityLabel: string;
   durationLabel: string;
   marketLabel: string;
+  language: StudioLanguage;
 }) {
   const nextAction = needsInput
-    ? 'Answer the Agent question'
+    ? (language === 'vi' ? 'Trả lời câu hỏi của Agent' : 'Answer the Agent question')
     : !hasBrief
-      ? 'Describe the video'
+      ? (language === 'vi' ? 'Mô tả video' : 'Describe the video')
       : refCount > 0 && !referenceRolesConfirmed
-        ? 'Confirm reference roles'
+        ? (language === 'vi' ? 'Xác nhận vai trò tham chiếu' : 'Confirm reference roles')
         : loading
-          ? 'Agent is drafting'
+          ? (language === 'vi' ? 'Agent đang lập kế hoạch' : 'Agent is drafting')
           : !hasPlan
-            ? 'Send to create draft'
+            ? (language === 'vi' ? 'Gửi để tạo bản nháp' : 'Send to create draft')
             : !hasPreview
-              ? 'Wait for preview'
+              ? (language === 'vi' ? 'Chờ preview' : 'Wait for preview')
               : !approved
-                ? 'Review and approve'
+                ? (language === 'vi' ? 'Xem và phê duyệt' : 'Review and approve')
                 : renderSourceReady
-                  ? 'Ready to render'
-                  : 'Locking source';
+                  ? (language === 'vi' ? 'Sẵn sàng render' : 'Ready to render')
+                  : (language === 'vi' ? 'Đang khóa nguồn render' : 'Locking source');
 
   const steps = [
     {
-      label: 'Input',
-      detail: refCount > 0 ? `${refCount} reference${refCount === 1 ? '' : 's'}` : 'Idea, URL or image',
+      label: language === 'vi' ? 'Ý tưởng' : 'Input',
+      detail: refCount > 0 ? `${refCount} reference${refCount === 1 ? '' : 's'}` : (language === 'vi' ? 'Ý tưởng, URL hoặc ảnh' : 'Idea, URL or image'),
       active: !hasBrief,
       done: hasBrief,
     },
     {
-      label: 'Agent draft',
-      detail: loading ? 'Thinking' : hasPlan ? 'Script ready' : 'Auto plan',
+      label: language === 'vi' ? 'Bản nháp Agent' : 'Agent draft',
+      detail: loading ? (language === 'vi' ? 'Đang suy nghĩ' : 'Thinking') : hasPlan ? (language === 'vi' ? 'Kịch bản sẵn sàng' : 'Script ready') : (language === 'vi' ? 'Tự lập kế hoạch' : 'Auto plan'),
       active: hasBrief && !hasPlan,
       done: hasPlan,
     },
     {
       label: 'Preview',
-      detail: hasPreview ? 'Scene timeline' : 'Storyboard first',
+      detail: hasPreview ? (language === 'vi' ? 'Timeline cảnh' : 'Scene timeline') : (language === 'vi' ? 'Chờ storyboard' : 'Storyboard first'),
       active: hasPlan && !hasPreview,
       done: hasPreview,
     },
     {
-      label: 'Approve',
-      detail: approved ? 'Locked' : 'No render yet',
+      label: language === 'vi' ? 'Phê duyệt' : 'Approve',
+      detail: approved ? (language === 'vi' ? 'Đã khóa' : 'Locked') : (language === 'vi' ? 'Chưa render' : 'No render yet'),
       active: hasPreview && !approved,
       done: approved,
     },
     {
       label: 'Render',
-      detail: renderSourceReady ? 'Button unlocked' : 'Paid gated',
+      detail: renderSourceReady ? (language === 'vi' ? 'Đã mở nút render' : 'Button unlocked') : (language === 'vi' ? 'Đang khóa render trả phí' : 'Paid gated'),
       active: renderSourceReady,
       done: false,
     },
@@ -2279,9 +2340,11 @@ function CreatorJourneyBar({
     <div className="mb-5 overflow-hidden rounded-sheet border border-hairline bg-surface-1/85 shadow-card-soft">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-4 py-3">
         <div>
-          <div className="text-sm font-extrabold text-text">Simple creator flow</div>
+          <div className="text-sm font-extrabold text-text">{language === 'vi' ? 'Quy trình sáng tạo đơn giản' : 'Simple creator flow'}</div>
           <div className="mt-1 text-xs leading-relaxed text-text-muted">
-            User only needs to describe the goal, add references if available, review the draft, then render.
+            {language === 'vi'
+              ? 'Bạn chỉ cần mô tả mục tiêu, thêm tham chiếu nếu có, duyệt bản nháp rồi render.'
+              : 'User only needs to describe the goal, add references if available, review the draft, then render.'}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold">
@@ -2355,7 +2418,6 @@ function buildStudioPreviewScenes(
         renderMode: shot.render_mode || inferRenderModeFromRefs(refsUsed),
         refs: refsUsed,
         status: preflight.status === 'approved_for_render' ? 'locked' : 'draft',
-        spendUsd: estimateSceneSpendUsd(shot.model_key || defaultModel, durationS, shot.render_mode),
       };
     });
   }
@@ -2384,7 +2446,6 @@ function buildStudioPreviewScenes(
         renderMode: inferRenderModeFromRefs(refsUsed),
         refs: refsUsed,
         status: preflight.status === 'approved_for_render' ? 'locked' : 'draft',
-        spendUsd: estimateSceneSpendUsd(defaultModel, durationS, inferRenderModeFromRefs(refsUsed)),
       };
     });
   }
@@ -2414,7 +2475,6 @@ function buildStudioPreviewScenes(
         renderMode: inferRenderModeFromRefs(refsUsed),
         refs: refsUsed,
         status: preflight.status === 'approved_for_render' ? 'locked' : 'draft',
-        spendUsd: estimateSceneSpendUsd(route, durationS, inferRenderModeFromRefs(refsUsed)),
       };
     });
   }
@@ -2441,7 +2501,6 @@ function buildStudioPreviewScenes(
       renderMode: inferRenderModeFromRefs(refsUsed),
       refs: refsUsed,
       status: preflight.status === 'approved_for_render' ? 'locked' : 'draft',
-      spendUsd: estimateSceneSpendUsd(defaultModel, durationS, inferRenderModeFromRefs(refsUsed)),
     }];
   }
 
@@ -2471,7 +2530,6 @@ function buildLongformReviewScenes(
       renderMode: 'long_form_segment',
       refs: [],
       status: segment.status === 'completed' ? 'locked' : 'needs-review',
-      spendUsd: estimateSceneSpendUsd(String(dryRunReport?.model || 'seedance_2_0'), normalizePreviewDuration(segment.duration_s), 'long_form_segment'),
     };
   });
 }
@@ -2484,24 +2542,41 @@ function compactPreviewState(value?: Record<string, unknown>): string {
   return parts.length > 0 ? parts.join(', ') : 'none';
 }
 
-function summarizePreviewSpend(scenes: StudioPreviewScene[]): SpendPreview {
-  const base = scenes.reduce((sum, scene) => sum + scene.spendUsd, 0);
+function buildSpendPreview(
+  scenes: StudioPreviewScene[],
+  dryRunReport?: Record<string, unknown>,
+): SpendPreview {
+  const costEstimate = asPlainRecord(dryRunReport?.cost_estimate);
+  const totalUsd = firstFiniteNumber(
+    dryRunReport?.estimated_total_cost_usd,
+    dryRunReport?.total_cost_usd,
+    costEstimate?.estimated_total_usd,
+    costEstimate?.total_cost_usd,
+    costEstimate?.total_usd,
+    costEstimate?.render_cost_usd,
+  );
+  const lowUsd = firstFiniteNumber(costEstimate?.low_usd, costEstimate?.estimated_low_usd);
+  const highUsd = firstFiniteNumber(costEstimate?.high_usd, costEstimate?.estimated_high_usd);
   return {
     totalSeconds: scenes.reduce((sum, scene) => sum + scene.durationS, 0),
-    lowUsd: base > 0 ? Math.max(0.01, base * 0.85) : 0,
-    highUsd: base > 0 ? Math.max(0.01, base * 1.25) : 0,
+    totalUsd,
+    lowUsd,
+    highUsd,
+    source: totalUsd !== undefined || lowUsd !== undefined || highUsd !== undefined
+      ? 'backend_dry_run'
+      : 'pending',
   };
 }
 
-function estimateSceneSpendUsd(modelKey: string, durationS: number, renderMode?: string): number {
-  const key = `${modelKey || ''} ${renderMode || ''}`.toLowerCase();
-  let rate = 0.075;
-  if (key.includes('fast')) rate = 0.055;
-  if (key.includes('standard') || key.includes('seedance_2_0')) rate = Math.max(rate, 0.075);
-  if (key.includes('reference') || key.includes('i2v') || key.includes('omni')) rate += 0.02;
-  if (key.includes('pro')) rate += 0.035;
-  if (durationS >= 60) rate *= 0.9;
-  return Math.max(0.03, durationS * rate);
+function asPlainRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
+}
+
+function firstFiniteNumber(...values: unknown[]): number | undefined {
+  for (const value of values) {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+  }
+  return undefined;
 }
 
 function isVideoModelChoice(value: unknown): value is VideoModelChoice {

@@ -11,6 +11,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 from agent.autonomous_benchmark_suite import build_autonomous_benchmark_contract
+from agent.benchmark_evidence_validator import has_real_output_url
 from agent.benchmark_promotion_policy import build_benchmark_promotion_policy
 from agent.benchmark_evidence_template import build_benchmark_evidence_template
 from core import autonomous_benchmark_store
@@ -247,10 +248,7 @@ def _evidence_index(rows: list[dict[str, Any]]) -> dict[tuple[str, str], dict[st
         grouped[(str(row.get("case_id")), str(row.get("model_key")))].append(row)
     out: dict[tuple[str, str], dict[str, Any]] = {}
     for key, items in grouped.items():
-        real_outputs = [
-            item for item in items
-            if item.get("output_url") and not str(item.get("output_url")).startswith("stub://")
-        ]
+        real_outputs = [item for item in items if has_real_output_url(item)]
         approved = [
             item for item in real_outputs
             if item.get("status") == "passed"

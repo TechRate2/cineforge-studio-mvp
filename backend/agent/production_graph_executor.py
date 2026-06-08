@@ -183,31 +183,39 @@ async def run_graph_executor_until_idle(
 
 
 def metadata_stub_handlers() -> dict[str, GraphTaskHandler]:
-    """Return non-vendor handlers for local executor smoke tests only."""
+    """Return metadata-only handlers for local executor smoke tests only.
+
+    These handlers advance graph state for dependency smoke tests, but never
+    write synthetic output URLs, QA passes, render URLs, or delivery evidence.
+    """
     def _shot(task: dict[str, Any]) -> dict[str, Any]:
         return {
             "outcome": "accepted",
             "payload_patch": {
                 "executor_status": "metadata_stub",
-                "stub_video_url": f"stub://{task.get('shot_id') or task.get('node_id')}",
+                "metadata_only": True,
+                "real_render_required": True,
             },
         }
 
     def _qa(task: dict[str, Any]) -> dict[str, Any]:
         return {
-            "outcome": "passed",
+            "outcome": "accepted",
             "payload_patch": {
                 "executor_status": "metadata_stub",
-                "quality_status": "stub_pass",
+                "metadata_only": True,
+                "quality_status": "metadata_only_no_real_qa",
+                "real_qa_required": True,
             },
         }
 
     def _assembly(task: dict[str, Any]) -> dict[str, Any]:
         return {
-            "outcome": "success",
+            "outcome": "accepted",
             "payload_patch": {
                 "executor_status": "metadata_stub",
-                "output_url": "stub://final.mp4",
+                "metadata_only": True,
+                "real_delivery_required": True,
             },
         }
 

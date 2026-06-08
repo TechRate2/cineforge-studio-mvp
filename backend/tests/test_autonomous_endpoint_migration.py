@@ -129,6 +129,32 @@ def test_autonomous_endpoint_paid_long_form_requires_approved_dry_run() -> None:
     asyncio.run(run_case())
 
 
+def test_autonomous_endpoint_rejects_missing_env_before_paid_render(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Paid render must report missing env instead of queueing a fake job."""
+    from api.routes import director
+
+    spawned: list[Any] = []
+    monkeypatch.setattr(director, "_spawn", lambda coro: spawned.append(coro))
+    monkeypatch.setattr(director.app_settings, "atlascloud_api_key", "...")
+
+    async def run_case() -> None:
+        director._JOBS_STORE.clear()
+        request = _approved_request(dry_run_only=False)
+        with pytest.raises(Exception) as exc_info:
+            await director.autonomous_generate(request, idempotency_key=None)
+        error = exc_info.value
+        assert getattr(error, "status_code", None) == 503
+        detail = getattr(error, "detail", {})
+        assert detail.get("code") == "missing_env"
+        assert detail.get("missing_env") == ["ATLASCLOUD_API_KEY"]
+        assert detail.get("vendor_calls_performed") is False
+        assert detail.get("paid_video_vendor_calls_allowed") is False
+        assert spawned == []
+        assert director._JOBS_STORE == {}
+
+    asyncio.run(run_case())
+
+
 def test_autonomous_endpoint_rejects_unsupported_duration_gap() -> None:
     """16-29s is intentionally rejected until a distinct mid-form strategy exists."""
     from api.routes import director
@@ -191,6 +217,7 @@ def test_autonomous_endpoint_paid_long_form_reuses_approved_dry_run_bundle(monke
 
     monkeypatch.setattr(director, "_spawn", capture_spawn)
     monkeypatch.setattr(director.video_worker, "render_longform_execution_plan", capture_longform_render)
+    monkeypatch.setattr(director.app_settings, "atlascloud_api_key", "test_atlas_key")
 
     async def run_case() -> None:
         director._JOBS_STORE.clear()
@@ -253,6 +280,7 @@ def test_autonomous_endpoint_rejects_incomplete_segment_approval(monkeypatch: py
 
     spawned: list[Any] = []
     monkeypatch.setattr(director, "_spawn", lambda coro: spawned.append(coro))
+    monkeypatch.setattr(director.app_settings, "atlascloud_api_key", "test_atlas_key")
 
     async def run_case() -> None:
         director._JOBS_STORE.clear()
@@ -312,6 +340,7 @@ def test_autonomous_endpoint_rejects_consistency_review_without_reason(monkeypat
 
     spawned: list[Any] = []
     monkeypatch.setattr(director, "_spawn", lambda coro: spawned.append(coro))
+    monkeypatch.setattr(director.app_settings, "atlascloud_api_key", "test_atlas_key")
 
     async def run_case() -> None:
         director._JOBS_STORE.clear()
@@ -369,6 +398,7 @@ def test_autonomous_endpoint_rejects_consistency_review_rejection(monkeypatch: p
 
     spawned: list[Any] = []
     monkeypatch.setattr(director, "_spawn", lambda coro: spawned.append(coro))
+    monkeypatch.setattr(director.app_settings, "atlascloud_api_key", "test_atlas_key")
 
     async def run_case() -> None:
         director._JOBS_STORE.clear()
@@ -441,6 +471,39 @@ def test_autonomous_endpoint_rejects_paid_render_without_approved_source() -> No
         error = exc_info.value
         assert getattr(error, "status_code", None) == 422
         assert getattr(error, "detail", {}).get("code") == "approval_lock_source_required"
+
+    asyncio.run(run_case())
+
+
+def test_autonomous_endpoint_rejects_wan_without_image_reference_before_chain() -> None:
+    """Image-driven Wan route must not use placeholder or text-only fallback refs."""
+    from api.routes import director
+
+    async def run_case() -> None:
+        director._JOBS_STORE.clear()
+        request = director.AutonomousGenerateRequest(
+            user_idea=(
+                "Create a 10s TikTok UGC product review for sunscreen with a Vietnamese "
+                "creator speaking to camera, clear lip-sync and product payoff."
+            ),
+            target_market="vn",
+            target_platform="tiktok",
+            duration_hint_s=10,
+            user_model="wan_2_7",
+            resolution="720p",
+            dry_run_only=True,
+            auto_select_asset_pins=False,
+            reference_image_urls=[],
+        )
+        with pytest.raises(Exception) as exc_info:
+            await director.autonomous_generate(request, idempotency_key=None)
+        error = exc_info.value
+        assert getattr(error, "status_code", None) == 422
+        detail = getattr(error, "detail", {})
+        assert detail.get("code") == "model_requires_image_reference"
+        assert detail.get("vendor_calls_performed") is False
+        assert detail.get("paid_video_vendor_calls_allowed") is False
+        assert director._JOBS_STORE == {}
 
     asyncio.run(run_case())
 

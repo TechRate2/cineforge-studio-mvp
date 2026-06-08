@@ -22,7 +22,8 @@ from agent.model_specs import (
     resolve_video_model_variant,
 )
 from agent.model_guide import get_video_guide, recommend_for_use_case, NICHE_TAGS
-from api.routes.paid_guard import require_direct_paid_generation
+from api.routes.direct_media_output import deliverable_http_url, deliverable_http_urls
+from api.routes.paid_guard import raise_missing_vendor_env, require_direct_paid_generation
 
 router = APIRouter()
 
@@ -218,9 +219,9 @@ async def generate_direct(
     from vendors.atlascloud import atlas_client
 
     if atlas_client is None:
-        raise HTTPException(
-            500,
-            detail="ATLASCLOUD_API_KEY chưa set trong .env.local",
+        raise_missing_vendor_env(
+            ["ATLASCLOUD_API_KEY"],
+            "Direct video generation requires ATLASCLOUD_API_KEY. No AtlasCloud job was submitted.",
         )
 
     job_id = str(uuid4())
@@ -280,7 +281,10 @@ async def cancel_direct_job(job_id: str):
 
     from vendors.atlascloud import atlas_client
     if atlas_client is None:
-        raise HTTPException(500, "AtlasCloud key chưa set")
+        raise_missing_vendor_env(
+            ["ATLASCLOUD_API_KEY"],
+            "Direct video cancellation requires ATLASCLOUD_API_KEY. No AtlasCloud cancellation call was made.",
+        )
 
     result = atlas_client.cancel_prediction(job["prediction_id"])
     job["status"] = "cancelled"
@@ -299,7 +303,10 @@ async def poll_direct_job(job_id: str):
 
     from vendors.atlascloud import atlas_client, _unwrap
     if atlas_client is None:
-        raise HTTPException(500, "AtlasCloud key chưa set")
+        raise_missing_vendor_env(
+            ["ATLASCLOUD_API_KEY"],
+            "Direct video polling requires ATLASCLOUD_API_KEY. No AtlasCloud poll call was made.",
+        )
 
     poll_path = job.get("poll_path", "/model/prediction")
     try:
@@ -319,16 +326,23 @@ async def poll_direct_job(job_id: str):
         "model_key": job["model_key"],
     }
     if status in ("completed", "succeeded"):
-        outputs = data.get("outputs", [])
-        out["video_url"] = outputs[0] if outputs else data.get("output_url")
+        outputs = deliverable_http_urls(data.get("outputs", []))
+        video_url = outputs[0] if outputs else deliverable_http_url(data.get("output_url"))
+        if not video_url:
+            status = "failed"
+            out["status"] = "failed"
+            out["error"] = "Completed video job did not return a deliverable HTTP(S) video URL."
+        else:
+            out["video_url"] = video_url
         last_frame = (
             data.get("last_frame_url")
             or data.get("lastFrameUrl")
             or data.get("last_frame")
             or (data.get("extra") or {}).get("last_frame_url")
         )
-        if last_frame:
-            out["last_frame_url"] = last_frame
+        last_frame_url = deliverable_http_url(last_frame)
+        if last_frame_url:
+            out["last_frame_url"] = last_frame_url
     elif status == "failed":
         out["error"] = data.get("error")
 

@@ -24,6 +24,7 @@ import httpx
 from loguru import logger
 
 from core.config import settings
+from core.env_guard import is_configured_secret
 from vendors._retry import billable_retry
 
 
@@ -330,4 +331,4 @@ class GenMaxClient:
         return response.json()
 
 
-genmax_client = GenMaxClient() if settings.genmax_api_key else None
+genmax_client = GenMaxClient() if is_configured_secret(settings.genmax_api_key) else None

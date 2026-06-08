@@ -5,6 +5,7 @@ import logging
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from core.deliverable_url import deliverable_http_url
 from identity.post_render_cv_probe import OpenCVPostRenderProbe
 from identity.post_render_consistency import PostRenderConsistencyQA, VisualConsistencyQAReport
 from pipeline.contracts import SeedanceShotPlan
@@ -58,6 +59,8 @@ class RenderQAService:
             errors.append(result.error_code or "segment_render_failed")
         if not result.video_url:
             errors.append("missing_video_url")
+        elif not deliverable_http_url(result.video_url):
+            errors.append("missing_deliverable_video_url")
         if result.duration_s is None:
             warnings.append("missing_duration_metadata")
         elif abs(int(result.duration_s) - int(shot.duration_s)) > 1:

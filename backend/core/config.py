@@ -73,6 +73,7 @@ class Settings(BaseSettings):
     r2_final_video_presigned_expires_s: int = 90 * 24 * 60 * 60
     r2_presigned_refresh_enabled: bool = True
     r2_upload_max_attempts: int = 3
+    allow_r2_local_fallback: bool = False
 
     # Post-render visual consistency probe. Uses OpenCV locally to derive
     # deterministic CV signals from rendered segment videos and reference
@@ -94,6 +95,8 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_port: int = 8000
     worker_concurrency: int = 4
+    ffmpeg_bin: str = ""
+    ffprobe_bin: str = ""
 
     # V3 CRITICAL C1 — Admin key guards mutating /api/v1/admin/* endpoints.
     # Set `ADMIN_API_KEY` env in production. When empty, admin mutations are

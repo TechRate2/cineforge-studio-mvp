@@ -10,6 +10,8 @@ Reference Intelligence V1 is metadata-based. It uses only supplied asset fields 
 
 V1 does not claim pixel or audio understanding. Pixel, OCR, logo, face, product, video-motion, and audio analysis belong to a future V2 analyzer.
 
+The normal Studio dry-run and render path must keep vision role tagging disabled by default. Vision LLM role suggestions are an explicit opt-in path for Deep Analyze only; they can suggest roles for review, but they do not make Reference Intelligence V1 a real image/audio analyzer.
+
 ## Main contract
 
 Important source file:
@@ -65,9 +67,17 @@ Important source file:
 
 Existing UI can read dry-run `hard_failures` as blockers.
 
-## Future UI integration
+## Paid render gate
 
-Create a Reference Intelligence panel showing:
+`RenderExecutor` rejects paid short-form render when
+`dry_run_report.hard_failures` is non-empty. This prevents blocked references
+from reaching the vendor path after approval verification and before any paid
+call.
+
+## UI integration
+
+`components/studio/SmartReferenceTray.tsx` and
+`components/studio/ReferenceIntelligencePanel.tsx` show Reference readiness with:
 
 - project readiness;
 - image, video, and audio counts;
@@ -79,6 +89,10 @@ Create a Reference Intelligence panel showing:
 - role locked status;
 - warnings;
 - blockers.
+
+Before dry-run, the UI can show local upload and role-confirmation state only.
+It must not claim Reference Intelligence has passed until
+`RenderDryRunReport.reference_intelligence` exists.
 
 ## V2 roadmap
 

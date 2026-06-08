@@ -85,6 +85,17 @@ def create_result(
     """Create one benchmark result/evidence row."""
     normalized_status = _normalize_status(status)
     normalized_decision = _normalize_decision(reviewer_decision)
+    clean_output_url = _validate_output_url(output_url)
+    clean_evidence = dict(evidence or {})
+    _validate_benchmark_payload(
+        status=normalized_status,
+        output_url=clean_output_url,
+        cost_usd=cost_usd,
+        latency_s=latency_s,
+        qa_score=qa_score,
+        reviewer_decision=normalized_decision,
+        evidence=clean_evidence,
+    )
     now = datetime.now(timezone.utc).isoformat()
     result_id = f"benchrun_{uuid.uuid4().hex[:12]}"
     with _LOCK:
@@ -106,12 +117,12 @@ def create_result(
                     runtime_class,
                     model_key,
                     normalized_status,
-                    output_url,
+                    clean_output_url,
                     cost_usd,
                     latency_s,
                     qa_score,
                     normalized_decision,
-                    json.dumps(evidence or {}, ensure_ascii=False, default=str),
+                    json.dumps(clean_evidence, ensure_ascii=False, default=str),
                     now,
                     now,
                 ),
@@ -140,6 +151,24 @@ def update_result(
     next_evidence = existing["evidence"]
     if evidence:
         next_evidence = {**next_evidence, **evidence}
+    next_status = _normalize_status(status or existing["status"])
+    next_output_url = _validate_output_url(output_url if output_url is not None else existing.get("output_url"))
+    next_cost_usd = cost_usd if cost_usd is not None else existing.get("cost_usd")
+    next_latency_s = latency_s if latency_s is not None else existing.get("latency_s")
+    next_qa_score = qa_score if qa_score is not None else existing.get("qa_score")
+    next_reviewer_decision = _normalize_decision(
+        reviewer_decision if reviewer_decision is not None
+        else existing.get("reviewer_decision")
+    )
+    _validate_benchmark_payload(
+        status=next_status,
+        output_url=next_output_url,
+        cost_usd=next_cost_usd,
+        latency_s=next_latency_s,
+        qa_score=next_qa_score,
+        reviewer_decision=next_reviewer_decision,
+        evidence=next_evidence,
+    )
     with _LOCK:
         with _conn() as c:
             c.execute(
@@ -156,15 +185,12 @@ def update_result(
                  WHERE id = ?
                 """,
                 (
-                    _normalize_status(status or existing["status"]),
-                    output_url if output_url is not None else existing.get("output_url"),
-                    cost_usd if cost_usd is not None else existing.get("cost_usd"),
-                    latency_s if latency_s is not None else existing.get("latency_s"),
-                    qa_score if qa_score is not None else existing.get("qa_score"),
-                    _normalize_decision(
-                        reviewer_decision if reviewer_decision is not None
-                        else existing.get("reviewer_decision")
-                    ),
+                    next_status,
+                    next_output_url,
+                    next_cost_usd,
+                    next_latency_s,
+                    next_qa_score,
+                    next_reviewer_decision,
                     json.dumps(next_evidence, ensure_ascii=False, default=str),
                     now,
                     result_id,
@@ -277,6 +303,48 @@ def _normalize_decision(decision: Optional[str]) -> str:
     if d not in _ALLOWED_DECISIONS:
         raise ValueError(f"invalid reviewer decision: {decision}")
     return d or "unknown"
+
+
+def _validate_output_url(output_url: Optional[str]) -> Optional[str]:
+    """Accept only deliverable HTTP(S) benchmark outputs."""
+    text = str(output_url or "").strip()
+    if not text:
+        return None
+    from agent.benchmark_evidence_validator import has_real_output_url
+
+    if has_real_output_url({"output_url": text}):
+        return text
+    raise ValueError("benchmark output_url must be a real HTTP(S) render URL; stub/local URLs are not accepted")
+
+
+def _validate_benchmark_payload(
+    *,
+    status: str,
+    output_url: Optional[str],
+    cost_usd: Optional[float],
+    latency_s: Optional[float],
+    qa_score: Optional[float],
+    reviewer_decision: str,
+    evidence: dict[str, Any],
+) -> None:
+    """Reject direct store writes that would fabricate benchmark success."""
+    if status != "passed":
+        return
+    from agent.benchmark_evidence_validator import validate_benchmark_result_evidence
+
+    candidate = {
+        "status": status,
+        "output_url": output_url,
+        "cost_usd": cost_usd,
+        "latency_s": latency_s,
+        "qa_score": qa_score,
+        "reviewer_decision": reviewer_decision,
+        "evidence": evidence,
+    }
+    validation = validate_benchmark_result_evidence(candidate)
+    if not validation["promotion_ready"]:
+        reasons = ", ".join(validation["missing_reasons"])
+        raise ValueError(f"benchmark status=passed requires promotion-ready evidence: {reasons}")
 
 
 def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:

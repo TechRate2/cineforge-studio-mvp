@@ -51,6 +51,7 @@ from vendors.atlascloud import atlas_client
 from vendors import r2_storage
 from workers.assemble_worker import AssembleWorker
 from workers import cost_gate
+from core.deliverable_url import deliverable_http_url
 from core import director_history, production_graph_store
 
 if TYPE_CHECKING:
@@ -476,10 +477,18 @@ def _record_longform_monitoring_qa(*, job_id: str, result: Any) -> None:
 def _first_seedance_output_url(result: Any) -> Optional[str]:
     """Return the first rendered segment URL from a RenderExecutionResult."""
     for segment in getattr(result, "rendered_segments", []) or []:
-        url = getattr(segment, "video_url", None)
+        url = deliverable_http_url(getattr(segment, "video_url", None))
         if url:
-            return str(url)
+            return url
     return None
+
+
+def _require_deliverable_video_url(value: Any, *, context: str) -> str:
+    """Return an HTTP(S) render URL or fail closed before download/QA/metadata."""
+    url = deliverable_http_url(value)
+    if url:
+        return url
+    raise RuntimeError(f"{context}: vendor returned no deliverable HTTP(S) video_url.")
 
 
 async def render_plan(
@@ -826,9 +835,10 @@ async def render_plan(
                 {"render_scope": "single_call_multi_shot", "model_key": single_call_model_key},
             )
         single_result = await asyncio.to_thread(atlas_client.generate_video, **atlas_kwargs)
-        clip_url = single_result.get("video_url")
-        if not clip_url:
-            raise RuntimeError(f"Single-call render returned no video_url. {single_result}")
+        clip_url = _require_deliverable_video_url(
+            single_result.get("video_url"),
+            context="Single-call render",
+        )
 
         clip_path = work_dir / "single_call.mp4"
         await _download_file(clip_url, clip_path)
@@ -1043,9 +1053,10 @@ async def render_plan(
         )
 
         result = await asyncio.to_thread(atlas_client.generate_video, **kwargs)
-        clip_url = result.get("video_url")
-        if not clip_url:
-            raise RuntimeError(f"shot {shot.shot_id}: AtlasCloud returned no video_url. {result}")
+        clip_url = _require_deliverable_video_url(
+            result.get("video_url"),
+            context=f"shot {shot.shot_id}",
+        )
 
         clip_path = work_dir / f"shot_{i:02d}_{shot.shot_id}.mp4"
         await _download_file(clip_url, clip_path)
@@ -1079,7 +1090,7 @@ async def render_plan(
         )
         clip_paths.append(clip_path)
 
-        produced_last_frame = result.get("last_frame_url")
+        produced_last_frame = deliverable_http_url(result.get("last_frame_url"))
         last_frame_urls_by_shot_id[shot.shot_id] = produced_last_frame
         chain_meta.append({
             "shot_id": shot.shot_id,
@@ -1215,7 +1226,7 @@ async def render_plan(
         bible_color_grading=bible.visual_style.color_grading,
     )
 
-    # Stage 5 — Upload to R2 (graceful fallback to file:// when not configured)
+    # Stage 5 — Upload to R2. Local file fallback is explicit dev-only.
     _update_job(jobs_store, job_id, status="uploading", progress=95, current_step="r2_upload")
     r2_key = f"video/{job_id}/final.mp4"
     output_url = await r2_storage.upload_with_fallback(
@@ -1316,9 +1327,10 @@ def _populate_dynamic_keyframe_memory_from_render(
     for item in chain_meta:
         if not isinstance(item, dict):
             continue
-        video_url = item.get("video_url") or item.get("output_url")
+        video_url = deliverable_http_url(item.get("video_url")) or deliverable_http_url(item.get("output_url"))
         if not video_url:
             continue
+        last_frame_url = deliverable_http_url(item.get("last_frame_url"))
         quality = item.get("quality") if isinstance(item.get("quality"), dict) else {}
         if str(quality.get("status") or "pass").lower() == "fail":
             continue
@@ -1326,8 +1338,8 @@ def _populate_dynamic_keyframe_memory_from_render(
             "shot_id": item.get("shot_id"),
             "scene_id": item.get("scene_id"),
             "video_url": video_url,
-            "last_frame_url": item.get("last_frame_url"),
-            "keyframe_url": item.get("last_frame_url"),
+            "last_frame_url": last_frame_url,
+            "keyframe_url": last_frame_url,
             "qa_score": quality.get("score") or quality.get("overall_score"),
             "accepted": True,
             "drift_notes": _dynamic_memory_drift_notes(quality),
@@ -1474,9 +1486,10 @@ async def _execute_retry_plan_once(
             kwargs["on_submit"] = lambda pid: _track_prediction(jobs_store, job_id, pid)
             _check_cancelled(jobs_store, job_id)
             result = await asyncio.to_thread(atlas_client.generate_video, **kwargs)
-            clip_url = result.get("video_url")
-            if not clip_url:
-                raise RuntimeError(f"retry shot {shot_id}: AtlasCloud returned no video_url. {result}")
+            clip_url = _require_deliverable_video_url(
+                result.get("video_url"),
+                context=f"retry shot {shot_id}",
+            )
 
             clip_path = work_dir / f"retry_{n:02d}_{shot_id}.mp4"
             await _download_file(clip_url, clip_path)
@@ -1535,13 +1548,13 @@ async def _execute_retry_plan_once(
                 chain_meta[idx] = {
                     **chain_meta[idx],
                     "video_url": clip_url,
-                    "last_frame_url": result.get("last_frame_url"),
+                    "last_frame_url": deliverable_http_url(result.get("last_frame_url")),
                     "prediction_id": result.get("prediction_id"),
                     "retry_replaced": True,
                     "retry_reason": item.get("reason"),
                     "quality": qa_report,
                 }
-            last_frame_urls_by_shot_id[shot_id] = result.get("last_frame_url")
+            last_frame_urls_by_shot_id[shot_id] = deliverable_http_url(result.get("last_frame_url"))
             render_quality.append(qa_report)
             _graph_update_node(
                 job_id,
@@ -1551,7 +1564,7 @@ async def _execute_retry_plan_once(
                     "retry_replaced": True,
                     "retry_video_url": clip_url,
                     "prediction_id": result.get("prediction_id"),
-                    "last_frame_url": result.get("last_frame_url"),
+                    "last_frame_url": deliverable_http_url(result.get("last_frame_url")),
                 },
             )
             _graph_update_node(
@@ -1701,16 +1714,17 @@ async def render_single_shot(
     kwargs["on_submit"] = lambda pid: _track_prediction(jobs_store, job_id, pid)
     _check_cancelled(jobs_store, job_id)
     result = await asyncio.to_thread(atlas_client.generate_video, **kwargs)
-    clip_url = result.get("video_url")
-    if not clip_url:
-        raise RuntimeError(f"refine {shot_id}: AtlasCloud returned no video_url")
+    clip_url = _require_deliverable_video_url(
+        result.get("video_url"),
+        context=f"refine {shot_id}",
+    )
 
     work_dir = Path(tempfile.gettempdir()) / f"cineforge_refine_{job_id}"
     work_dir.mkdir(parents=True, exist_ok=True)
     clip_path = work_dir / f"refined_{shot_id}.mp4"
     await _download_file(clip_url, clip_path)
 
-    # Upload to R2 (graceful fallback to file://)
+    # Upload to R2. Local file fallback is explicit dev-only.
     _update_job(jobs_store, job_id, status="uploading", progress=90, current_step="r2_upload")
     r2_key = f"refine/{job_id}/{shot_id}.mp4"
     output_url = await r2_storage.upload_with_fallback(
@@ -1745,7 +1759,7 @@ async def render_single_shot(
         "shot_id": shot_id,
         "video_url": clip_url,
         "output_url": output_url,
-        "last_frame_url": result.get("last_frame_url"),
+        "last_frame_url": deliverable_http_url(result.get("last_frame_url")),
         "render_mode": scene_job.render_mode,
         "model_key": scene_job.model_key,
         "duration_s": scene_job.duration_s,
@@ -1821,7 +1835,11 @@ def graph_executor_handlers_for_plan(
         shot_id = str(task.get("shot_id") or (task.get("payload") or {}).get("shot_id") or "")
         shot = next((s for s in plan.shot_list if str(s.shot_id) == shot_id), None)
         shot_payload = _shot_payload_from_graph(job_id=job_id, shot_id=shot_id)
-        checked_video_url = shot_payload.get("output_url") or shot_payload.get("video_url")
+        checked_video_url = (
+            deliverable_http_url(shot_payload.get("output_url"))
+            or deliverable_http_url(shot_payload.get("video_url"))
+            or deliverable_http_url(shot_payload.get("retry_video_url"))
+        )
         if not shot or not checked_video_url:
             return {
                 "outcome": "failed",
@@ -2068,7 +2086,11 @@ def _previous_last_frame_from_graph(
     if not previous_shot_id:
         return None
     payload = _shot_payload_from_graph(job_id=job_id, shot_id=str(previous_shot_id))
-    return payload.get("last_frame_url") or payload.get("output_url") or payload.get("video_url")
+    return (
+        deliverable_http_url(payload.get("last_frame_url"))
+        or deliverable_http_url(payload.get("output_url"))
+        or deliverable_http_url(payload.get("video_url"))
+    )
 
 
 def _shot_payload_from_graph(*, job_id: str, shot_id: str) -> dict[str, Any]:
@@ -2131,7 +2153,11 @@ def _ordered_rendered_shot_outputs(
         if not isinstance(payload, dict):
             continue
         shot_id = str(payload.get("shot_id") or str(node.get("id") or "").replace("shot_", ""))
-        url = payload.get("output_url") or payload.get("video_url") or payload.get("retry_video_url")
+        url = (
+            deliverable_http_url(payload.get("output_url"))
+            or deliverable_http_url(payload.get("video_url"))
+            or deliverable_http_url(payload.get("retry_video_url"))
+        )
         if not shot_id or not url:
             continue
         payload_by_shot[shot_id] = {**payload, "shot_id": shot_id, "url": url}

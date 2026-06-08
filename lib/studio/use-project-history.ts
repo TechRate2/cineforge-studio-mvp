@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { DirectorPlan } from './director-job-api';
+import { deliverableUrlOrNull } from './deliverable-url';
 
 export interface HistoryItem {
   job_id: string;
@@ -13,6 +14,7 @@ export interface HistoryItem {
   mode: string;
   status: string;
   output_url: string | null;
+  local_output_path?: string | null;
   title: string | null;
   duration_s: number | null;
   created_at: string;
@@ -46,7 +48,9 @@ async function _fetchHistory(force = false): Promise<HistoryItem[]> {
       const r = await fetch('/api/v1/director/history?limit=50');
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const body = await r.json();
-      const items: HistoryItem[] = Array.isArray(body?.items) ? body.items : [];
+      const items: HistoryItem[] = Array.isArray(body?.items)
+        ? body.items.map(sanitizeHistoryItem)
+        : [];
       _historyCache = { items, fetchedAt: Date.now() };
       return items;
     } finally {
@@ -82,7 +86,7 @@ export function useProjectHistory() {
   const getDetail = useCallback(async (jobId: string): Promise<HistoryDetail> => {
     const r = await fetch(`/api/v1/director/history/${jobId}`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.json();
+    return sanitizeHistoryDetail(await r.json());
   }, []);
 
   const remove = useCallback(async (jobId: string) => {
@@ -95,4 +99,23 @@ export function useProjectHistory() {
   }, []);
 
   return { items, loading, error, refresh, getDetail, remove };
+}
+
+
+function sanitizeHistoryDetail(value: unknown): HistoryDetail {
+  const raw = value as HistoryDetail;
+  return {
+    ...raw,
+    ...sanitizeHistoryItem(raw),
+  };
+}
+
+
+function sanitizeHistoryItem(item: HistoryItem): HistoryItem {
+  const outputUrl = deliverableUrlOrNull(item.output_url);
+  return {
+    ...item,
+    output_url: outputUrl,
+    local_output_path: outputUrl ? null : (item.local_output_path || item.output_url || null),
+  };
 }

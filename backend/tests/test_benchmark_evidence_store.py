@@ -1,3 +1,5 @@
+import pytest
+
 from benchmark.evidence_store import BenchmarkEvidenceRecord, BenchmarkEvidenceStore, build_launch_gate_report
 
 
@@ -22,9 +24,9 @@ def test_benchmark_launch_gate_fails_without_enough_real_samples() -> None:
 
 def test_benchmark_launch_gate_passes_when_sample_quality_is_high() -> None:
     records = [
-        BenchmarkEvidenceRecord(niche="beauty", runtime_class="short", qa_score=92, human_score=9, verdict="usable"),
-        BenchmarkEvidenceRecord(niche="beauty", runtime_class="short", qa_score=88, human_score=8, verdict="usable"),
-        BenchmarkEvidenceRecord(niche="beauty", runtime_class="short", qa_score=91, human_score=9, verdict="usable"),
+        BenchmarkEvidenceRecord(niche="beauty", runtime_class="short", output_url="https://cdn.example.com/1.mp4", cost_usd=0.42, latency_s=42, qa_score=92, human_score=9, verdict="usable"),
+        BenchmarkEvidenceRecord(niche="beauty", runtime_class="short", output_url="https://cdn.example.com/2.mp4", cost_usd=0.43, latency_s=43, qa_score=88, human_score=8, verdict="usable"),
+        BenchmarkEvidenceRecord(niche="beauty", runtime_class="short", output_url="https://cdn.example.com/3.mp4", cost_usd=0.44, latency_s=44, qa_score=91, human_score=9, verdict="usable"),
     ]
 
     report = build_launch_gate_report(records=records, min_samples=3, min_usable_rate=0.80, max_hard_fail_rate=0.20)
@@ -56,3 +58,21 @@ def test_benchmark_evidence_store_round_trips_jsonl(tmp_path) -> None:
     assert len(loaded) == 1
     assert loaded[0].evidence_id == record.evidence_id
     assert loaded[0].output_url == record.output_url
+
+
+def test_benchmark_evidence_rejects_non_http_output_url() -> None:
+    for output_url in [
+        "file:///tmp/final.mp4",
+        "stub://benchmark/final",
+        "C:/tmp/final.mp4",
+        "http://localhost:3000/final.mp4",
+        "http://127.8.7.6:3000/final.mp4",
+        "http://studio.localhost/final.mp4",
+    ]:
+        with pytest.raises(ValueError, match=r"HTTP\(S\)"):
+            BenchmarkEvidenceRecord(
+                niche="ugc_review",
+                runtime_class="short",
+                output_url=output_url,
+                verdict="usable",
+            )

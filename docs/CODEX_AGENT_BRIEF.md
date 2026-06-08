@@ -66,6 +66,23 @@ The current PR already adds or improves:
 9. Keep UI understandable to non technical users.
 10. Keep code typed, testable, and maintainable.
 
+## Chat First Studio Direction
+
+The main `/studio` surface should be a Vietnamese-first chat-first Agent Studio,
+not a technical render dashboard. The user flow is:
+
+1. type a natural video idea;
+2. upload optional image, video, or audio references;
+3. let the Agent plan and tag references;
+4. review roles, concept, script, storyboard, audio plan, and prompt strategy;
+5. approve dry-run;
+6. render only after all safety gates pass;
+7. review QA, repair, delivery, and benchmark status when real backend data exists.
+
+Every UI value must come from frontend state, backend payloads, or a documented
+placeholder-free contract. Missing QA, delivery, repair, or benchmark fields
+must be shown as pending or unknown, never fabricated.
+
 ## Required Validation Before Merge
 
 Run:
@@ -90,6 +107,17 @@ A launch candidate should pass:
 7. Quality failure leads to repair or review behavior.
 8. Delivery failure fails closed.
 9. Benchmark evidence record is created.
+
+Safe dry-run smoke commands:
+
+```bash
+python backend\scripts\smoke_shortform.py
+python backend\scripts\smoke_longform.py --duration-s 30
+python backend\scripts\run_benchmark_cases.py --case-id bench_food_restaurant_12s
+```
+
+Paid smoke requires explicit `--paid` and real vendor/storage env. Missing env
+must return a clear `missing_env` payload and perform no vendor calls.
 
 ## Definition of Done
 

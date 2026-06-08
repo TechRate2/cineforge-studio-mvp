@@ -90,7 +90,7 @@ class AutonomousRunRequest(BaseModel):
     duration_hint_s: Optional[int] = Field(None, ge=4, le=1800)
     aspect_ratio: Optional[str] = Field(None, description="Optional UI output frame override: 9:16 / 16:9 / 1:1")
     user_model: str = Field("auto", description="auto / seedance_2_0 / seedance_2_0_fast / wan_2_7")
-    use_vision_llm_for_tagging: bool = True
+    use_vision_llm_for_tagging: bool = False
 
 
 class AutonomousDirectorResult(BaseModel):

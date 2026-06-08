@@ -10,6 +10,8 @@ from loguru import logger
 import tempfile
 from pathlib import Path
 
+from api.routes.paid_guard import raise_missing_vendor_env
+
 router = APIRouter()
 
 
@@ -21,7 +23,10 @@ async def upload_media(file: UploadFile = File(...)):
     """
     from vendors.atlascloud import atlas_client
     if atlas_client is None:
-        raise HTTPException(500, detail="ATLASCLOUD_API_KEY chưa set")
+        raise_missing_vendor_env(
+            ["ATLASCLOUD_API_KEY"],
+            "Media upload requires ATLASCLOUD_API_KEY. No AtlasCloud upload call was made.",
+        )
 
     # Validate file type — AtlasCloud doc accepts image/video/audio
     if file.content_type and not file.content_type.startswith(("image/", "video/", "audio/")):

@@ -117,6 +117,31 @@ interface DryRunSummary {
   blockers: string[];
 }
 
+interface ReferenceInsightSummary {
+  assetId: string;
+  kind: string;
+  tag?: string;
+  role: string;
+  readiness: string;
+  roleConfidence?: number;
+  roleLocked: boolean;
+  bestUse?: string;
+  warnings: string[];
+  missingConfirmations: string[];
+}
+
+interface ReferenceIntelligenceSummary {
+  status: string;
+  assetCount: number;
+  imageCount: number;
+  videoCount: number;
+  audioCount: number;
+  missingRequiredRoles: string[];
+  warnings: string[];
+  blockers: string[];
+  insights: ReferenceInsightSummary[];
+}
+
 function costRange(spend?: RenderReviewSpend | null) {
   if (!spend) return 'Pending';
   return `$${(spend.lowUsd ?? 0).toFixed(2)} - $${(spend.highUsd ?? 0).toFixed(2)}`;
@@ -151,6 +176,7 @@ export function RenderReviewPanel({
 }: RenderReviewPanelProps) {
   const hardBlockers = blockers.filter((blocker) => blocker.severity !== 'soft' && blocker.severity !== 'warning');
   const dryRunSummary = summarizeDryRunReport(dryRunReport);
+  const referenceSummary = summarizeReferenceIntelligence(dryRunReport);
   const longformSegments = longformPlan?.segments ?? [];
   const approvedSegmentCount = longformSegments.filter((segment, index) => (
     approvedSegmentIds.includes(segment.segment_id || `segment-${index + 1}`)
@@ -166,7 +192,7 @@ export function RenderReviewPanel({
     consistencyComplete,
     hardBlockerCount: hardBlockers.length,
   });
-  const approveLabel = approved ? 'Dry-run locked' : longformSegments.length > 0 ? 'Refresh dry-run' : 'Run dry-run & lock';
+  const approveLabel = approved ? 'Dry-run locked' : longformSegments.length > 0 ? 'Refresh dry-run' : 'Approve plan';
   const renderLabel = loading ? 'Rendering video' : planning ? 'Planning' : renderSourceReady ? 'Generate full video' : 'Run dry-run first';
 
   return (
@@ -223,6 +249,8 @@ export function RenderReviewPanel({
             renderSourceReady={renderSourceReady}
           />
         )}
+
+        {referenceSummary && <ReferenceIntelligencePanel summary={referenceSummary} />}
 
         {longformSegments.length > 0 && (
           <LongformReviewFlow
@@ -370,6 +398,97 @@ function DryRunReadinessPanel({
               {item.replace(/_/g, ' ')}
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReferenceIntelligencePanel({ summary }: { summary: ReferenceIntelligenceSummary }) {
+  const blocked = summary.status === 'blocked' || summary.blockers.length > 0;
+  const needsReview = summary.status === 'needs_review' || summary.missingRequiredRoles.length > 0 || summary.warnings.length > 0;
+  const tone = blocked || needsReview ? 'orange' : 'cyan';
+  const visibleIssues = [...summary.blockers, ...summary.warnings].slice(0, 4);
+  return (
+    <div className="rounded-card border border-hairline bg-surface-2 p-3">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <ShieldCheck size={15} className={tone === 'cyan' ? 'text-accent-cyan' : 'text-accent-orange'} />
+          <div>
+            <div className="text-[10px] font-bold uppercase text-text-subtle">Reference readiness</div>
+            <div className="mt-0.5 text-xs font-semibold text-text">{formatLabel(summary.status)}</div>
+          </div>
+        </div>
+        <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${
+          tone === 'cyan'
+            ? 'border-accent-cyan/25 bg-accent-cyan/10 text-accent-cyan'
+            : 'border-accent-orange/25 bg-accent-orange/10 text-accent-orange'
+        }`}>
+          {blocked ? 'blocked' : needsReview ? 'needs review' : 'ready'}
+        </span>
+      </div>
+      <div className="grid gap-2 md:grid-cols-4">
+        <InfoPill label="Assets" value={`${summary.assetCount}`} />
+        <InfoPill label="Images" value={`${summary.imageCount}`} />
+        <InfoPill label="Video" value={`${summary.videoCount}`} />
+        <InfoPill label="Audio" value={`${summary.audioCount}`} />
+      </div>
+      {summary.missingRequiredRoles.length > 0 && (
+        <div className="mt-2 text-[11px] leading-relaxed text-accent-orange">
+          Missing: {summary.missingRequiredRoles.map(formatLabel).join(', ')}
+        </div>
+      )}
+      {visibleIssues.length > 0 && (
+        <div className="mt-2 grid gap-1">
+          {visibleIssues.map((item, index) => (
+            <div key={`${item}-${index}`} className="text-[11px] leading-relaxed text-text-muted">
+              {formatLabel(item)}
+            </div>
+          ))}
+        </div>
+      )}
+      {summary.insights.length > 0 && (
+        <div className="mt-3 divide-y divide-hairline border-y border-hairline">
+          {summary.insights.slice(0, 5).map((insight) => {
+            const insightBlocked = insight.readiness === 'blocked';
+            const insightWarn = insight.readiness === 'needs_review' || insight.warnings.length > 0 || insight.missingConfirmations.length > 0;
+            return (
+              <div key={insight.assetId} className="grid gap-2 py-2 md:grid-cols-[minmax(0,1fr)_140px]">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-text">
+                    <span>{insight.tag || insight.assetId}</span>
+                    <span className="text-text-subtle">{formatLabel(insight.kind)}</span>
+                    <span className="text-text-subtle">{formatLabel(insight.role)}</span>
+                  </div>
+                  {insight.bestUse && (
+                    <div className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-text-muted">{insight.bestUse}</div>
+                  )}
+                  {[...insight.warnings, ...insight.missingConfirmations].length > 0 && (
+                    <div className="mt-1 text-[11px] leading-relaxed text-text-muted">
+                      {[...insight.warnings, ...insight.missingConfirmations].slice(0, 3).map(formatLabel).join(', ')}
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center justify-start gap-1 md:justify-end">
+                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                    insightBlocked || insightWarn
+                      ? 'border-accent-orange/25 text-accent-orange'
+                      : 'border-accent-cyan/25 text-accent-cyan'
+                  }`}>
+                    {formatLabel(insight.readiness)}
+                  </span>
+                  <span className="rounded-full border border-hairline px-2 py-0.5 text-[10px] text-text-muted">
+                    {insight.roleLocked ? 'locked' : 'unconfirmed'}
+                  </span>
+                  {insight.roleConfidence !== undefined && (
+                    <span className="rounded-full border border-hairline px-2 py-0.5 text-[10px] text-text-muted">
+                      {Math.round(insight.roleConfidence * 100)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -665,9 +784,43 @@ function summarizeDryRunReport(report?: Record<string, unknown> | null): DryRunS
   };
 }
 
+function summarizeReferenceIntelligence(report?: Record<string, unknown> | null): ReferenceIntelligenceSummary | null {
+  const reference = getRecord(report, 'reference_intelligence');
+  if (!reference) return null;
+  const insights = getRecordList(reference, 'insights').map((item): ReferenceInsightSummary => ({
+    assetId: getString(item, 'asset_id') || 'reference',
+    kind: getString(item, 'kind') || 'asset',
+    tag: getString(item, 'tag'),
+    role: getString(item, 'role') || 'unknown',
+    readiness: getString(item, 'readiness') || 'needs_review',
+    roleConfidence: getNumber(item, 'role_confidence'),
+    roleLocked: Boolean(item.role_locked),
+    bestUse: getString(item, 'best_use'),
+    warnings: getStringList(item, 'warnings'),
+    missingConfirmations: getStringList(item, 'missing_confirmations'),
+  }));
+  return {
+    status: getString(reference, 'status') || 'needs_review',
+    assetCount: getNumber(reference, 'asset_count') ?? insights.length,
+    imageCount: getNumber(reference, 'image_count') ?? 0,
+    videoCount: getNumber(reference, 'video_count') ?? 0,
+    audioCount: getNumber(reference, 'audio_count') ?? 0,
+    missingRequiredRoles: getStringList(reference, 'missing_required_roles'),
+    warnings: getStringList(reference, 'warnings'),
+    blockers: getStringList(reference, 'blockers'),
+    insights,
+  };
+}
+
 function getRecord(record: Record<string, unknown> | null | undefined, key: string): Record<string, unknown> | undefined {
   const value = record?.[key];
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
+}
+
+function getRecordList(record: Record<string, unknown> | null | undefined, key: string): Record<string, unknown>[] {
+  const value = record?.[key];
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item));
 }
 
 function getString(record: Record<string, unknown> | null | undefined, key: string): string | undefined {
@@ -705,4 +858,8 @@ function formatDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatLabel(value: string): string {
+  return value.replace(/[:.]/g, ' ').replace(/_/g, ' ').replace(/\s+/g, ' ').trim() || value;
 }
