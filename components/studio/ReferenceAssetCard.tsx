@@ -68,6 +68,8 @@ export function ReferenceAssetCard({
   const warnings = intelligence?.warnings ?? [];
   const missingConfirmations = intelligence?.missingConfirmations ?? [];
   const blockers = intelligence?.blockers ?? [];
+  const detectedSignals = intelligence ? Object.keys(intelligence.detectedSignals) : [];
+  const unavailableSignals = intelligence?.unavailableSignals ?? [];
 
   return (
     <article className="rounded-card border border-hairline bg-surface-2 p-3">
@@ -142,6 +144,21 @@ export function ReferenceAssetCard({
             {intelligence?.bestUse && (
               <span className="rounded-full border border-hairline bg-surface-3 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-subtle">
                 {t(language, 'bestUse')}: {intelligence.bestUse.slice(0, 80)}
+              </span>
+            )}
+            {intelligence?.evidenceStatus && (
+              <span className="rounded-full border border-hairline bg-surface-3 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-subtle">
+                evidence {intelligence.evidenceStatus}
+              </span>
+            )}
+            {detectedSignals.length > 0 && (
+              <span className="rounded-full border border-accent-cyan/25 bg-accent-cyan/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-accent-cyan">
+                {detectedSignals.length} detected
+              </span>
+            )}
+            {unavailableSignals.length > 0 && (
+              <span className="rounded-full border border-accent-orange/25 bg-accent-orange/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-accent-orange">
+                {unavailableSignals.length} unavailable
               </span>
             )}
           </div>

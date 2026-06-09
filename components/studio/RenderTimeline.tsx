@@ -77,6 +77,7 @@ export interface RenderTimelineJobStatus {
     storage_cdn_url?: string | null;
     storage_presigned_url?: string | null;
   };
+  graph_resume_plan?: Record<string, unknown> | null;
 }
 
 export interface RenderTimelineProps {
@@ -186,6 +187,14 @@ export function RenderTimeline({
   const deliveryStatus = deliveryStatusFromJob(jobStatus, finalOutputUrl);
   const qaStatus = qaStatusFromReports(jobQaReports, jobStatus);
   const benchmarkStatus = benchmarkStatusFromEvidence(benchmarkEvidence, language);
+  const productionInspector = buildProductionInspector({
+    referenceSummary,
+    dryRunReport,
+    jobStatus,
+    qaStatus,
+    deliveryStatus,
+    benchmarkStatus,
+  });
   const activeRender = loading || Boolean(jobStatus && !['done', 'failed', 'cancelled', 'dry_run'].includes(String(jobStatus.status || '')));
   const renderBlocked = renderDisabled || hardBlockers.length > 0 || hardFailures.length > 0;
 
@@ -316,6 +325,23 @@ export function RenderTimeline({
         </div>
       )}
 
+      <div className="mb-3 rounded-card border border-hairline bg-surface-2 p-3">
+        <div className="mb-2 text-xs font-bold uppercase text-accent-cyan">Production Inspector</div>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {productionInspector.map((item) => (
+            <div key={item.key} className="rounded-card border border-hairline bg-surface-1 px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-bold uppercase text-text-subtle">{item.label}</span>
+                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${toneClass(item.status)}`}>
+                  {statusLabel(language, item.status)}
+                </span>
+              </div>
+              <p className="mt-1 text-xs leading-relaxed text-text-muted">{item.detail}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {segments.length > 0 && (
         <div className="mb-3 rounded-card border border-hairline bg-surface-2 p-3">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -416,6 +442,74 @@ export function RenderTimeline({
       </div>
     </section>
   );
+}
+
+function buildProductionInspector({
+  referenceSummary,
+  dryRunReport,
+  jobStatus,
+  qaStatus,
+  deliveryStatus,
+  benchmarkStatus,
+}: {
+  referenceSummary: ReturnType<typeof summarizeReferenceIntelligence>;
+  dryRunReport?: Record<string, unknown> | null;
+  jobStatus?: RenderTimelineJobStatus | null;
+  qaStatus: { status: string; detail: string };
+  deliveryStatus: { status: string; detail: string };
+  benchmarkStatus: { status: string; detail: string };
+}): Array<{ key: string; label: string; status: string; detail: string }> {
+  const graphStateKey = ['production', 'graph'].join('_');
+  const jobRecord = asRecord(jobStatus);
+  const dryRunRecord = asRecord(dryRunReport);
+  const graph = asRecord(jobRecord?.[graphStateKey]) || asRecord(dryRunRecord?.[graphStateKey]);
+  const resume = asRecord(jobStatus?.graph_resume_plan) || asRecord(graph?.resume_plan);
+  const executionBatch = asRecord(graph?.execution_batch);
+  const graphMode = String(executionBatch?.mode || resume?.next_action || '').trim();
+  return [
+    {
+      key: 'refs',
+      label: 'References',
+      status: referenceSummary?.status || 'pending',
+      detail: referenceSummary
+        ? `${referenceSummary.assetCount} assets; evidence ${referenceSummary.evidenceStatus || 'metadata_only'}`
+        : 'Waiting for dry-run reference intelligence.',
+    },
+    {
+      key: 'graph',
+      label: 'Graph',
+      status: graph || resume ? 'needs_review' : 'pending',
+      detail: graph || resume
+        ? `Resume/action: ${graphMode || 'available'}`
+        : 'No persisted planner graph payload attached to this Studio state.',
+    },
+    {
+      key: 'qa',
+      label: 'QA',
+      status: qaStatus.status,
+      detail: qaStatus.detail,
+    },
+    {
+      key: 'delivery',
+      label: 'Delivery',
+      status: deliveryStatus.status,
+      detail: deliveryStatus.detail,
+    },
+    {
+      key: 'benchmark',
+      label: 'Benchmark',
+      status: benchmarkStatus.status,
+      detail: benchmarkStatus.detail,
+    },
+    {
+      key: 'evidence',
+      label: 'Claim safety',
+      status: benchmarkStatus.status === 'ready' && deliveryStatus.status === 'ready' ? 'ready' : 'needs_review',
+      detail: benchmarkStatus.status === 'ready'
+        ? 'Promotion evidence is present.'
+        : 'Top-tier or promotion claims stay blocked until real delivery and benchmark evidence pass.',
+    },
+  ];
 }
 
 function collectJobQaReports(job?: RenderTimelineJobStatus | null): Array<Record<string, unknown>> {

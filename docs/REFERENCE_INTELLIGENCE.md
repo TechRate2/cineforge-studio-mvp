@@ -6,9 +6,14 @@ Reference Intelligence helps CineForge Studio understand whether uploaded assets
 
 ## Current version
 
-Reference Intelligence V1 is metadata-based. It uses only supplied asset fields such as kind, URL, tag, role, role confidence, role locked state, name, notes, and metadata.
+Reference Intelligence V2 is evidence-aware and still production-safe by
+default. It uses supplied asset fields such as kind, URL, tag, role, role
+confidence, role locked state, name, notes, metadata, and `AssetRef.evidence`.
+It also records URL/MIME hints and user-confirmed role signals.
 
-V1 does not claim pixel or audio understanding. Pixel, OCR, logo, face, product, video-motion, and audio analysis belong to a future V2 analyzer.
+V2 does not invent pixel or audio understanding. When OCR, logo, face, product,
+video-motion, duration, loudness, speech, or music signals are not computed, the
+report lists them under `unavailable_signals`.
 
 The normal Studio dry-run and render path must keep vision role tagging disabled by default. Vision LLM role suggestions are an explicit opt-in path for Deep Analyze only; they can suggest roles for review, but they do not make Reference Intelligence V1 a real image/audio analyzer.
 
@@ -20,6 +25,7 @@ Important source file:
 
 Main models:
 
+- `ReferenceEvidence`
 - `ReferenceAssetInsight`
 - `ReferenceIntelligenceReport`
 - `ReferenceIntelligenceService`
@@ -27,6 +33,7 @@ Main models:
 Report fields include:
 
 - status: ready, needs_review, blocked;
+- evidence_status: unavailable, metadata_only, partial, computed;
 - asset_count;
 - image_count;
 - video_count;
@@ -36,8 +43,16 @@ Report fields include:
 - missing_required_roles;
 - warnings;
 - blockers;
+- evidence_summary;
 - reference_sufficiency;
 - rules_applied.
+
+Each asset insight includes:
+
+- `evidence.detected_signals`;
+- `evidence.user_confirmed_signals`;
+- `evidence.unavailable_signals`;
+- `evidence.sources`.
 
 ## Readiness behavior
 
@@ -94,9 +109,10 @@ Before dry-run, the UI can show local upload and role-confirmation state only.
 It must not claim Reference Intelligence has passed until
 `RenderDryRunReport.reference_intelligence` exists.
 
-## V2 roadmap
+## Analyzer roadmap
 
-Reference Intelligence V2 should add real analyzers:
+The current V2 contract can accept real analyzer results through
+`AssetRef.evidence`. The next analyzer adapters should populate:
 
 - image analyzer for face, product, logo, label, style, and asset quality;
 - video analyzer for duration, camera motion, pacing, blur, and handoff frames;
@@ -105,6 +121,10 @@ Reference Intelligence V2 should add real analyzers:
 - quality score based on computed evidence.
 
 Computed evidence must be real and traceable. If a signal is not computed, report it as unavailable.
+
+Readiness and evidence status are separate. A user-confirmed reference can be
+render-ready while analyzer evidence is still `metadata_only`; benchmark and
+top-tier claims must still account for unavailable evidence.
 
 ## Tests
 

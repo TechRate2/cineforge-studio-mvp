@@ -40,6 +40,9 @@ class ProductionGraph:
     nodes: list[ProductionNode]
     edges: list[ProductionEdge]
     retry_policy: dict[str, Any]
+    role_stages: list[dict[str, Any]]
+    approval_policy: dict[str, Any]
+    evidence_policy: dict[str, Any]
 
     def model_dump(self) -> dict[str, Any]:
         return {
@@ -49,12 +52,16 @@ class ProductionGraph:
             "nodes": [n.model_dump() for n in self.nodes],
             "edges": [e.model_dump() for e in self.edges],
             "retry_policy": self.retry_policy,
+            "role_stages": self.role_stages,
+            "approval_policy": self.approval_policy,
+            "evidence_policy": self.evidence_policy,
             "summary": {
                 "node_count": len(self.nodes),
                 "edge_count": len(self.edges),
                 "shot_count": len([n for n in self.nodes if n.kind == "shot"]),
                 "chunk_count": len([n for n in self.nodes if n.kind == "chunk"]),
                 "scene_count": len([n for n in self.nodes if n.kind == "scene"]),
+                "role_stage_count": len([n for n in self.nodes if n.kind == "role_stage"]),
             },
         }
 
@@ -75,6 +82,9 @@ def build_production_graph(
     nodes: list[ProductionNode] = []
     edges: list[ProductionEdge] = []
 
+    role_stages = _role_stage_contract()
+    _role_stage_nodes(nodes, edges, role_stages)
+
     nodes.append(ProductionNode(
         id="screenplay",
         kind="screenplay",
@@ -84,6 +94,7 @@ def build_production_graph(
             "act_structure": runtime_structure.get("act_structure") or [],
         },
     ))
+    edges.append(ProductionEdge("role_screenwriter", "screenplay", "owns_contract"))
 
     scene_ids = _scene_nodes(nodes, edges, runtime_structure, scene_memory_pack=scene_memory_pack)
     chunk_ids = _chunk_nodes(nodes, edges, runtime_structure, duration_s, scene_ids, scene_memory_pack=scene_memory_pack)
@@ -109,6 +120,8 @@ def build_production_graph(
     for node in nodes:
         if node.kind == "qa":
             edges.append(ProductionEdge(node.id, "assembly_final", "gates"))
+    edges.append(ProductionEdge("role_editor_delivery", "assembly_final", "owns_contract"))
+    edges.append(ProductionEdge("assembly_final", "role_benchmark_analyst", "feeds_evidence"))
 
     return ProductionGraph(
         graph_id=graph_id,
@@ -129,7 +142,121 @@ def build_production_graph(
                 "prompt adherence failure",
             ],
         },
+        role_stages=role_stages,
+        approval_policy={
+            "schema_version": "cinejelly.production_graph_approval.v2",
+            "paid_render_requires": [
+                "approval_lock_verified",
+                "approved_reference_manifest",
+                "confirmed_reference_roles",
+                "cost_gate_passed",
+                "deliverable_url_required",
+            ],
+            "long_form_requires": [
+                "persisted_graph_record",
+                "resume_plan",
+                "segment_or_shot_level_approval",
+                "benchmark_gate_for_5_to_10_minutes",
+            ],
+        },
+        evidence_policy={
+            "schema_version": "cinejelly.production_graph_evidence.v2",
+            "principle": "Evidence beats claims; missing evidence stays pending or needs_review.",
+            "required_for_promotion": [
+                "real_output_url",
+                "clean_final_delivery_qa",
+                "reference_manifest",
+                "qa_checkpoint_report",
+                "cost_usd",
+                "latency_s",
+                "human_or_model_review_notes",
+            ],
+        },
     )
+
+
+def _role_stage_contract() -> list[dict[str, Any]]:
+    return [
+        {
+            "id": "role_intake_producer",
+            "label": "Intake Producer",
+            "owns": ["input_contract", "duration_policy", "market_platform_intent"],
+        },
+        {
+            "id": "role_research_strategist",
+            "label": "Research Strategist",
+            "owns": ["niche_playbook", "competitive_patterns", "treatment_selection"],
+        },
+        {
+            "id": "role_screenwriter",
+            "label": "Screenwriter",
+            "owns": ["screenplay", "acts", "scene_scripts", "dialogue_policy"],
+        },
+        {
+            "id": "role_asset_librarian",
+            "label": "Asset Librarian",
+            "owns": ["reference_manifest", "asset_bible", "user_confirmed_roles"],
+        },
+        {
+            "id": "role_storyboard_director",
+            "label": "Storyboard Director",
+            "owns": ["scene_blueprints", "shot_list", "visual_beats"],
+        },
+        {
+            "id": "role_prompt_compiler",
+            "label": "Prompt Compiler",
+            "owns": ["seedance_prompt_formula", "reference_jobs", "negative_prompt"],
+        },
+        {
+            "id": "role_render_producer",
+            "label": "Render Producer",
+            "owns": ["cost_gate", "approval_lock", "render_execution_plan"],
+        },
+        {
+            "id": "role_continuity_supervisor",
+            "label": "Continuity Supervisor",
+            "owns": ["scene_memory", "last_frame_handoff", "downstream_invalidation"],
+        },
+        {
+            "id": "role_critic_qa",
+            "label": "Critic QA",
+            "owns": ["deterministic_qa", "model_backed_qa", "repair_policy"],
+        },
+        {
+            "id": "role_editor_delivery",
+            "label": "Editor Delivery",
+            "owns": ["assembly", "delivery_url", "final_delivery_qa"],
+        },
+        {
+            "id": "role_benchmark_analyst",
+            "label": "Benchmark Analyst",
+            "owns": ["benchmark_evidence_pack", "promotion_readiness", "feedback_integrity"],
+        },
+    ]
+
+
+def _role_stage_nodes(
+    nodes: list[ProductionNode],
+    edges: list[ProductionEdge],
+    role_stages: list[dict[str, Any]],
+) -> None:
+    previous: str | None = None
+    for index, stage in enumerate(role_stages):
+        node_id = str(stage["id"])
+        nodes.append(ProductionNode(
+            id=node_id,
+            kind="role_stage",
+            status="planned",
+            payload={
+                "index": index,
+                "label": stage["label"],
+                "owns": stage["owns"],
+                "execution_rule": "role nodes describe accountability only; shot/qa/assembly nodes remain the executable units",
+            },
+        ))
+        if previous:
+            edges.append(ProductionEdge(previous, node_id, "hands_off_to"))
+        previous = node_id
 
 
 def _scene_nodes(
@@ -184,6 +311,7 @@ def _scene_nodes(
             },
         ))
         edges.append(ProductionEdge("screenplay", node_id, "expands_to"))
+        edges.append(ProductionEdge("role_storyboard_director", node_id, "owns_contract"))
     return scene_ids
 
 
@@ -225,6 +353,7 @@ def _chunk_nodes(
             edges.append(ProductionEdge(scene_ids[scene_idx], node_id, "scheduled_as"))
         else:
             edges.append(ProductionEdge("screenplay", node_id, "scheduled_as"))
+        edges.append(ProductionEdge("role_render_producer", node_id, "owns_schedule"))
     return chunk_ids
 
 
@@ -271,9 +400,18 @@ def _shot_nodes(
                     "one_action_rule": "one physically filmable action per Seedance unit",
                     "resume_rule": "rerender this shot with the same prompt formula, reference contract, and previous-frame anchor unless the graph explicitly changes upstream memory",
                 },
+                "approval_evidence": {
+                    "requires_approval_lock": True,
+                    "requires_confirmed_reference_manifest": True,
+                    "requires_cost_gate": True,
+                    "missing_evidence_policy": "pending_or_needs_review_never_pass",
+                },
             },
         ))
         edges.append(ProductionEdge(chunk_id, node_id, "contains"))
+        edges.append(ProductionEdge("role_prompt_compiler", node_id, "owns_prompt_contract"))
+        edges.append(ProductionEdge("role_asset_librarian", node_id, "owns_reference_contract"))
+        edges.append(ProductionEdge("role_continuity_supervisor", node_id, "owns_handoff_policy"))
         qa_id = f"qa_{shot_id}"
         nodes.append(ProductionNode(
             id=qa_id,
@@ -293,6 +431,7 @@ def _shot_nodes(
             },
         ))
         edges.append(ProductionEdge(node_id, qa_id, "must_pass"))
+        edges.append(ProductionEdge("role_critic_qa", qa_id, "owns_contract"))
 
 
 def _chunk_bridge_policy(

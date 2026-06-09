@@ -22,6 +22,9 @@ CineForge Studio is an autonomous video production system. It takes a user idea,
 14. Benchmark evidence.
 15. Studio UI review.
 
+For the locked source map, role-stage graph, evidence policy, and duration
+claim rules, see `docs/CINEJELLY_SOURCE_MAP.md`.
+
 ## Core backend files
 
 - `backend/agent/creative_treatment_search.py`
@@ -116,16 +119,16 @@ Paid smoke scripts require explicit `--paid`. Missing env returns
 ## Next priorities
 
 1. Run full validation and real smoke with production keys.
-2. Add multimodal Reference Intelligence V2.
+2. Populate Reference Intelligence V2 with real analyzer adapters.
 3. Add Asset Library and Production Bible.
-4. Add Long-form Graph Executor V2.
+4. Promote Long-form Graph Executor V2 only after paid graph benchmarks.
 5. Add commercial readiness tools.
 
 ## Future design notes
 
-Reference Intelligence V2 should add real image, video, audio, OCR/logo,
-product, face, and style analyzers. Until those analyzers exist, the system must
-continue to describe Reference Intelligence as metadata-based only.
+Reference Intelligence V2 has an evidence contract for image, video, audio,
+OCR/logo, product, face, and style signals. Until a signal is actually computed
+or imported through `AssetRef.evidence`, the system must list it as unavailable.
 
 Asset Library / Production Bible should store characters, products, brands,
 locations, voices, style packs, and consent metadata. Long-form Graph Executor

@@ -16,10 +16,15 @@ export interface ReferenceInsightSummary {
   warnings: string[];
   missingConfirmations: string[];
   blockers: string[];
+  evidenceStatus?: string;
+  detectedSignals: Record<string, unknown>;
+  userConfirmedSignals: Record<string, unknown>;
+  unavailableSignals: string[];
 }
 
 export interface ReferenceIntelligenceSummary {
   status: string;
+  evidenceStatus?: string;
   assetCount: number;
   imageCount: number;
   videoCount: number;
@@ -27,6 +32,7 @@ export interface ReferenceIntelligenceSummary {
   missingRequiredRoles: string[];
   warnings: string[];
   blockers: string[];
+  evidenceSummary?: Record<string, unknown>;
   insights: ReferenceInsightSummary[];
 }
 
@@ -47,6 +53,10 @@ function stringList(value: unknown): string[] {
 
 function numberValue(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function objectValue(value: unknown): Record<string, unknown> {
+  return asRecord(value) ?? {};
 }
 
 function toneClass(status?: string) {
@@ -71,6 +81,7 @@ export function summarizeReferenceIntelligence(report?: Record<string, unknown> 
   const insights = Array.isArray(reference.insights) ? reference.insights : [];
   return {
     status: String(reference.status || 'needs_review'),
+    evidenceStatus: typeof reference.evidence_status === 'string' ? reference.evidence_status : undefined,
     assetCount: numberValue(reference.asset_count) ?? insights.length,
     imageCount: numberValue(reference.image_count) ?? 0,
     videoCount: numberValue(reference.video_count) ?? 0,
@@ -78,8 +89,10 @@ export function summarizeReferenceIntelligence(report?: Record<string, unknown> 
     missingRequiredRoles: stringList(reference.missing_required_roles),
     warnings: stringList(reference.warnings),
     blockers,
+    evidenceSummary: objectValue(reference.evidence_summary),
     insights: insights.map((item) => {
       const insight = asRecord(item) ?? {};
+      const evidence = objectValue(insight.evidence);
       const assetId = String(insight.asset_id || '');
       return {
         assetId,
@@ -93,6 +106,10 @@ export function summarizeReferenceIntelligence(report?: Record<string, unknown> 
         warnings: stringList(insight.warnings),
         missingConfirmations: stringList(insight.missing_confirmations),
         blockers: blockers.filter((blocker) => blocker.includes(assetId)),
+        evidenceStatus: typeof evidence.evidence_status === 'string' ? evidence.evidence_status : undefined,
+        detectedSignals: objectValue(evidence.detected_signals),
+        userConfirmedSignals: objectValue(evidence.user_confirmed_signals),
+        unavailableSignals: stringList(evidence.unavailable_signals),
       };
     }),
   };
@@ -121,6 +138,15 @@ export function ReferenceIntelligencePanel({ summary, language = 'vi', compact =
         <Metric label="Audio" value={summary.audioCount} />
       </div>
 
+      <div className="mt-2 grid gap-2 sm:grid-cols-3">
+        <Metric label="Detected" value={countEvidenceSignals(summary, 'detected_signal_count')} />
+        <Metric label="Confirmed" value={countEvidenceSignals(summary, 'user_confirmed_signal_count')} />
+        <div className={`rounded-card border px-2 py-2 text-center ${toneClass(summary.evidenceStatus || 'needs_review')}`}>
+          <div className="text-[11px] font-extrabold uppercase">{summary.evidenceStatus || 'metadata_only'}</div>
+          <div className="mt-0.5 text-[10px] font-semibold uppercase">Evidence</div>
+        </div>
+      </div>
+
       {(summary.missingRequiredRoles.length > 0 || summary.blockers.length > 0 || summary.warnings.length > 0) && (
         <div className="mt-3 grid gap-2">
           {summary.missingRequiredRoles.length > 0 && (
@@ -146,6 +172,11 @@ export function ReferenceIntelligencePanel({ summary, language = 'vi', compact =
                 </span>
                 <span className="text-xs font-bold text-text">{insight.tag || insight.assetId || insight.kind}</span>
                 <span className="text-xs text-text-muted">{insight.role.replace(/_/g, ' ')}</span>
+                {insight.evidenceStatus && (
+                  <span className="rounded-full border border-hairline bg-surface-3 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-subtle">
+                    {insight.evidenceStatus}
+                  </span>
+                )}
                 {typeof insight.roleConfidence === 'number' && (
                   <span className="text-[10px] font-semibold uppercase text-text-subtle">
                     {Math.round(insight.roleConfidence * 100)}%
@@ -164,11 +195,47 @@ export function ReferenceIntelligencePanel({ summary, language = 'vi', compact =
                   ))}
                 </div>
               )}
+              {!compact && <EvidenceSignals insight={insight} />}
             </article>
           ))}
         </div>
       )}
     </section>
+  );
+}
+
+function countEvidenceSignals(summary: ReferenceIntelligenceSummary, key: string): number {
+  const value = summary.evidenceSummary?.[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function EvidenceSignals({ insight }: { insight: ReferenceInsightSummary }) {
+  const detected = Object.keys(insight.detectedSignals);
+  const confirmed = Object.keys(insight.userConfirmedSignals);
+  const unavailable = insight.unavailableSignals;
+  if (detected.length === 0 && confirmed.length === 0 && unavailable.length === 0) return null;
+  return (
+    <div className="mt-2 grid gap-1.5">
+      {detected.length > 0 && <SignalRow label="Detected" items={detected.slice(0, 5)} tone="ready" />}
+      {confirmed.length > 0 && <SignalRow label="User confirmed" items={confirmed.slice(0, 5)} tone="ready" />}
+      {unavailable.length > 0 && <SignalRow label="Unavailable" items={unavailable.slice(0, 6)} tone="review" />}
+    </div>
+  );
+}
+
+function SignalRow({ label, items, tone }: { label: string; items: string[]; tone: 'ready' | 'review' }) {
+  const cls = tone === 'ready'
+    ? 'border-accent-cyan/25 bg-accent-cyan/10 text-accent-cyan'
+    : 'border-accent-orange/25 bg-accent-orange/10 text-accent-orange';
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-[10px] font-bold uppercase text-text-subtle">{label}</span>
+      {items.map((item) => (
+        <span key={`${label}-${item}`} className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${cls}`}>
+          {item.replace(/_/g, ' ')}
+        </span>
+      ))}
+    </div>
   );
 }
 

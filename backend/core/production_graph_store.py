@@ -276,6 +276,8 @@ def build_resume_plan(graph_record: dict[str, Any]) -> dict[str, Any]:
             "preserve": ["screenplay", "production_bible", "reference_roles", "completed_shots"],
             "rerender": "failed or pending shot nodes only; rerender downstream chained shots when their previous_shot_id anchor changes",
         },
+        "evidence_policy": ((graph_record.get("graph") or {}).get("evidence_policy") or {}),
+        "approval_policy": ((graph_record.get("graph") or {}).get("approval_policy") or {}),
     }
 
 
@@ -776,7 +778,19 @@ def _task_for_shot(
         "blocked_by": blocked_by,
         "payload": {
             key: payload.get(key)
-            for key in ("shot_id", "purpose", "start_s", "end_s", "duration_s", "previous_shot_id")
+            for key in (
+                "shot_id",
+                "purpose",
+                "start_s",
+                "end_s",
+                "duration_s",
+                "previous_shot_id",
+                "scene_memory",
+                "prompt_formula",
+                "reference_contract",
+                "render_contract",
+                "approval_evidence",
+            )
             if key in payload
         },
     }
@@ -866,6 +880,7 @@ def _node_summary(node: dict[str, Any]) -> dict[str, Any]:
                 "render_mode",
                 "quality_status",
                 "retry_error",
+                "approval_evidence",
             )
             if key in payload
         },

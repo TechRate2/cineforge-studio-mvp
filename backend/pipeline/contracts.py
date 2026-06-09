@@ -111,6 +111,14 @@ class AssetRef(PipelineContract):
         "user_upload",
         description="Where this asset came from: user_upload, pinned_asset, generated, imported, etc.",
     )
+    evidence: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Computed or imported reference evidence such as dimensions, duration, "
+            "OCR/logo/person/product/audio signals, and analyzer provenance. "
+            "User role confirmation still lives in role_locked."
+        ),
+    )
 
 
 class InputContract(PipelineContract):
