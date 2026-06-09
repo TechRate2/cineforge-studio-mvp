@@ -8,15 +8,27 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def _python_executable() -> str:
+    candidates = [
+        ROOT / ".venv" / "Scripts" / "python.exe",
+        ROOT / ".venv" / "bin" / "python",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+    return sys.executable
+
+
 def _run(args: list[str]) -> int:
     print(f"\n[backend:test] {' '.join(args)}", flush=True)
     return subprocess.call(args, cwd=ROOT)
 
 
 def main() -> int:
+    python = _python_executable()
     steps = [
-        [sys.executable, "backend/scripts/test_agent.py"],
-        [sys.executable, "-m", "pytest", "-q", "backend/scripts/test_phase1_core.py"],
+        [python, "backend/scripts/test_agent.py"],
+        [python, "-m", "pytest", "-q", "backend/scripts/test_phase1_core.py"],
     ]
     for args in steps:
         code = _run(args)

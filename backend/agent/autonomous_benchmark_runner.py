@@ -13,7 +13,7 @@ from agent.benchmark_evidence_template import build_benchmark_evidence_template
 from core import autonomous_benchmark_store
 
 
-_ALLOWED_MODES = {"dry_run", "stub_evidence"}
+_ALLOWED_MODES = {"dry_run"}
 
 
 def run_autonomous_benchmark_batch(
@@ -26,10 +26,8 @@ def run_autonomous_benchmark_batch(
 ) -> dict[str, Any]:
     """Create benchmark evidence rows for selected cases.
 
-    `dry_run` stores planned rows with exact gates and inputs needed.
-    `stub_evidence` stores metadata-only needs_review rows for route/UI smoke
-    tests. Neither mode calls vendors, writes output URLs, writes cost/latency,
-    or claims quality.
+    `dry_run` stores planned rows with exact gates and inputs needed. It does
+    not call vendors, write output URLs, write cost/latency, or claim quality.
     """
     normalized_mode = (mode or "dry_run").strip().lower()
     if normalized_mode not in _ALLOWED_MODES:
@@ -55,7 +53,7 @@ def run_autonomous_benchmark_batch(
             target_market=str(case.get("target_market") or "auto"),
             runtime_class=str(case.get("runtime_class")),
             model_key=str(resolved_model),
-            status="planned" if normalized_mode == "dry_run" else "needs_review",
+            status="planned",
             output_url=None,
             cost_usd=None,
             latency_s=None,

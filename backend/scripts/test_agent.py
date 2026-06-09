@@ -1579,8 +1579,10 @@ def test_creative_treatment_is_injected_into_director_plan() -> None:
     _assert(meta["seedance_reference_allocation"]["fits_seedance_caps"] is True, "DirectorPlan allocation should fit caps")
     _assert(meta["scene_memory_pack"]["scene_count"] == 1, "DirectorPlan should persist a scene memory pack")
     _assert(meta["dynamic_keyframe_memory"]["schema_version"] == "cinejelly.dynamic_keyframe_memory.v1", "DirectorPlan should persist dynamic keyframe memory contract")
+    scene_nodes = [node for node in meta["production_graph"]["nodes"] if node.get("kind") == "scene"]
+    _assert(scene_nodes, "production graph should include scene nodes")
     _assert(
-        meta["production_graph"]["nodes"][1]["payload"]["scene_memory"]["scene_id"] == "SC01",
+        scene_nodes[0]["payload"]["scene_memory"]["scene_id"] == "SC01",
         "production graph scene nodes should carry scene memory",
     )
     must_have = " ".join(plan.continuity_bible.constraints.must_have)
@@ -3117,10 +3119,10 @@ def test_benchmark_promotion_policy_promotes_only_real_approved_outputs() -> Non
         "latency_s": 140.0,
     }
     locked = build_benchmark_promotion_policy(results=[
-        {**base, "id": "stub_1", "output_url": "stub://benchmark/education", "evidence": evidence_pack},
+        {**base, "id": "local_invalid_1", "output_url": "file:///tmp/benchmark/education.mp4", "evidence": evidence_pack},
         {**base, "id": "real_1", "output_url": "https://cdn.example.com/education-1.mp4"},
     ])
-    _assert(locked["summary"]["promoted_route_count"] == 0, "stub output must not count toward promotion")
+    _assert(locked["summary"]["promoted_route_count"] == 0, "local output must not count toward promotion")
     _assert("missing_required_evidence_pack" in locked["locked_routes"][0]["missing_reasons"], "real output without evidence pack must stay locked")
 
     promoted = build_benchmark_promotion_policy(results=[

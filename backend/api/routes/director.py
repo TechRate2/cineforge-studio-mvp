@@ -112,13 +112,6 @@ def _require_mutation_admin(x_admin_key: Optional[str]) -> None:
         raise HTTPException(403, "Unauthorized: set X-Admin-Key with ADMIN_API_KEY value")
 
 
-def _require_dev_metadata_stub(x_admin_key: Optional[str]) -> None:
-    """Metadata stubs are allowed only for local development smoke tests."""
-    if app_settings.app_env != "development":
-        raise HTTPException(403, "Metadata stubs are disabled outside development")
-    _require_mutation_admin(x_admin_key)
-
-
 def _require_paid_executor_admin(x_admin_key: Optional[str]) -> None:
     """Paid graph execution must never be enabled by an unauthenticated request."""
     expected = app_settings.admin_api_key if is_configured_secret(app_settings.admin_api_key) else ""
@@ -1523,7 +1516,7 @@ class BenchmarkRunRequest(BaseModel):
     case_ids: list[str] = Field(default_factory=list, max_length=50)
     niches: list[str] = Field(default_factory=list, max_length=50)
     model_key: Optional[str] = Field(None, max_length=120)
-    mode: str = Field("dry_run", description="dry_run|stub_evidence")
+    mode: str = Field("dry_run", description="dry_run")
     limit: int = Field(5, ge=1, le=100)
 
 
@@ -1623,10 +1616,6 @@ class GraphExecutorRunOnceRequest(BaseModel):
     limit: int = Field(1, ge=1, le=25)
     lease_ttl_s: int = Field(900, ge=30, le=7200)
     preview: bool = Field(True, description="Preview next executable batch without leasing or mutating graph state.")
-    allow_metadata_stub: bool = Field(
-        False,
-        description="Use non-vendor stub handlers for local smoke tests. Never produces real video.",
-    )
 
 
 class GraphExecutorLoopRequest(BaseModel):
@@ -1635,7 +1624,6 @@ class GraphExecutorLoopRequest(BaseModel):
     lease_ttl_s: int = Field(900, ge=30, le=7200)
     max_cycles: int = Field(100, ge=1, le=1000)
     run_background: bool = Field(True, description="Spawn the loop in the Director background task supervisor.")
-    allow_metadata_stub: bool = Field(False, description="Run non-vendor stub handlers for local smoke tests.")
     allow_paid_handlers: bool = Field(False, description="Trusted-only: use video_worker handlers that may call AtlasCloud.")
 
 
@@ -1759,8 +1747,6 @@ async def run_autonomous_benchmarks(
     from agent.autonomous_benchmark_runner import run_autonomous_benchmark_batch
 
     _require_mutation_admin(x_admin_key)
-    if (request.mode or "").strip().lower() == "stub_evidence":
-        _require_dev_metadata_stub(x_admin_key)
     try:
         return run_autonomous_benchmark_batch(
             case_ids=request.case_ids,
@@ -4223,31 +4209,22 @@ async def run_job_production_graph_executor_once(
 ):
     """Run one graph executor cycle.
 
-    Default `preview=true` is read-only. Real paid render execution must be
-    wired through internal worker handlers; the HTTP route exposes only preview
-    plus explicit metadata stubs for local non-vendor smoke tests.
+    Default `preview=true` is read-only. Real paid render execution is handled
+    by the run-loop endpoint with explicit paid-handler approval.
     """
-    from agent.production_graph_executor import (
-        metadata_stub_handlers,
-        run_graph_executor_once,
-    )
+    from agent.production_graph_executor import run_graph_executor_once
 
     if not request.preview:
-        if request.allow_metadata_stub:
-            _require_dev_metadata_stub(x_admin_key)
-        else:
-            _require_mutation_admin(x_admin_key)
-    if not request.preview and not request.allow_metadata_stub:
         raise HTTPException(
             400,
-            "HTTP graph executor cannot run paid render handlers. Use preview=true or allow_metadata_stub=true for local smoke tests.",
+            "HTTP run-once is preview-only. Use run-loop with allow_paid_handlers=true for trusted paid execution.",
         )
     result = await run_graph_executor_once(
         job_id=job_id,
         worker_id=request.worker_id,
         limit=request.limit,
         lease_ttl_s=request.lease_ttl_s,
-        handlers=metadata_stub_handlers() if request.allow_metadata_stub else None,
+        handlers=None,
         preview=request.preview,
     )
     if not result.get("ok") and result.get("reason") == "graph_not_found":
@@ -4263,33 +4240,24 @@ async def run_job_production_graph_executor_loop(
 ):
     """Run a graph executor loop until idle/noop/blocked.
 
-    By default this route refuses to run mutating work unless either
-    `allow_metadata_stub` or `allow_paid_handlers` is explicit. Paid handlers
-    reconstruct the persisted DirectorPlan artifact and may call AtlasCloud.
+    By default this route refuses to run mutating work unless
+    `allow_paid_handlers` is explicit. Paid handlers reconstruct the persisted
+    DirectorPlan artifact and may call AtlasCloud.
     """
-    from agent.production_graph_executor import (
-        metadata_stub_handlers,
-        run_graph_executor_until_idle,
-    )
+    from agent.production_graph_executor import run_graph_executor_until_idle
 
-    if request.allow_metadata_stub and request.allow_paid_handlers:
-        raise HTTPException(400, "choose either metadata stubs or paid handlers, not both")
-    if request.allow_metadata_stub:
-        _require_dev_metadata_stub(x_admin_key)
     if request.allow_paid_handlers:
         _require_paid_executor_admin(x_admin_key)
-    if not request.allow_metadata_stub and not request.allow_paid_handlers:
+    if not request.allow_paid_handlers:
         raise HTTPException(
             400,
-            "run-loop mutates graph state. Set allow_metadata_stub=true for local tests or allow_paid_handlers=true for trusted paid execution.",
+            "run-loop mutates graph state. Set allow_paid_handlers=true for trusted paid execution.",
         )
     graph = production_graph_store.load_graph(job_id)
     if not graph:
         raise HTTPException(404, f"production graph for job '{job_id}' not found")
 
     def _handlers():
-        if request.allow_metadata_stub:
-            return metadata_stub_handlers()
         return video_worker.graph_executor_handlers_from_artifact(
             job_id=job_id,
             jobs_store=_JOBS_STORE,
@@ -4334,7 +4302,7 @@ async def run_job_production_graph_executor_loop(
             "schema_version": "cinejelly.graph_executor_loop_start.v1",
             "job_id": job_id,
             "started": True,
-            "mode": "metadata_stub" if request.allow_metadata_stub else "paid_handlers",
+            "mode": "paid_handlers",
             "polling_url": f"/api/v1/director/jobs/{job_id}",
         }
 

@@ -122,7 +122,8 @@ class AtlasCloudClient:
         """Gen image — async pattern: submit → poll prediction.
 
         ⚠️ Đối với production dùng routes/image_direct.py + build_image_payload()
-        để build per-model schema chuẩn. Method này chỉ dùng cho test/demo nhanh.
+        để build per-model schema chuẩn. Method này là convenience wrapper
+        cho internal operator tools; public API không nên bypass route validation.
         """
         response = self.client.post(
             f"{self.base_url}/model/generateImage",

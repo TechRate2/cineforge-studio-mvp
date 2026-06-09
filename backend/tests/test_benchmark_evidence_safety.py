@@ -8,40 +8,22 @@ from agent.benchmark_evidence_pack_builder import (
     build_benchmark_result_draft_from_artifact,
 )
 from agent.benchmark_evidence_validator import REQUIRED_EVIDENCE_KEYS, has_real_output_url
-from agent.production_graph_executor import metadata_stub_handlers
 from api.routes.director import _assert_benchmark_payload_is_not_fabricated
 from core import autonomous_benchmark_store
 
 
-def test_stub_evidence_runner_does_not_write_synthetic_output_or_metrics() -> None:
-    batch = run_autonomous_benchmark_batch(niches=["beauty"], mode="stub_evidence", limit=1)
+def test_dry_run_benchmark_runner_does_not_write_synthetic_output_or_metrics() -> None:
+    batch = run_autonomous_benchmark_batch(niches=["beauty"], mode="dry_run", limit=1)
     row = batch["created"][0]
     try:
-        assert row["status"] == "needs_review"
+        assert row["status"] == "planned"
         assert row["output_url"] is None
         assert row["cost_usd"] is None
         assert row["latency_s"] is None
-        assert row["evidence"]["mode"] == "stub_evidence"
+        assert row["evidence"]["mode"] == "dry_run"
         assert row["evidence"]["metadata_only"] is True
     finally:
         autonomous_benchmark_store.delete_result(row["id"])
-
-
-def test_graph_metadata_stub_handlers_do_not_create_fake_outputs_or_qa() -> None:
-    handlers = metadata_stub_handlers()
-
-    shot = handlers["render_shot"]({"node_id": "shot_1", "shot_id": "S001"})
-    qa = handlers["run_qa"]({"node_id": "qa_1"})
-    assembly = handlers["assemble_final"]({"node_id": "assembly_1"})
-
-    payloads = [shot["payload_patch"], qa["payload_patch"], assembly["payload_patch"]]
-    for payload in payloads:
-        rendered = repr(payload)
-        assert "stub://" not in rendered
-        assert "output_url" not in payload
-        assert "stub_video_url" not in payload
-        assert payload["metadata_only"] is True
-    assert qa["payload_patch"]["quality_status"] == "metadata_only_no_real_qa"
 
 
 def test_benchmark_real_output_url_requires_http_url() -> None:

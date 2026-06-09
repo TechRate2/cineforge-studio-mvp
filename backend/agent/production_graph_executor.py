@@ -145,8 +145,7 @@ async def run_graph_executor_until_idle(
     """Advance a graph repeatedly until idle/noop/blocked or `max_cycles`.
 
     This is the background-loop primitive. It remains handler-injected so the
-    caller controls whether the loop uses paid vendor render handlers, metadata
-    stubs, or test doubles.
+    caller controls the real render/QA/delivery handlers used by the loop.
     """
     cycles: list[dict[str, Any]] = []
     for _ in range(max(1, min(int(max_cycles or 100), 1000))):
@@ -181,52 +180,6 @@ async def run_graph_executor_until_idle(
         "completed": bool(final_batch and final_batch.get("mode") == "noop"),
     }
 
-
-def metadata_stub_handlers() -> dict[str, GraphTaskHandler]:
-    """Return metadata-only handlers for local executor smoke tests only.
-
-    These handlers advance graph state for dependency smoke tests, but never
-    write synthetic output URLs, QA passes, render URLs, or delivery evidence.
-    """
-    def _shot(task: dict[str, Any]) -> dict[str, Any]:
-        return {
-            "outcome": "accepted",
-            "payload_patch": {
-                "executor_status": "metadata_stub",
-                "metadata_only": True,
-                "real_render_required": True,
-            },
-        }
-
-    def _qa(task: dict[str, Any]) -> dict[str, Any]:
-        return {
-            "outcome": "accepted",
-            "payload_patch": {
-                "executor_status": "metadata_stub",
-                "metadata_only": True,
-                "quality_status": "metadata_only_no_real_qa",
-                "real_qa_required": True,
-            },
-        }
-
-    def _assembly(task: dict[str, Any]) -> dict[str, Any]:
-        return {
-            "outcome": "accepted",
-            "payload_patch": {
-                "executor_status": "metadata_stub",
-                "metadata_only": True,
-                "real_delivery_required": True,
-            },
-        }
-
-    return {
-        "render_shot": _shot,
-        "retry_shot": _shot,
-        "run_qa": _qa,
-        "assemble_final": _assembly,
-    }
-
-
 def _handler_for_task(
     task: dict[str, Any],
     handlers: dict[str, GraphTaskHandler],
@@ -238,7 +191,6 @@ def _handler_for_task(
 
 __all__ = [
     "GraphTaskHandler",
-    "metadata_stub_handlers",
     "run_graph_executor_once",
     "run_graph_executor_until_idle",
 ]
