@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const baseUrl = process.env.STUDIO_BASE_URL || 'http://localhost:3000';
+const baseUrl = process.env.STUDIO_BASE_URL || 'http://localhost:3002';
 const studioUrl = new URL('/studio', baseUrl);
 
 const htmlRes = await fetch(studioUrl);
@@ -9,6 +9,9 @@ if (!htmlRes.ok) {
 }
 
 const html = await htmlRes.text();
+if (!html.includes('CineForge Agent Studio') && !html.includes('CineJelly Autonomous')) {
+  fail(`GET ${studioUrl.href} did not look like this repo's Studio app.`);
+}
 const cssHref = firstStylesheetHref(html);
 if (!cssHref) {
   fail('No stylesheet link found in /studio HTML.');

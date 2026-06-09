@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
+import { backendUrl } from '@/lib/server/backend-url';
 
-const BACKEND = process.env.BACKEND_URL || 'http://127.0.0.1:8001';
+const BACKEND = backendUrl();
 
 export async function PATCH(
   req: Request,

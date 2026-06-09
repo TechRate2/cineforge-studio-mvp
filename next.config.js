@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
-const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:8001';
+const BACKEND_URL = process.env.BACKEND_URL || (
+  process.env.NODE_ENV === 'production' ? '' : 'http://127.0.0.1:8001'
+);
+
+if (!BACKEND_URL) {
+  throw new Error('BACKEND_URL must be set for production builds/deployments.');
+}
 
 const nextConfig = {
   reactStrictMode: true,
